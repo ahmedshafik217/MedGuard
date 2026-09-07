@@ -125,31 +125,37 @@
         }
 
         input,
-        select {
-            flex: 1;
-            min-width: 0;
-            padding: 15px 18px;
+        select,
+        textarea {
+            width: 100%;
+            padding: 14px 16px;
             border: 1px solid #d8e1ea;
             border-radius: 10px;
-            font-size: 15px;
+            font-size: 14px;
             outline: none;
             background: white;
             color: #172b4d;
         }
 
         input:focus,
-        select:focus {
+        select:focus,
+        textarea:focus {
             border-color: #087f8c;
             box-shadow: 0 0 0 3px rgba(8,127,140,0.10);
         }
 
+        textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
         button {
-            padding: 15px 28px;
+            padding: 14px 24px;
             border: none;
             border-radius: 10px;
             background: #087f8c;
             color: white;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: bold;
             cursor: pointer;
             transition: 0.2s;
@@ -160,7 +166,17 @@
             transform: translateY(-1px);
         }
 
-        .search-message {
+        .secondary-button {
+            background: #e8f5f7;
+            color: #087f8c;
+        }
+
+        .secondary-button:hover {
+            background: #d7eef1;
+        }
+
+        .search-message,
+        .form-message {
             margin-top: 14px;
             font-size: 13px;
             line-height: 1.6;
@@ -251,26 +267,25 @@
             color: #063970;
         }
 
-        .allergy-box {
-            margin-top: 18px;
-            padding: 16px;
-            border-radius: 12px;
-            background: #fff1f0;
-            border: 1px solid #fecdca;
-            color: #b42318;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
+        .allergy-box,
         .no-allergy-box {
             margin-top: 18px;
             padding: 16px;
             border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .allergy-box {
+            background: #fff1f0;
+            border: 1px solid #fecdca;
+            color: #b42318;
+        }
+
+        .no-allergy-box {
             background: #ecfdf3;
             border: 1px solid #abefc6;
             color: #05603a;
-            font-size: 14px;
-            line-height: 1.6;
         }
 
         .result-box {
@@ -306,6 +321,35 @@
             font-weight: bold;
             font-size: 18px;
             margin-bottom: 8px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            color: #667085;
+            font-weight: bold;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-actions {
+            margin-top: 18px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
         .timeline {
@@ -351,26 +395,24 @@
             line-height: 1.6;
         }
 
-        .safe-tag {
-            display: inline-block;
-            margin-top: 8px;
-            padding: 5px 10px;
-            border-radius: 12px;
-            background: #e8f7ee;
-            color: #18794e;
-            font-size: 11px;
-            font-weight: bold;
-        }
-
+        .safe-tag,
         .danger-tag {
             display: inline-block;
             margin-top: 8px;
             padding: 5px 10px;
             border-radius: 12px;
-            background: #fff1f0;
-            color: #b42318;
             font-size: 11px;
             font-weight: bold;
+        }
+
+        .safe-tag {
+            background: #e8f7ee;
+            color: #18794e;
+        }
+
+        .danger-tag {
+            background: #fff1f0;
+            color: #b42318;
         }
 
         footer {
@@ -416,17 +458,22 @@
                 flex-direction: column;
             }
 
-            button {
-                width: 100%;
-            }
-
             .patient-header {
                 align-items: flex-start;
                 flex-direction: column;
             }
 
-            .stats {
+            .stats,
+            .form-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .full-width {
+                grid-column: auto;
+            }
+
+            button {
+                width: 100%;
             }
         }
     </style>
@@ -457,9 +504,9 @@
         </h2>
 
         <p>
-            A patient safety platform designed to help healthcare professionals
-            review antibiotic history, identify documented allergies and recent
-            antimicrobial exposure, and support safer prescribing decisions.
+            Review previous antibiotic exposure, documented allergies,
+            treatment history, and important safety alerts before prescribing
+            another antimicrobial agent.
         </p>
     </div>
 </section>
@@ -493,14 +540,12 @@
                 <div class="patient-avatar">👤</div>
 
                 <div>
-                    <h3 id="patientName">Patient</h3>
-                    <p id="patientSubtitle">Antibiotic Safety Profile</p>
+                    <h3 id="patientName"></h3>
+                    <p id="patientSubtitle"></p>
                 </div>
             </div>
 
-            <div class="risk-badge" id="riskBadge">
-                Safety Review
-            </div>
+            <div class="risk-badge" id="riskBadge"></div>
         </div>
 
         <div class="stats">
@@ -525,9 +570,7 @@
 
     <section class="card" id="antibioticChecker" hidden>
 
-        <h3 class="section-title">
-            💊 Current Antibiotic Safety Check
-        </h3>
+        <h3 class="section-title">💊 Current Antibiotic Safety Check</h3>
 
         <div class="checker-grid">
             <select id="antibioticSelect">
@@ -567,6 +610,118 @@
 
     </section>
 
+    <section class="card" id="addRecordCard" hidden>
+
+        <h3 class="section-title">➕ Add Antibiotic Record</h3>
+
+        <div class="form-grid">
+
+            <div class="form-group">
+                <label for="recordDrug">Antibiotic</label>
+                <select id="recordDrug">
+                    <option value="">Select antibiotic</option>
+                    <option value="Amoxicillin">Amoxicillin</option>
+                    <option value="Amoxicillin / Clavulanate">Amoxicillin / Clavulanate</option>
+                    <option value="Ampicillin">Ampicillin</option>
+                    <option value="Ampicillin / Sulbactam">Ampicillin / Sulbactam</option>
+                    <option value="Piperacillin / Tazobactam">Piperacillin / Tazobactam</option>
+                    <option value="Cefazolin">Cefazolin</option>
+                    <option value="Cefuroxime">Cefuroxime</option>
+                    <option value="Ceftriaxone">Ceftriaxone</option>
+                    <option value="Ceftazidime">Ceftazidime</option>
+                    <option value="Cefixime">Cefixime</option>
+                    <option value="Azithromycin">Azithromycin</option>
+                    <option value="Clarithromycin">Clarithromycin</option>
+                    <option value="Erythromycin">Erythromycin</option>
+                    <option value="Ciprofloxacin">Ciprofloxacin</option>
+                    <option value="Levofloxacin">Levofloxacin</option>
+                    <option value="Moxifloxacin">Moxifloxacin</option>
+                    <option value="Meropenem">Meropenem</option>
+                    <option value="Amikacin">Amikacin</option>
+                    <option value="Gentamicin">Gentamicin</option>
+                    <option value="Doxycycline">Doxycycline</option>
+                    <option value="Vancomycin">Vancomycin</option>
+                    <option value="Linezolid">Linezolid</option>
+                    <option value="Clindamycin">Clindamycin</option>
+                    <option value="Metronidazole">Metronidazole</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="recordRoute">Route</label>
+                <select id="recordRoute">
+                    <option value="">Select route</option>
+                    <option>Oral</option>
+                    <option>Intravenous</option>
+                    <option>Intramuscular</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="recordDose">Dose</label>
+                <input id="recordDose" type="text" placeholder="e.g. 1 g">
+            </div>
+
+            <div class="form-group">
+                <label for="recordFrequency">Frequency</label>
+                <input id="recordFrequency" type="text" placeholder="e.g. Every 12 hours">
+            </div>
+
+            <div class="form-group">
+                <label for="recordStart">Start Date</label>
+                <input id="recordStart" type="date">
+            </div>
+
+            <div class="form-group">
+                <label for="recordEnd">End Date</label>
+                <input id="recordEnd" type="date">
+            </div>
+
+            <div class="form-group full-width">
+                <label for="recordIndication">Indication</label>
+                <input id="recordIndication" type="text" placeholder="e.g. Community-acquired pneumonia">
+            </div>
+
+            <div class="form-group">
+                <label for="recordResponse">Clinical Response</label>
+                <select id="recordResponse">
+                    <option value="">Select response</option>
+                    <option>Improved</option>
+                    <option>No improvement</option>
+                    <option>Partially improved</option>
+                    <option>Unknown</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="recordReaction">Adverse Reaction</label>
+                <select id="recordReaction">
+                    <option value="No">No</option>
+                    <option value="Yes">Yes</option>
+                </select>
+            </div>
+
+            <div class="form-group full-width">
+                <label for="recordNotes">Notes</label>
+                <textarea id="recordNotes" placeholder="Optional clinical notes"></textarea>
+            </div>
+
+        </div>
+
+        <div class="form-actions">
+            <button type="button" onclick="saveAntibioticRecord()">
+                Save Antibiotic Record
+            </button>
+
+            <button type="button" class="secondary-button" onclick="clearRecordForm()">
+                Clear Form
+            </button>
+        </div>
+
+        <p id="recordMessage" class="form-message"></p>
+
+    </section>
+
     <section class="card" id="antibioticHistory" hidden>
         <h3 class="section-title">🧬 Antibiotic History</h3>
         <div class="timeline" id="timeline"></div>
@@ -577,12 +732,12 @@
 <footer>
     <strong>AB-SAFE — Patient Safety First</strong>
     <p>Clinical decision-support concept • Demonstration only</p>
-    <p>Sample patient data only. Not for real clinical prescribing.</p>
+    <p>Sample patient data only. Local browser storage is used for demo records.</p>
 </footer>
 
 <script>
 
-    const patients = {
+    const basePatients = {
 
         "AB-10245": {
             id: "AB-10245",
@@ -620,15 +775,6 @@
                     daysAgo: 270,
                     details: "Intravenous • 5 days course",
                     status: "COURSE COMPLETED"
-                },
-                {
-                    drug: "ciprofloxacin",
-                    name: "Ciprofloxacin",
-                    time: "14 months ago",
-                    daysAgo: 420,
-                    details: "Oral • Severe allergic reaction recorded",
-                    status: "ALLERGY RECORDED",
-                    danger: true
                 }
             ]
         },
@@ -643,11 +789,6 @@
                     drug: "amoxicillin",
                     name: "Amoxicillin",
                     reaction: "Immediate hypersensitivity reaction"
-                },
-                {
-                    drug: "amoxicillin-clavulanate",
-                    name: "Amoxicillin / Clavulanate",
-                    reaction: "Previous immediate hypersensitivity reaction"
                 }
             ],
             history: [
@@ -658,23 +799,6 @@
                     daysAgo: 18,
                     details: "Oral • 7 days course",
                     status: "COURSE COMPLETED"
-                },
-                {
-                    drug: "clarithromycin",
-                    name: "Clarithromycin",
-                    time: "6 months ago",
-                    daysAgo: 180,
-                    details: "Oral • 5 days course",
-                    status: "COURSE COMPLETED"
-                },
-                {
-                    drug: "amoxicillin",
-                    name: "Amoxicillin",
-                    time: "2 years ago",
-                    daysAgo: 730,
-                    details: "Oral • Immediate hypersensitivity reaction recorded",
-                    status: "ALLERGY RECORDED",
-                    danger: true
                 }
             ]
         },
@@ -693,28 +817,22 @@
                     daysAgo: 12,
                     details: "Intravenous • 5 days course",
                     status: "COURSE COMPLETED"
-                },
-                {
-                    drug: "levofloxacin",
-                    name: "Levofloxacin",
-                    time: "3 months ago",
-                    daysAgo: 90,
-                    details: "Oral • 7 days course",
-                    status: "COURSE COMPLETED"
-                },
-                {
-                    drug: "ceftriaxone",
-                    name: "Ceftriaxone",
-                    time: "8 months ago",
-                    daysAgo: 240,
-                    details: "Intravenous • 4 days course",
-                    status: "COURSE COMPLETED"
                 }
             ]
         }
     };
 
+    let patients = JSON.parse(JSON.stringify(basePatients));
     let currentPatient = null;
+
+    const savedRecords = JSON.parse(localStorage.getItem("abSafeRecords") || "{}");
+
+    Object.keys(savedRecords).forEach(function(patientID) {
+        if (patients[patientID]) {
+            patients[patientID].history =
+                savedRecords[patientID].concat(patients[patientID].history);
+        }
+    });
 
     const patientSearchForm = document.getElementById("patientSearchForm");
     const patientSearch = document.getElementById("patientSearch");
@@ -722,6 +840,7 @@
 
     const patientProfile = document.getElementById("patientProfile");
     const antibioticChecker = document.getElementById("antibioticChecker");
+    const addRecordCard = document.getElementById("addRecordCard");
     const antibioticHistory = document.getElementById("antibioticHistory");
 
     const patientName = document.getElementById("patientName");
@@ -738,12 +857,22 @@
     const antibioticSelect = document.getElementById("antibioticSelect");
     const safetyResult = document.getElementById("safetyResult");
 
+    const recordMessage = document.getElementById("recordMessage");
+
+    function normaliseDrugName(name) {
+        return name
+            .toLowerCase()
+            .replaceAll(" / ", "-")
+            .replaceAll("/", "-")
+            .replaceAll(" ", "-");
+    }
+
     function hidePatientData() {
         patientProfile.hidden = true;
         antibioticChecker.hidden = true;
+        addRecordCard.hidden = true;
         antibioticHistory.hidden = true;
         safetyResult.style.display = "none";
-        antibioticSelect.value = "";
         currentPatient = null;
     }
 
@@ -758,21 +887,22 @@
         antibioticCount.textContent = patient.history.length;
         allergyCount.textContent = patient.allergies.length;
 
-        if (patient.history.length > 0) {
-            recentExposure.textContent = patient.history[0].time;
-        } else {
-            recentExposure.textContent = "None";
-        }
+        recentExposure.textContent =
+            patient.history.length > 0
+            ? patient.history[0].time
+            : "None";
 
         renderAllergies(patient);
         renderHistory(patient);
 
         patientProfile.hidden = false;
         antibioticChecker.hidden = false;
+        addRecordCard.hidden = false;
         antibioticHistory.hidden = false;
 
         safetyResult.style.display = "none";
         antibioticSelect.value = "";
+        recordMessage.textContent = "";
     }
 
     function renderAllergies(patient) {
@@ -807,7 +937,8 @@
 
         patient.history.forEach(function(item) {
 
-            const tagClass = item.danger ? "danger-tag" : "safe-tag";
+            const tagClass =
+                item.danger ? "danger-tag" : "safe-tag";
 
             timeline.innerHTML +=
                 '<div class="timeline-item">' +
@@ -837,10 +968,8 @@
         hidePatientData();
 
         if (patientID === "") {
-            searchMessage.textContent =
-                "Please enter a Patient ID.";
-            searchMessage.className =
-                "search-message error";
+            searchMessage.textContent = "Please enter a Patient ID.";
+            searchMessage.className = "search-message error";
             return;
         }
 
@@ -849,8 +978,7 @@
         if (!patient) {
             searchMessage.textContent =
                 "Patient not found in demo database. Try AB-10245, AB-20418 or AB-33021.";
-            searchMessage.className =
-                "search-message error";
+            searchMessage.className = "search-message error";
             return;
         }
 
@@ -865,8 +993,7 @@
 
     function showSafetyResult(type, title, message) {
 
-        safetyResult.className =
-            "result-box " + type;
+        safetyResult.className = "result-box " + type;
 
         safetyResult.innerHTML =
             '<div class="result-title">' +
@@ -893,13 +1020,11 @@
             ].text;
 
         if (selectedDrug === "") {
-
             showSafetyResult(
                 "result-yellow",
                 "⚠️ Antibiotic Required",
                 "Please select the proposed antibiotic before running the safety check."
             );
-
             return;
         }
 
@@ -909,16 +1034,14 @@
             });
 
         if (allergy) {
-
             showSafetyResult(
                 "result-red",
                 "🚨 RED FLAG — Documented Allergy",
                 selectedName +
-                " is associated with a documented previous reaction in this patient's record: " +
+                " is associated with a documented previous reaction: " +
                 allergy.reaction +
-                ". Do not proceed without appropriate clinical review."
+                ". Clinical review is required before any further exposure."
             );
-
             return;
         }
 
@@ -928,30 +1051,26 @@
             });
 
         if (previousUse && previousUse.daysAgo <= 30) {
-
             showSafetyResult(
                 "result-yellow",
                 "⚠️ Recent Repeat Exposure",
                 selectedName +
                 " was recorded " +
                 previousUse.time +
-                ". Review the indication, previous response, microbiology data, resistance risk, and need for repeat exposure before prescribing."
+                ". Review indication, microbiology, treatment response and resistance risk before repeat use."
             );
-
             return;
         }
 
         if (previousUse) {
-
             showSafetyResult(
                 "result-yellow",
                 "ℹ️ Previous Antibiotic Exposure Identified",
                 selectedName +
                 " appears in this patient's previous antibiotic history (" +
                 previousUse.time +
-                "). No recent repeat-exposure alert was triggered, but the previous course should still be considered during clinical review."
+                "). Previous treatment history should be considered during clinical review."
             );
-
             return;
         }
 
@@ -960,9 +1079,177 @@
             "✅ No Recorded Safety Alert",
             "No documented allergy or previous exposure to " +
             selectedName +
-            " was identified in this demo patient's current AB-SAFE record. " +
-            "This does not confirm clinical appropriateness; indication, cultures, organ function, interactions, dosing and local antimicrobial guidelines still require review."
+            " was identified in the current AB-SAFE record. This does not confirm clinical appropriateness."
         );
+    }
+
+    function calculateDaysAgo(dateString) {
+
+        const enteredDate = new Date(dateString);
+        const today = new Date();
+
+        const difference =
+            today.getTime() - enteredDate.getTime();
+
+        return Math.max(
+            0,
+            Math.floor(difference / (1000 * 60 * 60 * 24))
+        );
+    }
+
+    function formatDate(dateString) {
+
+        if (!dateString) {
+            return "";
+        }
+
+        return new Date(dateString).toLocaleDateString();
+    }
+
+    function saveAntibioticRecord() {
+
+        if (!currentPatient) {
+            return;
+        }
+
+        const drug =
+            document.getElementById("recordDrug").value;
+
+        const route =
+            document.getElementById("recordRoute").value;
+
+        const dose =
+            document.getElementById("recordDose").value.trim();
+
+        const frequency =
+            document.getElementById("recordFrequency").value.trim();
+
+        const startDate =
+            document.getElementById("recordStart").value;
+
+        const endDate =
+            document.getElementById("recordEnd").value;
+
+        const indication =
+            document.getElementById("recordIndication").value.trim();
+
+        const response =
+            document.getElementById("recordResponse").value;
+
+        const reaction =
+            document.getElementById("recordReaction").value;
+
+        const notes =
+            document.getElementById("recordNotes").value.trim();
+
+        if (!drug || !route || !startDate || !indication) {
+
+            recordMessage.textContent =
+                "Please complete Antibiotic, Route, Start Date and Indication.";
+
+            recordMessage.className =
+                "form-message error";
+
+            return;
+        }
+
+        const detailsParts = [];
+
+        detailsParts.push(route);
+
+        if (dose) {
+            detailsParts.push(dose);
+        }
+
+        if (frequency) {
+            detailsParts.push(frequency);
+        }
+
+        if (endDate) {
+            detailsParts.push(
+                formatDate(startDate) +
+                " to " +
+                formatDate(endDate)
+            );
+        } else {
+            detailsParts.push(
+                "Started " + formatDate(startDate)
+            );
+        }
+
+        detailsParts.push("Indication: " + indication);
+
+        if (response) {
+            detailsParts.push("Response: " + response);
+        }
+
+        if (reaction === "Yes") {
+            detailsParts.push("Adverse reaction reported");
+        }
+
+        if (notes) {
+            detailsParts.push("Notes: " + notes);
+        }
+
+        const newRecord = {
+            drug: normaliseDrugName(drug),
+            name: drug,
+            time: formatDate(startDate),
+            daysAgo: calculateDaysAgo(startDate),
+            details: detailsParts.join(" • "),
+            status:
+                reaction === "Yes"
+                ? "ADVERSE REACTION RECORDED"
+                : "ANTIBIOTIC RECORD ADDED",
+            danger: reaction === "Yes"
+        };
+
+        currentPatient.history.unshift(newRecord);
+
+        if (!savedRecords[currentPatient.id]) {
+            savedRecords[currentPatient.id] = [];
+        }
+
+        savedRecords[currentPatient.id].unshift(newRecord);
+
+        localStorage.setItem(
+            "abSafeRecords",
+            JSON.stringify(savedRecords)
+        );
+
+        renderHistory(currentPatient);
+
+        antibioticCount.textContent =
+            currentPatient.history.length;
+
+        recentExposure.textContent =
+            currentPatient.history[0].time;
+
+        recordMessage.textContent =
+            "Antibiotic record saved successfully on this demo device.";
+
+        recordMessage.className =
+            "form-message success";
+
+        clearRecordForm(false);
+    }
+
+    function clearRecordForm(clearMessage = true) {
+
+        document.getElementById("recordDrug").value = "";
+        document.getElementById("recordRoute").value = "";
+        document.getElementById("recordDose").value = "";
+        document.getElementById("recordFrequency").value = "";
+        document.getElementById("recordStart").value = "";
+        document.getElementById("recordEnd").value = "";
+        document.getElementById("recordIndication").value = "";
+        document.getElementById("recordResponse").value = "";
+        document.getElementById("recordReaction").value = "No";
+        document.getElementById("recordNotes").value = "";
+
+        if (clearMessage) {
+            recordMessage.textContent = "";
+        }
     }
 
 </script>
