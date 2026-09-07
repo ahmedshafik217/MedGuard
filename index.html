@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,8 +17,6 @@
             background: #f4f8fb;
             color: #172b4d;
         }
-
-        /* ===== HEADER ===== */
 
         header {
             background: linear-gradient(135deg, #063970, #087f8c);
@@ -74,8 +71,6 @@
             box-shadow: 0 0 8px #42e695;
         }
 
-        /* ===== HERO ===== */
-
         .hero {
             padding: 55px 6% 35px;
             background: white;
@@ -98,12 +93,10 @@
 
         .hero p {
             color: #667085;
-            max-width: 700px;
+            max-width: 760px;
             line-height: 1.7;
             font-size: 16px;
         }
-
-        /* ===== DASHBOARD ===== */
 
         .dashboard {
             max-width: 1200px;
@@ -111,11 +104,7 @@
             padding: 0 20px;
         }
 
-        /* ===== SHARED CARDS ===== */
-
-        .search-card,
-        .patient-card,
-        .history-card {
+        .card {
             background: white;
             border-radius: 18px;
             padding: 28px;
@@ -129,14 +118,14 @@
             color: #063970;
         }
 
-        /* ===== SEARCH ===== */
-
-        .search-box {
+        .search-box,
+        .checker-grid {
             display: flex;
             gap: 12px;
         }
 
-        .search-box input {
+        input,
+        select {
             flex: 1;
             min-width: 0;
             padding: 15px 18px;
@@ -144,14 +133,17 @@
             border-radius: 10px;
             font-size: 15px;
             outline: none;
+            background: white;
+            color: #172b4d;
         }
 
-        .search-box input:focus {
+        input:focus,
+        select:focus {
             border-color: #087f8c;
             box-shadow: 0 0 0 3px rgba(8,127,140,0.10);
         }
 
-        .search-box button {
+        button {
             padding: 15px 28px;
             border: none;
             border-radius: 10px;
@@ -163,7 +155,7 @@
             transition: 0.2s;
         }
 
-        .search-box button:hover {
+        button:hover {
             background: #066d77;
             transform: translateY(-1px);
         }
@@ -174,11 +166,11 @@
             line-height: 1.6;
         }
 
-        .search-message.error {
+        .error {
             color: #b42318;
         }
 
-        .search-message.success {
+        .success {
             color: #18794e;
         }
 
@@ -187,8 +179,6 @@
             color: #7b8794;
             font-size: 12px;
         }
-
-        /* ===== PATIENT ===== */
 
         .patient-header {
             display: flex;
@@ -218,7 +208,6 @@
 
         .patient-info h3 {
             font-size: 21px;
-            color: #172b4d;
         }
 
         .patient-info p {
@@ -234,10 +223,7 @@
             color: #b76e00;
             font-size: 13px;
             font-weight: bold;
-            white-space: nowrap;
         }
-
-        /* ===== STATS ===== */
 
         .stats {
             display: grid;
@@ -264,40 +250,51 @@
             color: #063970;
         }
 
-        /* ===== ALERT ===== */
-
-        .alert-card {
-            background: #fff7ed;
-            border: 1px solid #fed7aa;
-            border-left: 5px solid #f59e0b;
-            border-radius: 15px;
-            padding: 22px;
-            margin-bottom: 25px;
-        }
-
-        .alert-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .alert-icon {
-            font-size: 23px;
-        }
-
-        .alert-header h3 {
-            color: #9a5b00;
-            font-size: 18px;
-        }
-
-        .alert-card p {
-            color: #6b4a16;
-            line-height: 1.6;
+        .allergy-box {
+            margin-top: 18px;
+            padding: 16px;
+            border-radius: 12px;
+            background: #fff1f0;
+            border: 1px solid #fecdca;
+            color: #b42318;
             font-size: 14px;
+            line-height: 1.6;
         }
 
-        /* ===== HISTORY ===== */
+        .result-box {
+            margin-top: 18px;
+            padding: 20px;
+            border-radius: 14px;
+            line-height: 1.6;
+            display: none;
+        }
+
+        .result-red {
+            background: #fff1f0;
+            border: 1px solid #fda29b;
+            border-left: 5px solid #d92d20;
+            color: #912018;
+        }
+
+        .result-yellow {
+            background: #fffaeb;
+            border: 1px solid #fedf89;
+            border-left: 5px solid #f79009;
+            color: #93370d;
+        }
+
+        .result-green {
+            background: #ecfdf3;
+            border: 1px solid #abefc6;
+            border-left: 5px solid #17b26a;
+            color: #05603a;
+        }
+
+        .result-title {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
 
         .timeline {
             margin-top: 25px;
@@ -308,10 +305,6 @@
         .timeline-item {
             position: relative;
             padding-bottom: 28px;
-        }
-
-        .timeline-item:last-child {
-            padding-bottom: 0;
         }
 
         .timeline-item::before {
@@ -343,7 +336,6 @@
             margin-top: 5px;
             color: #667085;
             font-size: 13px;
-            line-height: 1.6;
         }
 
         .safe-tag {
@@ -357,8 +349,6 @@
             font-weight: bold;
         }
 
-        /* ===== FOOTER ===== */
-
         footer {
             background: #063970;
             color: white;
@@ -370,10 +360,7 @@
         footer p {
             margin-top: 5px;
             opacity: 0.7;
-            line-height: 1.6;
         }
-
-        /* ===== MOBILE ===== */
 
         @media (max-width: 700px) {
             header {
@@ -396,17 +383,16 @@
                 padding: 0 12px;
             }
 
-            .search-card,
-            .patient-card,
-            .history-card {
+            .card {
                 padding: 22px 18px;
             }
 
-            .search-box {
+            .search-box,
+            .checker-grid {
                 flex-direction: column;
             }
 
-            .search-box button {
+            button {
                 width: 100%;
             }
 
@@ -424,241 +410,332 @@
 
 <body>
 
-    <!-- HEADER -->
+<header>
+    <div class="logo">
+        <div class="logo-icon">🛡️</div>
+        <div>
+            <h1>AB-SAFE</h1>
+            <p>Antibiotic Safety System</p>
+        </div>
+    </div>
 
-    <header>
-        <div class="logo">
-            <div class="logo-icon">🛡️</div>
-            <div>
-                <h1>AB-SAFE</h1>
-                <p>Antibiotic Safety System</p>
+    <div class="system-status">
+        <div class="status-dot"></div>
+        Demo Safety Engine
+    </div>
+</header>
+
+<section class="hero">
+    <div class="hero-content">
+        <h2>
+            Protecting patients through
+            <span>smarter antibiotic safety.</span>
+        </h2>
+
+        <p>
+            A patient safety platform designed to help healthcare professionals
+            review antibiotic history, identify previous allergies and recent
+            antimicrobial exposure, and support safer prescribing decisions.
+        </p>
+    </div>
+</section>
+
+<main class="dashboard">
+
+    <section class="card">
+        <h3 class="section-title">🔎 Patient Safety Check</h3>
+
+        <form class="search-box" id="patientSearchForm">
+            <input
+                type="text"
+                id="patientSearch"
+                placeholder="Enter Patient ID or Medical Record Number"
+                autocomplete="off"
+            >
+            <button type="submit">Check Patient</button>
+        </form>
+
+        <p class="demo-hint">
+            Demo access: enter AB-10245
+        </p>
+
+        <p id="searchMessage" class="search-message"></p>
+    </section>
+
+    <section class="card" id="patientProfile" hidden>
+
+        <div class="patient-header">
+            <div class="patient-info">
+                <div class="patient-avatar">👤</div>
+
+                <div>
+                    <h3>Patient #AB-10245</h3>
+                    <p>Demo patient • Antibiotic Safety Profile</p>
+                </div>
+            </div>
+
+            <div class="risk-badge">
+                ⚠️ Safety Review Required
             </div>
         </div>
 
-        <div class="system-status">
-            <div class="status-dot"></div>
-            Demo Safety Engine
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-label">Antibiotics Recorded</div>
+                <div class="stat-value">4</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-label">Recent Exposure</div>
+                <div class="stat-value">21 days</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-label">Documented Allergies</div>
+                <div class="stat-value">1</div>
+            </div>
         </div>
-    </header>
 
-    <!-- HERO -->
-
-    <section class="hero">
-        <div class="hero-content">
-            <h2>
-                Protecting patients through
-                <span>smarter antibiotic safety.</span>
-            </h2>
-
-            <p>
-                A patient safety platform designed to help healthcare
-                professionals review antibiotic history, identify potential
-                medication-related risks, and make safer clinical decisions.
-            </p>
+        <div class="allergy-box">
+            <strong>🚨 Documented Allergy:</strong>
+            Ciprofloxacin — previous severe allergic reaction recorded.
         </div>
     </section>
 
-    <!-- DASHBOARD -->
+    <section class="card" id="antibioticChecker" hidden>
 
-    <main class="dashboard">
+        <h3 class="section-title">
+            💊 Current Antibiotic Safety Check
+        </h3>
 
-        <!-- SEARCH -->
+        <div class="checker-grid">
+            <select id="antibioticSelect">
+                <option value="">Select proposed antibiotic</option>
+                <option value="amoxicillin">Amoxicillin</option>
+                <option value="amoxicillin-clavulanate">Amoxicillin / Clavulanate</option>
+                <option value="ampicillin">Ampicillin</option>
+                <option value="ceftriaxone">Ceftriaxone</option>
+                <option value="cefuroxime">Cefuroxime</option>
+                <option value="cefixime">Cefixime</option>
+                <option value="azithromycin">Azithromycin</option>
+                <option value="clarithromycin">Clarithromycin</option>
+                <option value="ciprofloxacin">Ciprofloxacin</option>
+                <option value="levofloxacin">Levofloxacin</option>
+                <option value="meropenem">Meropenem</option>
+                <option value="piperacillin-tazobactam">Piperacillin / Tazobactam</option>
+                <option value="vancomycin">Vancomycin</option>
+                <option value="linezolid">Linezolid</option>
+            </select>
 
-        <section class="search-card">
-            <h3 class="section-title">🔎 Patient Safety Check</h3>
+            <button type="button" onclick="checkAntibioticSafety()">
+                Run Safety Check
+            </button>
+        </div>
 
-            <form class="search-box" id="patientSearchForm">
-                <input
-                    type="text"
-                    id="patientSearch"
-                    placeholder="Enter Patient ID or Medical Record Number"
-                    aria-label="Patient ID or Medical Record Number"
-                    autocomplete="off"
-                >
+        <div id="safetyResult" class="result-box"></div>
 
-                <button type="submit">Check Patient</button>
-            </form>
+    </section>
 
-            <p class="demo-hint">
-                Demo access: enter AB-10245 to load the sample patient.
-            </p>
+    <section class="card" id="antibioticHistory" hidden>
 
-            <p
-                id="searchMessage"
-                class="search-message"
-                role="status"
-                aria-live="polite"
-            ></p>
-        </section>
+        <h3 class="section-title">
+            🧬 Antibiotic History
+        </h3>
 
-        <!-- PATIENT -->
+        <div class="timeline">
 
-        <section class="patient-card" id="patientProfile" hidden>
-
-            <div class="patient-header">
-                <div class="patient-info">
-                    <div class="patient-avatar">👤</div>
-
-                    <div>
-                        <h3>Patient #AB-10245</h3>
-                        <p>Demo patient • Medical Safety Profile</p>
-                    </div>
+            <div class="timeline-item">
+                <div class="timeline-date">21 days ago</div>
+                <div class="antibiotic-name">
+                    Amoxicillin / Clavulanate
                 </div>
+                <div class="antibiotic-details">
+                    Oral • 7 days course
+                </div>
+                <span class="safe-tag">COURSE COMPLETED</span>
+            </div>
 
-                <div class="risk-badge">
-                    ⚠️ Review Required
+            <div class="timeline-item">
+                <div class="timeline-date">4 months ago</div>
+                <div class="antibiotic-name">
+                    Azithromycin
+                </div>
+                <div class="antibiotic-details">
+                    Oral • 5 days course
+                </div>
+                <span class="safe-tag">COURSE COMPLETED</span>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-date">9 months ago</div>
+                <div class="antibiotic-name">
+                    Ceftriaxone
+                </div>
+                <div class="antibiotic-details">
+                    Intravenous • 5 days course
+                </div>
+                <span class="safe-tag">COURSE COMPLETED</span>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-date">14 months ago</div>
+                <div class="antibiotic-name">
+                    Ciprofloxacin
+                </div>
+                <div class="antibiotic-details">
+                    Oral • 5 days course • Severe allergy documented
                 </div>
             </div>
 
-            <div class="stats">
-                <div class="stat">
-                    <div class="stat-label">Antibiotics Recorded</div>
-                    <div class="stat-value">4</div>
-                </div>
+        </div>
+    </section>
 
-                <div class="stat">
-                    <div class="stat-label">Recent Exposure</div>
-                    <div class="stat-value">21 days</div>
-                </div>
+</main>
 
-                <div class="stat">
-                    <div class="stat-label">Safety Alerts</div>
-                    <div class="stat-value">1</div>
-                </div>
-            </div>
+<footer>
+    <strong>AB-SAFE — Patient Safety First</strong>
+    <p>Clinical decision-support concept • Demonstration only</p>
+    <p>Sample patient data only. Not for real clinical prescribing.</p>
+</footer>
 
-        </section>
+<script>
+    const patientSearchForm = document.getElementById("patientSearchForm");
+    const patientSearch = document.getElementById("patientSearch");
+    const searchMessage = document.getElementById("searchMessage");
 
-        <!-- ALERT -->
+    const patientProfile = document.getElementById("patientProfile");
+    const antibioticChecker = document.getElementById("antibioticChecker");
+    const antibioticHistory = document.getElementById("antibioticHistory");
 
-        <section class="alert-card" id="safetyAlert" hidden>
-            <div class="alert-header">
-                <div class="alert-icon">⚠️</div>
-                <h3>Antibiotic Safety Alert</h3>
-            </div>
+    const antibioticSelect = document.getElementById("antibioticSelect");
+    const safetyResult = document.getElementById("safetyResult");
 
-            <p>
-                The patient's antibiotic history indicates a recent exposure
-                that may require clinical review before prescribing another
-                antimicrobial agent. Please review the patient's medication
-                history and relevant clinical factors before making a
-                prescribing decision.
-            </p>
-        </section>
+    function hidePatientData() {
+        patientProfile.hidden = true;
+        antibioticChecker.hidden = true;
+        antibioticHistory.hidden = true;
 
-        <!-- HISTORY -->
+        safetyResult.style.display = "none";
+    }
 
-        <section class="history-card" id="antibioticHistory" hidden>
-            <h3 class="section-title">🧬 Antibiotic History</h3>
+    function showPatientData() {
+        patientProfile.hidden = false;
+        antibioticChecker.hidden = false;
+        antibioticHistory.hidden = false;
+    }
 
-            <div class="timeline">
+    patientSearchForm.addEventListener("submit", function(event) {
+        event.preventDefault();
 
-                <div class="timeline-item">
-                    <div class="timeline-date">21 days ago</div>
-                    <div class="antibiotic-name">
-                        Amoxicillin / Clavulanate
-                    </div>
-                    <div class="antibiotic-details">
-                        Oral • 7 days course
-                    </div>
-                    <span class="safe-tag">COURSE COMPLETED</span>
-                </div>
+        const patientID = patientSearch.value.trim().toUpperCase();
 
-                <div class="timeline-item">
-                    <div class="timeline-date">4 months ago</div>
-                    <div class="antibiotic-name">Azithromycin</div>
-                    <div class="antibiotic-details">
-                        Oral • 5 days course
-                    </div>
-                    <span class="safe-tag">COURSE COMPLETED</span>
-                </div>
+        hidePatientData();
 
-                <div class="timeline-item">
-                    <div class="timeline-date">9 months ago</div>
-                    <div class="antibiotic-name">Ceftriaxone</div>
-                    <div class="antibiotic-details">
-                        Intravenous • 5 days course
-                    </div>
-                    <span class="safe-tag">COURSE COMPLETED</span>
-                </div>
-
-                <div class="timeline-item">
-                    <div class="timeline-date">14 months ago</div>
-                    <div class="antibiotic-name">Ciprofloxacin</div>
-                    <div class="antibiotic-details">
-                        Oral • 5 days course
-                    </div>
-                    <span class="safe-tag">COURSE COMPLETED</span>
-                </div>
-
-            </div>
-        </section>
-
-    </main>
-
-    <!-- FOOTER -->
-
-    <footer>
-        <strong>AB-SAFE — Patient Safety First</strong>
-        <p>
-            Clinical decision-support concept • For demonstration purposes
-        </p>
-        <p>
-            Sample data only. Not for real patient care or prescribing decisions.
-        </p>
-    </footer>
-
-    <!-- JAVASCRIPT -->
-
-    <script>
-        const searchForm = document.getElementById("patientSearchForm");
-        const searchInput = document.getElementById("patientSearch");
-        const searchMessage = document.getElementById("searchMessage");
-
-        const patientProfile = document.getElementById("patientProfile");
-        const safetyAlert = document.getElementById("safetyAlert");
-        const antibioticHistory = document.getElementById("antibioticHistory");
-
-        function hidePatient() {
-            patientProfile.hidden = true;
-            safetyAlert.hidden = true;
-            antibioticHistory.hidden = true;
+        if (patientID === "") {
+            searchMessage.textContent = "Please enter a Patient ID.";
+            searchMessage.className = "search-message error";
+            return;
         }
 
-        function showPatient() {
-            patientProfile.hidden = false;
-            safetyAlert.hidden = false;
-            antibioticHistory.hidden = false;
+        if (patientID === "AB-10245") {
+            showPatientData();
+
+            searchMessage.textContent =
+                "Patient antibiotic safety profile loaded successfully.";
+
+            searchMessage.className = "search-message success";
+        } else {
+            searchMessage.textContent =
+                "Patient not found in demo database. Please enter AB-10245.";
+
+            searchMessage.className = "search-message error";
+        }
+    });
+
+    function showSafetyResult(type, title, message) {
+
+        safetyResult.className = "result-box " + type;
+
+        safetyResult.innerHTML =
+            '<div class="result-title">' +
+            title +
+            '</div><div>' +
+            message +
+            '</div>';
+
+        safetyResult.style.display = "block";
+    }
+
+    function checkAntibioticSafety() {
+
+        const antibiotic = antibioticSelect.value;
+
+        if (antibiotic === "") {
+            showSafetyResult(
+                "result-yellow",
+                "⚠️ Antibiotic Required",
+                "Please select the proposed antibiotic before running the safety check."
+            );
+
+            return;
         }
 
-        function searchPatient() {
-            const patientID = searchInput.value.trim().toUpperCase();
+        if (antibiotic === "ciprofloxacin") {
 
-            hidePatient();
+            showSafetyResult(
+                "result-red",
+                "🚨 RED FLAG — Documented Allergy",
+                "Ciprofloxacin should not be selected without urgent clinical review. " +
+                "This demo patient has a documented previous severe allergic reaction to ciprofloxacin."
+            );
 
-            if (patientID === "") {
-                searchMessage.textContent = "Please enter a Patient ID.";
-                searchMessage.className = "search-message error";
-                return;
-            }
-
-            if (patientID === "AB-10245") {
-                showPatient();
-                searchMessage.textContent =
-                    "Demo patient safety profile loaded successfully.";
-                searchMessage.className = "search-message success";
-            } else {
-                searchMessage.textContent =
-                    "No demo patient found. Please enter AB-10245.";
-                searchMessage.className = "search-message error";
-            }
+            return;
         }
 
-        searchForm.addEventListener("submit", function(event) {
-            event.preventDefault();
-            searchPatient();
-        });
-    </script>
+        if (antibiotic === "amoxicillin-clavulanate") {
+
+            showSafetyResult(
+                "result-yellow",
+                "⚠️ Recent Antibiotic Exposure",
+                "Amoxicillin / Clavulanate was recorded 21 days ago. " +
+                "Review the indication, previous response, microbiology results, and need for repeat exposure before prescribing."
+            );
+
+            return;
+        }
+
+        if (antibiotic === "azithromycin") {
+
+            showSafetyResult(
+                "result-yellow",
+                "⚠️ Previous Exposure Identified",
+                "Azithromycin was previously recorded 4 months ago. " +
+                "No allergy is documented in this demo profile, but previous antimicrobial use should still be considered during clinical review."
+            );
+
+            return;
+        }
+
+        if (antibiotic === "ceftriaxone") {
+
+            showSafetyResult(
+                "result-green",
+                "✅ No Recorded Safety Alert",
+                "No allergy or recent repeat exposure alert for ceftriaxone was identified in this demo patient record. " +
+                "Clinical indication, renal/hepatic status, microbiology, interactions, and local guidelines must still be reviewed."
+            );
+
+            return;
+        }
+
+        showSafetyResult(
+            "result-green",
+            "✅ No Recorded Safety Alert",
+            "No specific allergy or recent repeat-exposure alert was identified for this antibiotic in the current demo record. " +
+            "This does not confirm that the antibiotic is clinically appropriate. Full clinical assessment is still required."
+        );
+    }
+</script>
 
 </body>
 </html>
