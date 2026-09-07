@@ -178,6 +178,7 @@
             margin-top: 12px;
             color: #7b8794;
             font-size: 12px;
+            line-height: 1.7;
         }
 
         .patient-header {
@@ -261,6 +262,17 @@
             line-height: 1.6;
         }
 
+        .no-allergy-box {
+            margin-top: 18px;
+            padding: 16px;
+            border-radius: 12px;
+            background: #ecfdf3;
+            border: 1px solid #abefc6;
+            color: #05603a;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
         .result-box {
             margin-top: 18px;
             padding: 20px;
@@ -336,6 +348,7 @@
             margin-top: 5px;
             color: #667085;
             font-size: 13px;
+            line-height: 1.6;
         }
 
         .safe-tag {
@@ -345,6 +358,17 @@
             border-radius: 12px;
             background: #e8f7ee;
             color: #18794e;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .danger-tag {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 5px 10px;
+            border-radius: 12px;
+            background: #fff1f0;
+            color: #b42318;
             font-size: 11px;
             font-weight: bold;
         }
@@ -434,7 +458,7 @@
 
         <p>
             A patient safety platform designed to help healthcare professionals
-            review antibiotic history, identify previous allergies and recent
+            review antibiotic history, identify documented allergies and recent
             antimicrobial exposure, and support safer prescribing decisions.
         </p>
     </div>
@@ -456,7 +480,7 @@
         </form>
 
         <p class="demo-hint">
-            Demo access: enter AB-10245
+            Demo patients: AB-10245 • AB-20418 • AB-33021
         </p>
 
         <p id="searchMessage" class="search-message"></p>
@@ -469,37 +493,34 @@
                 <div class="patient-avatar">👤</div>
 
                 <div>
-                    <h3>Patient #AB-10245</h3>
-                    <p>Demo patient • Antibiotic Safety Profile</p>
+                    <h3 id="patientName">Patient</h3>
+                    <p id="patientSubtitle">Antibiotic Safety Profile</p>
                 </div>
             </div>
 
-            <div class="risk-badge">
-                ⚠️ Safety Review Required
+            <div class="risk-badge" id="riskBadge">
+                Safety Review
             </div>
         </div>
 
         <div class="stats">
             <div class="stat">
                 <div class="stat-label">Antibiotics Recorded</div>
-                <div class="stat-value">4</div>
+                <div class="stat-value" id="antibioticCount">0</div>
             </div>
 
             <div class="stat">
-                <div class="stat-label">Recent Exposure</div>
-                <div class="stat-value">21 days</div>
+                <div class="stat-label">Most Recent Exposure</div>
+                <div class="stat-value" id="recentExposure">—</div>
             </div>
 
             <div class="stat">
                 <div class="stat-label">Documented Allergies</div>
-                <div class="stat-value">1</div>
+                <div class="stat-value" id="allergyCount">0</div>
             </div>
         </div>
 
-        <div class="allergy-box">
-            <strong>🚨 Documented Allergy:</strong>
-            Ciprofloxacin — previous severe allergic reaction recorded.
-        </div>
+        <div id="allergySummary"></div>
     </section>
 
     <section class="card" id="antibioticChecker" hidden>
@@ -514,17 +535,27 @@
                 <option value="amoxicillin">Amoxicillin</option>
                 <option value="amoxicillin-clavulanate">Amoxicillin / Clavulanate</option>
                 <option value="ampicillin">Ampicillin</option>
-                <option value="ceftriaxone">Ceftriaxone</option>
+                <option value="ampicillin-sulbactam">Ampicillin / Sulbactam</option>
+                <option value="piperacillin-tazobactam">Piperacillin / Tazobactam</option>
+                <option value="cefazolin">Cefazolin</option>
                 <option value="cefuroxime">Cefuroxime</option>
+                <option value="ceftriaxone">Ceftriaxone</option>
+                <option value="ceftazidime">Ceftazidime</option>
                 <option value="cefixime">Cefixime</option>
                 <option value="azithromycin">Azithromycin</option>
                 <option value="clarithromycin">Clarithromycin</option>
+                <option value="erythromycin">Erythromycin</option>
                 <option value="ciprofloxacin">Ciprofloxacin</option>
                 <option value="levofloxacin">Levofloxacin</option>
+                <option value="moxifloxacin">Moxifloxacin</option>
                 <option value="meropenem">Meropenem</option>
-                <option value="piperacillin-tazobactam">Piperacillin / Tazobactam</option>
+                <option value="amikacin">Amikacin</option>
+                <option value="gentamicin">Gentamicin</option>
+                <option value="doxycycline">Doxycycline</option>
                 <option value="vancomycin">Vancomycin</option>
                 <option value="linezolid">Linezolid</option>
+                <option value="clindamycin">Clindamycin</option>
+                <option value="metronidazole">Metronidazole</option>
             </select>
 
             <button type="button" onclick="checkAntibioticSafety()">
@@ -537,57 +568,8 @@
     </section>
 
     <section class="card" id="antibioticHistory" hidden>
-
-        <h3 class="section-title">
-            🧬 Antibiotic History
-        </h3>
-
-        <div class="timeline">
-
-            <div class="timeline-item">
-                <div class="timeline-date">21 days ago</div>
-                <div class="antibiotic-name">
-                    Amoxicillin / Clavulanate
-                </div>
-                <div class="antibiotic-details">
-                    Oral • 7 days course
-                </div>
-                <span class="safe-tag">COURSE COMPLETED</span>
-            </div>
-
-            <div class="timeline-item">
-                <div class="timeline-date">4 months ago</div>
-                <div class="antibiotic-name">
-                    Azithromycin
-                </div>
-                <div class="antibiotic-details">
-                    Oral • 5 days course
-                </div>
-                <span class="safe-tag">COURSE COMPLETED</span>
-            </div>
-
-            <div class="timeline-item">
-                <div class="timeline-date">9 months ago</div>
-                <div class="antibiotic-name">
-                    Ceftriaxone
-                </div>
-                <div class="antibiotic-details">
-                    Intravenous • 5 days course
-                </div>
-                <span class="safe-tag">COURSE COMPLETED</span>
-            </div>
-
-            <div class="timeline-item">
-                <div class="timeline-date">14 months ago</div>
-                <div class="antibiotic-name">
-                    Ciprofloxacin
-                </div>
-                <div class="antibiotic-details">
-                    Oral • 5 days course • Severe allergy documented
-                </div>
-            </div>
-
-        </div>
+        <h3 class="section-title">🧬 Antibiotic History</h3>
+        <div class="timeline" id="timeline"></div>
     </section>
 
 </main>
@@ -599,6 +581,141 @@
 </footer>
 
 <script>
+
+    const patients = {
+
+        "AB-10245": {
+            id: "AB-10245",
+            name: "Patient #AB-10245",
+            subtitle: "Demo patient • Antibiotic Safety Profile",
+            risk: "⚠️ Safety Review Required",
+            allergies: [
+                {
+                    drug: "ciprofloxacin",
+                    name: "Ciprofloxacin",
+                    reaction: "Previous severe allergic reaction"
+                }
+            ],
+            history: [
+                {
+                    drug: "amoxicillin-clavulanate",
+                    name: "Amoxicillin / Clavulanate",
+                    time: "21 days ago",
+                    daysAgo: 21,
+                    details: "Oral • 7 days course",
+                    status: "COURSE COMPLETED"
+                },
+                {
+                    drug: "azithromycin",
+                    name: "Azithromycin",
+                    time: "4 months ago",
+                    daysAgo: 120,
+                    details: "Oral • 5 days course",
+                    status: "COURSE COMPLETED"
+                },
+                {
+                    drug: "ceftriaxone",
+                    name: "Ceftriaxone",
+                    time: "9 months ago",
+                    daysAgo: 270,
+                    details: "Intravenous • 5 days course",
+                    status: "COURSE COMPLETED"
+                },
+                {
+                    drug: "ciprofloxacin",
+                    name: "Ciprofloxacin",
+                    time: "14 months ago",
+                    daysAgo: 420,
+                    details: "Oral • Severe allergic reaction recorded",
+                    status: "ALLERGY RECORDED",
+                    danger: true
+                }
+            ]
+        },
+
+        "AB-20418": {
+            id: "AB-20418",
+            name: "Patient #AB-20418",
+            subtitle: "Demo patient • Antibiotic Safety Profile",
+            risk: "🚨 Allergy Alert Present",
+            allergies: [
+                {
+                    drug: "amoxicillin",
+                    name: "Amoxicillin",
+                    reaction: "Immediate hypersensitivity reaction"
+                },
+                {
+                    drug: "amoxicillin-clavulanate",
+                    name: "Amoxicillin / Clavulanate",
+                    reaction: "Previous immediate hypersensitivity reaction"
+                }
+            ],
+            history: [
+                {
+                    drug: "cefuroxime",
+                    name: "Cefuroxime",
+                    time: "18 days ago",
+                    daysAgo: 18,
+                    details: "Oral • 7 days course",
+                    status: "COURSE COMPLETED"
+                },
+                {
+                    drug: "clarithromycin",
+                    name: "Clarithromycin",
+                    time: "6 months ago",
+                    daysAgo: 180,
+                    details: "Oral • 5 days course",
+                    status: "COURSE COMPLETED"
+                },
+                {
+                    drug: "amoxicillin",
+                    name: "Amoxicillin",
+                    time: "2 years ago",
+                    daysAgo: 730,
+                    details: "Oral • Immediate hypersensitivity reaction recorded",
+                    status: "ALLERGY RECORDED",
+                    danger: true
+                }
+            ]
+        },
+
+        "AB-33021": {
+            id: "AB-33021",
+            name: "Patient #AB-33021",
+            subtitle: "Demo patient • Antibiotic Safety Profile",
+            risk: "✅ No Allergy Recorded",
+            allergies: [],
+            history: [
+                {
+                    drug: "meropenem",
+                    name: "Meropenem",
+                    time: "12 days ago",
+                    daysAgo: 12,
+                    details: "Intravenous • 5 days course",
+                    status: "COURSE COMPLETED"
+                },
+                {
+                    drug: "levofloxacin",
+                    name: "Levofloxacin",
+                    time: "3 months ago",
+                    daysAgo: 90,
+                    details: "Oral • 7 days course",
+                    status: "COURSE COMPLETED"
+                },
+                {
+                    drug: "ceftriaxone",
+                    name: "Ceftriaxone",
+                    time: "8 months ago",
+                    daysAgo: 240,
+                    details: "Intravenous • 4 days course",
+                    status: "COURSE COMPLETED"
+                }
+            ]
+        }
+    };
+
+    let currentPatient = null;
+
     const patientSearchForm = document.getElementById("patientSearchForm");
     const patientSearch = document.getElementById("patientSearch");
     const searchMessage = document.getElementById("searchMessage");
@@ -607,6 +724,17 @@
     const antibioticChecker = document.getElementById("antibioticChecker");
     const antibioticHistory = document.getElementById("antibioticHistory");
 
+    const patientName = document.getElementById("patientName");
+    const patientSubtitle = document.getElementById("patientSubtitle");
+    const riskBadge = document.getElementById("riskBadge");
+
+    const antibioticCount = document.getElementById("antibioticCount");
+    const recentExposure = document.getElementById("recentExposure");
+    const allergyCount = document.getElementById("allergyCount");
+
+    const allergySummary = document.getElementById("allergySummary");
+    const timeline = document.getElementById("timeline");
+
     const antibioticSelect = document.getElementById("antibioticSelect");
     const safetyResult = document.getElementById("safetyResult");
 
@@ -614,52 +742,137 @@
         patientProfile.hidden = true;
         antibioticChecker.hidden = true;
         antibioticHistory.hidden = true;
-
         safetyResult.style.display = "none";
+        antibioticSelect.value = "";
+        currentPatient = null;
     }
 
-    function showPatientData() {
+    function loadPatient(patient) {
+
+        currentPatient = patient;
+
+        patientName.textContent = patient.name;
+        patientSubtitle.textContent = patient.subtitle;
+        riskBadge.textContent = patient.risk;
+
+        antibioticCount.textContent = patient.history.length;
+        allergyCount.textContent = patient.allergies.length;
+
+        if (patient.history.length > 0) {
+            recentExposure.textContent = patient.history[0].time;
+        } else {
+            recentExposure.textContent = "None";
+        }
+
+        renderAllergies(patient);
+        renderHistory(patient);
+
         patientProfile.hidden = false;
         antibioticChecker.hidden = false;
         antibioticHistory.hidden = false;
+
+        safetyResult.style.display = "none";
+        antibioticSelect.value = "";
+    }
+
+    function renderAllergies(patient) {
+
+        if (patient.allergies.length === 0) {
+            allergySummary.innerHTML =
+                '<div class="no-allergy-box">' +
+                '<strong>✅ No documented antibiotic allergy</strong><br>' +
+                'No antibiotic allergy is currently recorded in this demo profile.' +
+                '</div>';
+            return;
+        }
+
+        let html =
+            '<div class="allergy-box">' +
+            '<strong>🚨 Documented Antibiotic Allergy</strong><br><br>';
+
+        patient.allergies.forEach(function(allergy) {
+            html +=
+                '<strong>' + allergy.name + '</strong> — ' +
+                allergy.reaction + '<br>';
+        });
+
+        html += '</div>';
+
+        allergySummary.innerHTML = html;
+    }
+
+    function renderHistory(patient) {
+
+        timeline.innerHTML = "";
+
+        patient.history.forEach(function(item) {
+
+            const tagClass = item.danger ? "danger-tag" : "safe-tag";
+
+            timeline.innerHTML +=
+                '<div class="timeline-item">' +
+                    '<div class="timeline-date">' +
+                        item.time +
+                    '</div>' +
+                    '<div class="antibiotic-name">' +
+                        item.name +
+                    '</div>' +
+                    '<div class="antibiotic-details">' +
+                        item.details +
+                    '</div>' +
+                    '<span class="' + tagClass + '">' +
+                        item.status +
+                    '</span>' +
+                '</div>';
+        });
     }
 
     patientSearchForm.addEventListener("submit", function(event) {
+
         event.preventDefault();
 
-        const patientID = patientSearch.value.trim().toUpperCase();
+        const patientID =
+            patientSearch.value.trim().toUpperCase();
 
         hidePatientData();
 
         if (patientID === "") {
-            searchMessage.textContent = "Please enter a Patient ID.";
-            searchMessage.className = "search-message error";
+            searchMessage.textContent =
+                "Please enter a Patient ID.";
+            searchMessage.className =
+                "search-message error";
             return;
         }
 
-        if (patientID === "AB-10245") {
-            showPatientData();
+        const patient = patients[patientID];
 
+        if (!patient) {
             searchMessage.textContent =
-                "Patient antibiotic safety profile loaded successfully.";
-
-            searchMessage.className = "search-message success";
-        } else {
-            searchMessage.textContent =
-                "Patient not found in demo database. Please enter AB-10245.";
-
-            searchMessage.className = "search-message error";
+                "Patient not found in demo database. Try AB-10245, AB-20418 or AB-33021.";
+            searchMessage.className =
+                "search-message error";
+            return;
         }
+
+        loadPatient(patient);
+
+        searchMessage.textContent =
+            "Patient antibiotic safety profile loaded successfully.";
+
+        searchMessage.className =
+            "search-message success";
     });
 
     function showSafetyResult(type, title, message) {
 
-        safetyResult.className = "result-box " + type;
+        safetyResult.className =
+            "result-box " + type;
 
         safetyResult.innerHTML =
             '<div class="result-title">' +
             title +
-            '</div><div>' +
+            '</div>' +
+            '<div>' +
             message +
             '</div>';
 
@@ -668,9 +881,19 @@
 
     function checkAntibioticSafety() {
 
-        const antibiotic = antibioticSelect.value;
+        if (!currentPatient) {
+            return;
+        }
 
-        if (antibiotic === "") {
+        const selectedDrug = antibioticSelect.value;
+
+        const selectedName =
+            antibioticSelect.options[
+                antibioticSelect.selectedIndex
+            ].text;
+
+        if (selectedDrug === "") {
+
             showSafetyResult(
                 "result-yellow",
                 "⚠️ Antibiotic Required",
@@ -680,49 +903,53 @@
             return;
         }
 
-        if (antibiotic === "ciprofloxacin") {
+        const allergy =
+            currentPatient.allergies.find(function(item) {
+                return item.drug === selectedDrug;
+            });
+
+        if (allergy) {
 
             showSafetyResult(
                 "result-red",
                 "🚨 RED FLAG — Documented Allergy",
-                "Ciprofloxacin should not be selected without urgent clinical review. " +
-                "This demo patient has a documented previous severe allergic reaction to ciprofloxacin."
+                selectedName +
+                " is associated with a documented previous reaction in this patient's record: " +
+                allergy.reaction +
+                ". Do not proceed without appropriate clinical review."
             );
 
             return;
         }
 
-        if (antibiotic === "amoxicillin-clavulanate") {
+        const previousUse =
+            currentPatient.history.find(function(item) {
+                return item.drug === selectedDrug;
+            });
+
+        if (previousUse && previousUse.daysAgo <= 30) {
 
             showSafetyResult(
                 "result-yellow",
-                "⚠️ Recent Antibiotic Exposure",
-                "Amoxicillin / Clavulanate was recorded 21 days ago. " +
-                "Review the indication, previous response, microbiology results, and need for repeat exposure before prescribing."
+                "⚠️ Recent Repeat Exposure",
+                selectedName +
+                " was recorded " +
+                previousUse.time +
+                ". Review the indication, previous response, microbiology data, resistance risk, and need for repeat exposure before prescribing."
             );
 
             return;
         }
 
-        if (antibiotic === "azithromycin") {
+        if (previousUse) {
 
             showSafetyResult(
                 "result-yellow",
-                "⚠️ Previous Exposure Identified",
-                "Azithromycin was previously recorded 4 months ago. " +
-                "No allergy is documented in this demo profile, but previous antimicrobial use should still be considered during clinical review."
-            );
-
-            return;
-        }
-
-        if (antibiotic === "ceftriaxone") {
-
-            showSafetyResult(
-                "result-green",
-                "✅ No Recorded Safety Alert",
-                "No allergy or recent repeat exposure alert for ceftriaxone was identified in this demo patient record. " +
-                "Clinical indication, renal/hepatic status, microbiology, interactions, and local guidelines must still be reviewed."
+                "ℹ️ Previous Antibiotic Exposure Identified",
+                selectedName +
+                " appears in this patient's previous antibiotic history (" +
+                previousUse.time +
+                "). No recent repeat-exposure alert was triggered, but the previous course should still be considered during clinical review."
             );
 
             return;
@@ -731,10 +958,13 @@
         showSafetyResult(
             "result-green",
             "✅ No Recorded Safety Alert",
-            "No specific allergy or recent repeat-exposure alert was identified for this antibiotic in the current demo record. " +
-            "This does not confirm that the antibiotic is clinically appropriate. Full clinical assessment is still required."
+            "No documented allergy or previous exposure to " +
+            selectedName +
+            " was identified in this demo patient's current AB-SAFE record. " +
+            "This does not confirm clinical appropriateness; indication, cultures, organ function, interactions, dosing and local antimicrobial guidelines still require review."
         );
     }
+
 </script>
 
 </body>
