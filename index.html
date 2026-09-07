@@ -1,24 +1,664 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MedGuard | Patient Safety</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AB-SAFE | Antibiotic Safety System</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f8fb;
+            color: #172b4d;
+        }
+
+        /* ===== HEADER ===== */
+
+        header {
+            background: linear-gradient(135deg, #063970, #087f8c);
+            color: white;
+            padding: 22px 6%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 25px;
+        }
+
+        .logo h1 {
+            font-size: 24px;
+            letter-spacing: 1px;
+        }
+
+        .logo p {
+            font-size: 12px;
+            opacity: 0.85;
+            margin-top: 3px;
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            background: #42e695;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #42e695;
+        }
+
+        /* ===== HERO ===== */
+
+        .hero {
+            padding: 55px 6% 35px;
+            background: white;
+        }
+
+        .hero-content {
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        .hero h2 {
+            font-size: 38px;
+            margin-bottom: 12px;
+            color: #063970;
+        }
+
+        .hero h2 span {
+            color: #087f8c;
+        }
+
+        .hero p {
+            color: #667085;
+            max-width: 700px;
+            line-height: 1.7;
+            font-size: 16px;
+        }
+
+        /* ===== DASHBOARD ===== */
+
+        .dashboard {
+            max-width: 1200px;
+            margin: 30px auto 70px;
+            padding: 0 20px;
+        }
+
+        /* ===== SHARED CARDS ===== */
+
+        .search-card,
+        .patient-card,
+        .history-card {
+            background: white;
+            border-radius: 18px;
+            padding: 28px;
+            box-shadow: 0 8px 30px rgba(15, 50, 80, 0.08);
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            margin-bottom: 18px;
+            color: #063970;
+        }
+
+        /* ===== SEARCH ===== */
+
+        .search-box {
+            display: flex;
+            gap: 12px;
+        }
+
+        .search-box input {
+            flex: 1;
+            min-width: 0;
+            padding: 15px 18px;
+            border: 1px solid #d8e1ea;
+            border-radius: 10px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .search-box input:focus {
+            border-color: #087f8c;
+            box-shadow: 0 0 0 3px rgba(8,127,140,0.10);
+        }
+
+        .search-box button {
+            padding: 15px 28px;
+            border: none;
+            border-radius: 10px;
+            background: #087f8c;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .search-box button:hover {
+            background: #066d77;
+            transform: translateY(-1px);
+        }
+
+        .search-message {
+            margin-top: 14px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .search-message.error {
+            color: #b42318;
+        }
+
+        .search-message.success {
+            color: #18794e;
+        }
+
+        .demo-hint {
+            margin-top: 12px;
+            color: #7b8794;
+            font-size: 12px;
+        }
+
+        /* ===== PATIENT ===== */
+
+        .patient-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .patient-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .patient-avatar {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: #e8f5f7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 25px;
+            flex-shrink: 0;
+        }
+
+        .patient-info h3 {
+            font-size: 21px;
+            color: #172b4d;
+        }
+
+        .patient-info p {
+            color: #7b8794;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        .risk-badge {
+            padding: 9px 15px;
+            border-radius: 20px;
+            background: #fff4e5;
+            color: #b76e00;
+            font-size: 13px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        /* ===== STATS ===== */
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .stat {
+            padding: 20px;
+            border-radius: 13px;
+            background: #f7fafc;
+            border: 1px solid #edf2f7;
+        }
+
+        .stat-label {
+            color: #7b8794;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 25px;
+            font-weight: bold;
+            color: #063970;
+        }
+
+        /* ===== ALERT ===== */
+
+        .alert-card {
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-left: 5px solid #f59e0b;
+            border-radius: 15px;
+            padding: 22px;
+            margin-bottom: 25px;
+        }
+
+        .alert-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .alert-icon {
+            font-size: 23px;
+        }
+
+        .alert-header h3 {
+            color: #9a5b00;
+            font-size: 18px;
+        }
+
+        .alert-card p {
+            color: #6b4a16;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        /* ===== HISTORY ===== */
+
+        .timeline {
+            margin-top: 25px;
+            border-left: 3px solid #dcecef;
+            padding-left: 25px;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 28px;
+        }
+
+        .timeline-item:last-child {
+            padding-bottom: 0;
+        }
+
+        .timeline-item::before {
+            content: "";
+            position: absolute;
+            left: -34px;
+            top: 3px;
+            width: 13px;
+            height: 13px;
+            background: #087f8c;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px #087f8c;
+        }
+
+        .timeline-date {
+            font-size: 12px;
+            color: #8a97a6;
+            margin-bottom: 6px;
+        }
+
+        .antibiotic-name {
+            font-size: 17px;
+            font-weight: bold;
+            color: #063970;
+        }
+
+        .antibiotic-details {
+            margin-top: 5px;
+            color: #667085;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .safe-tag {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 5px 10px;
+            border-radius: 12px;
+            background: #e8f7ee;
+            color: #18794e;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        /* ===== FOOTER ===== */
+
+        footer {
+            background: #063970;
+            color: white;
+            text-align: center;
+            padding: 25px;
+            font-size: 12px;
+        }
+
+        footer p {
+            margin-top: 5px;
+            opacity: 0.7;
+            line-height: 1.6;
+        }
+
+        /* ===== MOBILE ===== */
+
+        @media (max-width: 700px) {
+            header {
+                padding: 18px 5%;
+            }
+
+            .system-status {
+                display: none;
+            }
+
+            .hero {
+                padding: 40px 5% 25px;
+            }
+
+            .hero h2 {
+                font-size: 29px;
+            }
+
+            .dashboard {
+                padding: 0 12px;
+            }
+
+            .search-card,
+            .patient-card,
+            .history-card {
+                padding: 22px 18px;
+            }
+
+            .search-box {
+                flex-direction: column;
+            }
+
+            .search-box button {
+                width: 100%;
+            }
+
+            .patient-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
+
 <body>
 
-  <h1>MedGuard</h1>
+    <!-- HEADER -->
 
-  <h2>Antibiotic Safety Passport</h2>
+    <header>
+        <div class="logo">
+            <div class="logo-icon">🛡️</div>
+            <div>
+                <h1>AB-SAFE</h1>
+                <p>Antibiotic Safety System</p>
+            </div>
+        </div>
 
-  <p>
-    A patient safety platform designed to help healthcare professionals
-    review previous antibiotic exposure, allergies, and important safety alerts
-    before prescribing a new antibiotic.
-  </p>
+        <div class="system-status">
+            <div class="status-dot"></div>
+            Demo Safety Engine
+        </div>
+    </header>
 
-  <button>Patient Portal</button>
-  <button>Doctor / Pharmacist Portal</button>
+    <!-- HERO -->
+
+    <section class="hero">
+        <div class="hero-content">
+            <h2>
+                Protecting patients through
+                <span>smarter antibiotic safety.</span>
+            </h2>
+
+            <p>
+                A patient safety platform designed to help healthcare
+                professionals review antibiotic history, identify potential
+                medication-related risks, and make safer clinical decisions.
+            </p>
+        </div>
+    </section>
+
+    <!-- DASHBOARD -->
+
+    <main class="dashboard">
+
+        <!-- SEARCH -->
+
+        <section class="search-card">
+            <h3 class="section-title">🔎 Patient Safety Check</h3>
+
+            <form class="search-box" id="patientSearchForm">
+                <input
+                    type="text"
+                    id="patientSearch"
+                    placeholder="Enter Patient ID or Medical Record Number"
+                    aria-label="Patient ID or Medical Record Number"
+                    autocomplete="off"
+                >
+
+                <button type="submit">Check Patient</button>
+            </form>
+
+            <p class="demo-hint">
+                Demo access: enter AB-10245 to load the sample patient.
+            </p>
+
+            <p
+                id="searchMessage"
+                class="search-message"
+                role="status"
+                aria-live="polite"
+            ></p>
+        </section>
+
+        <!-- PATIENT -->
+
+        <section class="patient-card" id="patientProfile" hidden>
+
+            <div class="patient-header">
+                <div class="patient-info">
+                    <div class="patient-avatar">👤</div>
+
+                    <div>
+                        <h3>Patient #AB-10245</h3>
+                        <p>Demo patient • Medical Safety Profile</p>
+                    </div>
+                </div>
+
+                <div class="risk-badge">
+                    ⚠️ Review Required
+                </div>
+            </div>
+
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-label">Antibiotics Recorded</div>
+                    <div class="stat-value">4</div>
+                </div>
+
+                <div class="stat">
+                    <div class="stat-label">Recent Exposure</div>
+                    <div class="stat-value">21 days</div>
+                </div>
+
+                <div class="stat">
+                    <div class="stat-label">Safety Alerts</div>
+                    <div class="stat-value">1</div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ALERT -->
+
+        <section class="alert-card" id="safetyAlert" hidden>
+            <div class="alert-header">
+                <div class="alert-icon">⚠️</div>
+                <h3>Antibiotic Safety Alert</h3>
+            </div>
+
+            <p>
+                The patient's antibiotic history indicates a recent exposure
+                that may require clinical review before prescribing another
+                antimicrobial agent. Please review the patient's medication
+                history and relevant clinical factors before making a
+                prescribing decision.
+            </p>
+        </section>
+
+        <!-- HISTORY -->
+
+        <section class="history-card" id="antibioticHistory" hidden>
+            <h3 class="section-title">🧬 Antibiotic History</h3>
+
+            <div class="timeline">
+
+                <div class="timeline-item">
+                    <div class="timeline-date">21 days ago</div>
+                    <div class="antibiotic-name">
+                        Amoxicillin / Clavulanate
+                    </div>
+                    <div class="antibiotic-details">
+                        Oral • 7 days course
+                    </div>
+                    <span class="safe-tag">COURSE COMPLETED</span>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-date">4 months ago</div>
+                    <div class="antibiotic-name">Azithromycin</div>
+                    <div class="antibiotic-details">
+                        Oral • 5 days course
+                    </div>
+                    <span class="safe-tag">COURSE COMPLETED</span>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-date">9 months ago</div>
+                    <div class="antibiotic-name">Ceftriaxone</div>
+                    <div class="antibiotic-details">
+                        Intravenous • 5 days course
+                    </div>
+                    <span class="safe-tag">COURSE COMPLETED</span>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-date">14 months ago</div>
+                    <div class="antibiotic-name">Ciprofloxacin</div>
+                    <div class="antibiotic-details">
+                        Oral • 5 days course
+                    </div>
+                    <span class="safe-tag">COURSE COMPLETED</span>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+
+    <footer>
+        <strong>AB-SAFE — Patient Safety First</strong>
+        <p>
+            Clinical decision-support concept • For demonstration purposes
+        </p>
+        <p>
+            Sample data only. Not for real patient care or prescribing decisions.
+        </p>
+    </footer>
+
+    <!-- JAVASCRIPT -->
+
+    <script>
+        const searchForm = document.getElementById("patientSearchForm");
+        const searchInput = document.getElementById("patientSearch");
+        const searchMessage = document.getElementById("searchMessage");
+
+        const patientProfile = document.getElementById("patientProfile");
+        const safetyAlert = document.getElementById("safetyAlert");
+        const antibioticHistory = document.getElementById("antibioticHistory");
+
+        function hidePatient() {
+            patientProfile.hidden = true;
+            safetyAlert.hidden = true;
+            antibioticHistory.hidden = true;
+        }
+
+        function showPatient() {
+            patientProfile.hidden = false;
+            safetyAlert.hidden = false;
+            antibioticHistory.hidden = false;
+        }
+
+        function searchPatient() {
+            const patientID = searchInput.value.trim().toUpperCase();
+
+            hidePatient();
+
+            if (patientID === "") {
+                searchMessage.textContent = "Please enter a Patient ID.";
+                searchMessage.className = "search-message error";
+                return;
+            }
+
+            if (patientID === "AB-10245") {
+                showPatient();
+                searchMessage.textContent =
+                    "Demo patient safety profile loaded successfully.";
+                searchMessage.className = "search-message success";
+            } else {
+                searchMessage.textContent =
+                    "No demo patient found. Please enter AB-10245.";
+                searchMessage.className = "search-message error";
+            }
+        }
+
+        searchForm.addEventListener("submit", function(event) {
+            event.preventDefault();
+            searchPatient();
+        });
+    </script>
 
 </body>
 </html>
