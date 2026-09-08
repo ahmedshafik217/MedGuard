@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<a href="{{ url_for('owner.dashboard') }}">&laquo; {{ t('back') }}</a>
+<div class="d-flex justify-content-between align-items-center my-3">
+    <h2>{{ t('antibiotic_reference') }}</h2>
+    <a href="{{ url_for('owner.add_antibiotic') }}" class="btn btn-brand">{{ t('add_antibiotic_reference') }}</a>
+</div>
+<div class="card p-3">
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>{{ t('generic_name') }}</th>
+                <th>{{ t('drug_class') }}</th>
+                <th>{{ t('contraindicated_in_pregnancy') }}</th>
+                <th>{{ t('contraindicated_conditions_optional') }}</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for item in items %}
+            <tr>
+                <td>{{ item.generic_name }}{% if item.brand_names %}<div class="small text-muted">{{ item.brand_names }}</div>{% endif %}</td>
+                <td>{{ item.drug_class }}</td>
+                <td>{{ '⚠️' if item.pregnancy_contraindicated else '—' }}</td>
+                <td class="small">{{ item.contraindicated_conditions|join(', ') or '—' }}</td>
+                <td class="d-flex gap-2">
+                    <a href="{{ url_for('owner.edit_antibiotic', item_id=item.id) }}" class="btn btn-sm btn-outline-dark">{{ t('view') }}</a>
+                    <form method="post" action="{{ url_for('owner.delete_antibiotic', item_id=item.id) }}" onsubmit="return confirm('{{ t('confirm_delete') }}');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-sm btn-outline-danger">{{ t('delete') }}</button>
+                    </form>
+                </td>
+            </tr>
+        {% else %}
+            <tr><td colspan="5">{{ t('no_records_yet') }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

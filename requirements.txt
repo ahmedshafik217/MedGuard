@@ -1,0 +1,16 @@
+# This app deliberately depends on very little: Flask itself (plus the
+# standard library's sqlite3 for storage and Flask's own signed-cookie
+# sessions for login/CSRF) -- fewer moving parts to install and audit for
+# a patient-safety tool. python-dotenv is optional convenience for loading
+# .env locally. reportlab generates the English "Export PDF" patient
+# summary. pdfkit generates the Arabic PDF summary -- it is a thin wrapper
+# around the wkhtmltopdf SYSTEM BINARY, which you must install separately
+# (it is not a pip package -- see README.md, section "Arabic PDF export").
+# gunicorn is the production WSGI server used when deployed (see
+# Dockerfile / docker-entrypoint.sh) -- `python run.py`'s built-in dev
+# server is for local development only.
+Flask>=3.0
+python-dotenv>=1.0
+reportlab>=4.0
+pdfkit>=1.0
+gunicorn>=21.2

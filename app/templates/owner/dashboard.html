@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block content %}
+{% if owner_role == 'owner' %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="mb-0">🩺 {{ t('controller_dashboard_title') }}</h2>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('owner.create_patient') }}" class="btn btn-brand">{{ t('add_new_patient') }}</a>
+        <a href="{{ url_for('owner.antibiotics') }}" class="btn btn-outline-dark">{{ t('antibiotic_reference') }}</a>
+        <a href="{{ url_for('owner.audit_log') }}" class="btn btn-outline-dark">{{ t('audit_log') }}</a>
+        <a href="{{ url_for('owner.settings') }}" class="btn btn-outline-dark">{{ t('site_settings') }}</a>
+    </div>
+</div>
+
+<div class="row mb-4 g-3">
+    <div class="col-md-4">
+        <div class="card text-center p-3"><div class="fs-3">{{ stats.patient_count }}</div><div>{{ t('all_patients') }}</div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center p-3"><div class="fs-3">{{ stats.antibiotic_count }}</div><div>{{ t('antibiotic_reference') }}</div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center p-3"><div class="fs-3">{{ stats.record_count }}</div><div>{{ t('antibiotic_history') }}</div></div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="mb-3">🚨 {{ t('flagged_alerts_title') }}</h5>
+        {% if flagged_records %}
+        <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>{{ t('patient_id') }}</th>
+                    <th>{{ t('antibiotic_name') }}</th>
+                    <th>{{ t('prescribed_date') }}</th>
+                    <th>{{ t('danger') }} / {{ t('warning') }}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for r in flagged_records %}
+                <tr>
+                    <td class="patient-id-badge">{{ r.patient_public_id }}</td>
+                    <td>{{ r.display_name }}</td>
+                    <td>{{ r.prescribed_date }}</td>
+                    <td>
+                        {% for a in r.alerts %}
+                            {% if a.level in ('danger', 'warning') %}
+                            <span class="badge {{ 'bg-danger' if a.level == 'danger' else 'bg-warning text-dark' }} mb-1">{{ t(a.level) }}: {{ a.title }}</span><br>
+                            {% endif %}
+                        {% endfor %}
+                    </td>
+                    <td><a href="{{ url_for('owner.patient_detail', public_id=r.patient_public_id) }}" class="btn btn-sm btn-brand">{{ t('view') }}</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">{{ t('no_flagged_alerts') }}</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="mb-3">🕓 {{ t('recent_activity_title') }}</h5>
+        {% if recent_records %}
+        <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>{{ t('patient_id') }}</th>
+                    <th>{{ t('antibiotic_name') }}</th>
+                    <th>{{ t('prescribed_date') }}</th>
+                    <th>{{ t('action') }}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for r in recent_records %}
+                <tr>
+                    <td class="patient-id-badge">{{ r.patient_public_id }}</td>
+                    <td>{{ r.display_name }}</td>
+                    <td>{{ r.prescribed_date }}</td>
+                    <td>{{ r.added_by }}</td>
+                    <td><a href="{{ url_for('owner.patient_detail', public_id=r.patient_public_id) }}" class="btn btn-sm btn-outline-dark">{{ t('view') }}</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">{{ t('no_records_yet') }}</p>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">🧑‍⚕️ {{ t('staff_dashboard_title') }}</h2>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="mb-3">{{ t('all_patients') }}</h5>
+        <form method="get" class="mb-3">
+            <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="{{ t('search_patients') }}">
+        </form>
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>{{ t('patient_id') }}</th>
+                    <th>{{ t('full_name_optional') }}</th>
+                    <th>{{ t('gender') }}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for p in patients %}
+                <tr>
+                    <td class="patient-id-badge">{{ p.public_id }}</td>
+                    <td>{{ p.full_name or '—' }}</td>
+                    <td>{{ t(p.gender) if p.gender in ['male','female'] else p.gender }}</td>
+                    <td class="d-flex gap-1">
+                        <a href="{{ url_for('owner.patient_detail', public_id=p.public_id) }}" class="btn btn-sm btn-brand">{{ t('view') }}</a>
+                        <a href="{{ url_for('owner.patient_qr', public_id=p.public_id) }}" class="btn btn-sm btn-outline-dark">🔳</a>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="4">{{ t('no_records_yet') }}</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

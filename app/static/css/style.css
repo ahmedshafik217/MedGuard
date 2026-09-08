@@ -1,0 +1,88 @@
+:root {
+    --brand-teal: #0f766e;
+    --brand-teal-dark: #0b544e;
+    --brand-bg: #f4faf9;
+    --alert-danger-bg: #fdecec;
+    --alert-warning-bg: #fff8e6;
+    --alert-info-bg: #eaf6f6;
+}
+
+body {
+    background-color: var(--brand-bg);
+}
+
+.navbar-brand {
+    font-weight: 700;
+}
+
+.brand-bar {
+    background-color: var(--brand-teal);
+}
+
+.brand-bar a, .brand-bar .navbar-brand {
+    color: #fff !important;
+}
+
+.btn-brand {
+    background-color: var(--brand-teal);
+    border-color: var(--brand-teal);
+    color: #fff;
+}
+
+.btn-brand:hover {
+    background-color: var(--brand-teal-dark);
+    border-color: var(--brand-teal-dark);
+    color: #fff;
+}
+
+.disclaimer-banner {
+    background-color: #fff8e6;
+    border-bottom: 1px solid #f0d98c;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    text-align: center;
+}
+
+.card {
+    border-radius: 0.75rem;
+}
+
+.alert-card {
+    border-radius: 0.6rem;
+    padding: 0.9rem 1rem;
+    margin-bottom: 0.6rem;
+    border: 1px solid transparent;
+}
+
+.alert-card.level-danger {
+    background-color: var(--alert-danger-bg);
+    border-color: #f3b4b4;
+}
+
+.alert-card.level-warning {
+    background-color: var(--alert-warning-bg);
+    border-color: #eccf7a;
+}
+
+.alert-card.level-info {
+    background-color: var(--alert-info-bg);
+    border-color: #b9dedd;
+}
+
+.patient-id-badge {
+    font-family: monospace;
+    font-size: 1.1rem;
+    letter-spacing: 0.05em;
+}
+
+.lang-switch a {
+    color: #fff;
+    text-decoration: none;
+    opacity: 0.85;
+}
+
+.lang-switch a.active {
+    opacity: 1;
+    font-weight: 700;
+    text-decoration: underline;
+}

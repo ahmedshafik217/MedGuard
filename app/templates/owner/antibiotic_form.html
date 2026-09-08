@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<a href="{{ url_for('owner.antibiotics') }}">&laquo; {{ t('back') }}</a>
+<h3 class="my-3">{{ t('add_antibiotic_reference') }}</h3>
+<div class="card p-4">
+<form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="mb-3">
+        <label class="form-label">{{ t('generic_name') }}</label>
+        <input type="text" name="generic_name" class="form-control" value="{{ item.generic_name if item else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ t('brand_names_optional') }}</label>
+        <input type="text" name="brand_names" class="form-control" value="{{ item.brand_names if item else '' }}">
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ t('drug_class') }}</label>
+        <input type="text" name="drug_class" class="form-control" value="{{ item.drug_class if item else '' }}" required>
+    </div>
+    <div class="form-check mb-3">
+        <input type="checkbox" name="pregnancy_contraindicated" class="form-check-input" id="pc" {{ 'checked' if item and item.pregnancy_contraindicated }}>
+        <label class="form-check-label" for="pc">{{ t('contraindicated_in_pregnancy') }}</label>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ t('pregnancy_notes_optional') }}</label>
+        <textarea name="pregnancy_notes" class="form-control">{{ item.pregnancy_notes if item else '' }}</textarea>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ t('contraindicated_conditions_optional') }}</label>
+        <input type="text" name="contraindicated_conditions" class="form-control"
+               value="{{ item.contraindicated_conditions|join(', ') if item else '' }}">
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ t('notes_optional') }}</label>
+        <textarea name="notes" class="form-control">{{ item.notes if item else '' }}</textarea>
+    </div>
+    <button class="btn btn-brand">{{ t('save') }}</button>
+</form>
+</div>
+{% endblock %}

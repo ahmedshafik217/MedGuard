@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<a href="{{ url_for('owner.dashboard') }}">&laquo; {{ t('back') }}</a>
+<h2 class="my-3">{{ t('audit_log') }}</h2>
+<div class="card p-3">
+    <table class="table table-sm">
+        <thead><tr><th>{{ t('timestamp') }}</th><th>{{ t('actor') }}</th><th>{{ t('action') }}</th><th>{{ t('target') }}</th><th>{{ t('notes_optional') }}</th></tr></thead>
+        <tbody>
+        {% for e in entries %}
+            <tr>
+                <td class="small">{{ e.timestamp }}</td>
+                <td>{{ e.actor_type }}: {{ e.actor_label }}</td>
+                <td>{{ e.action }}</td>
+                <td class="patient-id-badge">{{ e.target_patient_public_id or '—' }}</td>
+                <td class="small">{{ e.details or '' }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="5">{{ t('no_records_yet') }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        {% if created %}
+        <div class="alert alert-success">{{ t('patient_created_title') }}</div>
+        {% endif %}
+        <div class="card p-4 text-center" id="print-area">
+            <h4>{{ t('site_name') }}</h4>
+            <p class="text-muted mb-1">{{ t('your_patient_qr') }}</p>
+            <div id="qrcode" class="d-flex justify-content-center my-3"></div>
+            <h2 class="patient-id-badge">{{ patient.public_id }}</h2>
+            {% if patient.full_name %}<p class="mb-1">{{ patient.full_name }}</p>{% endif %}
+            <p class="small text-muted">{{ t('scan_to_open_record') }}</p>
+            {% if has_password %}
+                <p class="small text-success">🔒 {{ t('password_protected_note') }}</p>
+            {% else %}
+                <p class="small text-warning">⚠️ {{ t('no_password_note') }}</p>
+            {% endif %}
+        </div>
+
+        <div class="d-flex gap-2 justify-content-center mt-3 no-print">
+            <button class="btn btn-brand" onclick="window.print()">🖨️ {{ t('print_id_card') }}</button>
+            <a href="{{ back_url }}" class="btn btn-outline-dark">{{ t(back_label) }}</a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+    new QRCode(document.getElementById("qrcode"), {
+        text: {{ qr_url|tojson }},
+        width: 220,
+        height: 220,
+        correctLevel: QRCode.CorrectLevel.M
+    });
+</script>
+
+<style>
+    @media print {
+        .no-print, nav, .disclaimer-banner { display: none !important; }
+        body { background: #fff; }
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% import "macros.html" as macros with context %}
+{% block content %}
+<h3>{{ record.display_name }} — {{ patient.public_id }}</h3>
+{{ macros.render_alerts(alerts) }}
+<a href="{{ url_for('owner.patient_detail', public_id=patient.public_id) }}" class="btn btn-brand mt-3">{{ t('back') }}</a>
+{% endblock %}

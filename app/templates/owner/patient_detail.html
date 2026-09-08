@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% import "macros.html" as macros with context %}
+{% block content %}
+<a href="{{ url_for('owner.dashboard') }}">&laquo; {{ t('back') }}</a>
+<div class="d-flex justify-content-between align-items-center my-3">
+    <h2 class="patient-id-badge">{{ patient.public_id }}</h2>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('owner.patient_qr', public_id=patient.public_id) }}" class="btn btn-outline-dark">🔳 {{ t('view_qr') }}</a>
+        <a href="{{ url_for('owner.export_patient_pdf', public_id=patient.public_id) }}" class="btn btn-brand">📄 {{ t('export_pdf_en') }}</a>
+        <a href="{{ url_for('owner.export_patient_pdf_ar', public_id=patient.public_id) }}" class="btn btn-brand">📄 {{ t('export_pdf_ar') }}</a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card p-3">
+            <h5>{{ t('my_profile') }}</h5>
+            <p class="mb-1">{{ t('full_name_optional') }}: {{ patient.full_name or '—' }}</p>
+            <p class="mb-1">{{ t('gender') }}: {{ t(patient.gender) if patient.gender in ['male','female'] else patient.gender }}</p>
+            <p class="mb-1">
+                {{ t('date_of_birth') }}: {{ patient.date_of_birth or '—' }}
+                {% if patient.age_years is not none %} ({{ patient.age_years }} {{ t('years_old') }}){% endif %}
+            </p>
+            {% if owner_role == 'owner' %}
+            <hr>
+            <form method="post" action="{{ url_for('owner.update_patient_pregnancy_status', public_id=patient.public_id) }}" class="mb-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="form-label">{{ t('pregnancy_status') }}</label>
+                <select name="pregnancy_status" class="form-select mb-2">
+                    <option value="pregnant" {{ 'selected' if patient.pregnancy_status=='pregnant' }}>{{ t('pregnant') }}</option>
+                    <option value="not_pregnant" {{ 'selected' if patient.pregnancy_status=='not_pregnant' }}>{{ t('not_pregnant') }}</option>
+                    <option value="not_applicable" {{ 'selected' if patient.pregnancy_status=='not_applicable' }}>{{ t('not_applicable') }}</option>
+                    <option value="unknown" {{ 'selected' if patient.pregnancy_status=='unknown' }}>{{ t('unknown') }}</option>
+                </select>
+                <button class="btn btn-sm btn-brand">{{ t('save') }}</button>
+            </form>
+            <hr>
+            <form method="post" action="{{ url_for('owner.reset_patient_password', public_id=patient.public_id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="form-label">{{ t('new_password_optional') }}</label>
+                <input type="password" name="new_password" class="form-control mb-2">
+                <button class="btn btn-sm btn-outline-dark">{{ t('reset_password') }}</button>
+            </form>
+            {% else %}
+            <hr>
+            <p class="mb-0">{{ t('pregnancy_status') }}: {{ t(patient.pregnancy_status) if patient.pregnancy_status in ['pregnant','not_pregnant','not_applicable','unknown'] else patient.pregnancy_status }}</p>
+            <p class="small text-muted mb-0">{{ t('staff_view_only_note') }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card p-3">
+            <h5>{{ t('my_allergies') }}</h5>
+            <ul class="list-group mb-3">
+                {% for a in patient.allergies %}
+                <li class="list-group-item">
+                    <strong>{{ a.allergen }}</strong> {% if a.drug_class %}({{ a.drug_class }}){% endif %}
+                    — {{ a.severity }}
+                    {% if a.reaction %}<div class="small text-muted">{{ a.reaction }}</div>{% endif %}
+                </li>
+                {% else %}
+                <li class="list-group-item text-muted">{{ t('no_records_yet') }}</li>
+                {% endfor %}
+            </ul>
+            {% if owner_role == 'owner' %}
+            <form method="post" action="{{ url_for('owner.add_patient_allergy', public_id=patient.public_id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="text" name="allergen" class="form-control mb-2" placeholder="{{ t('allergen') }}" required>
+                <input type="text" name="drug_class" class="form-control mb-2" placeholder="{{ t('drug_class') }}">
+                <input type="text" name="reaction" class="form-control mb-2" placeholder="{{ t('reaction_optional') }}">
+                <select name="severity" class="form-select mb-2">
+                    <option value="mild">Mild</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="severe">Severe</option>
+                    <option value="unknown" selected>Unknown</option>
+                </select>
+                <button class="btn btn-sm btn-brand w-100">{{ t('add_allergy') }}</button>
+            </form>
+            {% else %}
+            <p class="small text-muted mb-0">{{ t('staff_view_only_note') }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card p-3">
+            <h5>{{ t('my_conditions') }}</h5>
+            <ul class="list-group mb-3">
+                {% for c in patient.conditions %}
+                <li class="list-group-item">
+                    <strong>{{ c.condition_name }}</strong>
+                    {% if c.notes %}<div class="small text-muted">{{ c.notes }}</div>{% endif %}
+                </li>
+                {% else %}
+                <li class="list-group-item text-muted">{{ t('no_records_yet') }}</li>
+                {% endfor %}
+            </ul>
+            {% if owner_role == 'owner' %}
+            <form method="post" action="{{ url_for('owner.add_patient_condition', public_id=patient.public_id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="text" name="condition_name" class="form-control mb-2" placeholder="{{ t('condition_name') }}" required>
+                <input type="text" name="notes" class="form-control mb-2" placeholder="{{ t('notes_optional') }}">
+                <button class="btn btn-sm btn-brand w-100">{{ t('add_condition') }}</button>
+            </form>
+            {% else %}
+            <p class="small text-muted mb-0">{{ t('staff_view_only_note') }}</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="card mt-3 p-3">
+    <h5>{{ t('antibiotic_history') }}</h5>
+    <table class="table table-sm">
+        <thead><tr><th>{{ t('antibiotic_name') }}</th><th>{{ t('dose') }}</th><th>{{ t('duration') }}</th><th>{{ t('prescribed_date') }}</th><th>{{ t('action') }}</th></tr></thead>
+        <tbody>
+        {% for r in patient.antibiotic_records %}
+            <tr>
+                <td>{{ r.display_name }}</td>
+                <td>{{ r.dose or '—' }}</td>
+                <td>{{ r.duration or '—' }}</td>
+                <td>{{ r.prescribed_date }}</td>
+                <td>{{ r.added_by }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="5">{{ t('no_records_yet') }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <h6 class="mt-3">{{ t('add_antibiotic') }}</h6>
+    <form method="post" action="{{ url_for('owner.add_patient_antibiotic', public_id=patient.public_id) }}" class="row g-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="col-md-3"><input type="text" name="antibiotic_name" class="form-control" placeholder="{{ t('antibiotic_name') }}" required></div>
+        <div class="col-md-2"><input type="text" name="dose" class="form-control" placeholder="{{ t('dose') }}"></div>
+        <div class="col-md-2"><input type="text" name="duration" class="form-control" placeholder="{{ t('duration') }}"></div>
+        <div class="col-md-2"><input type="date" name="prescribed_date" class="form-control"></div>
+        <div class="col-md-2"><input type="text" name="prescribed_by" class="form-control" placeholder="{{ t('prescribed_by_optional') }}"></div>
+        <div class="col-md-1"><button class="btn btn-brand w-100">{{ t('submit_check') }}</button></div>
+    </form>
+</div>
+{% endblock %}

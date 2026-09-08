@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<a href="{{ url_for('owner.dashboard') }}">&laquo; {{ t('back') }}</a>
+<h2 class="my-3">{{ t('site_settings') }}</h2>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card p-3">
+            <h5>{{ t('add_owner_account') }}</h5>
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="text" name="username" class="form-control mb-2" placeholder="{{ t('username') }}" required>
+                <input type="password" name="password" class="form-control mb-2" placeholder="{{ t('password') }}" required>
+                <label class="form-label">{{ t('role') }}</label>
+                <select name="role" class="form-select mb-2">
+                    <option value="staff" selected>{{ t('role_staff') }}</option>
+                    <option value="owner">{{ t('role_owner') }}</option>
+                </select>
+                <button class="btn btn-brand">{{ t('save') }}</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card p-3">
+            <h5>{{ t('accounts_list_title') }}</h5>
+            <ul class="list-group">
+                {% for o in owners %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ o.username }}
+                    <span class="badge {{ 'bg-dark' if o.role == 'owner' else 'bg-secondary' }}">
+                        {{ t('role_owner') if o.role == 'owner' else t('role_staff') }}
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
