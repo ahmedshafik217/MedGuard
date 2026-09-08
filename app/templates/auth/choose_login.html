@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <h2 class="mb-4">{{ t('choose_login_title') }}</h2>
+                <div class="d-grid gap-3">
+                    <a href="{{ url_for('auth.owner_login') }}" class="btn btn-outline-dark btn-lg">
+                        🛡️ {{ t('owner_login_btn') }}
+                    </a>
+                    <a href="{{ url_for('auth.patient_login') }}" class="btn btn-brand btn-lg">
+                        🧑‍⚕️ {{ t('patient_login_btn') }}
+                    </a>
+                    <a href="{{ url_for('auth.register_patient') }}" class="btn btn-outline-secondary">
+                        ➕ {{ t('new_patient_btn') }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

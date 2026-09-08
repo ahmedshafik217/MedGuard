@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<a href="{{ url_for('patient.dashboard') }}">&laquo; {{ t('back') }}</a>
+<h3 class="my-3">{{ t('add_antibiotic') }}</h3>
+<div class="card p-4">
+    <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3">
+            <label class="form-label">{{ t('antibiotic_name') }}</label>
+            <input type="text" name="antibiotic_name" class="form-control" list="ref-names" required>
+            <datalist id="ref-names">
+                {% for name in reference_names %}<option value="{{ name }}">{% endfor %}
+            </datalist>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">{{ t('dose') }}</label>
+                <input type="text" name="dose" class="form-control">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">{{ t('duration') }}</label>
+                <input type="text" name="duration" class="form-control">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">{{ t('prescribed_date') }}</label>
+                <input type="date" name="prescribed_date" class="form-control">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">{{ t('prescribed_by_optional') }}</label>
+                <input type="text" name="prescribed_by" class="form-control">
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">{{ t('notes_optional') }}</label>
+            <input type="text" name="notes" class="form-control">
+        </div>
+        <button class="btn btn-brand w-100">{{ t('submit_check') }}</button>
+    </form>
+</div>
+{% endblock %}

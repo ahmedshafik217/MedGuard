@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h3 class="mb-4">🧑‍⚕️ {{ t('patient_login_btn') }}</h3>
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label">{{ t('patient_id') }}</label>
+                        <input type="text" name="public_id" class="form-control" placeholder="ASH-XXXXXX"
+                               value="{{ prefill_id or '' }}" required {{ 'autofocus' if not prefill_id else '' }}>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ t('password') }}</label>
+                        <input type="password" name="password" class="form-control" {{ 'autofocus' if prefill_id else '' }}>
+                    </div>
+                    <button type="submit" class="btn btn-brand w-100">{{ t('login') }}</button>
+                </form>
+                <div class="mt-3 d-flex justify-content-between">
+                    <a href="{{ url_for('auth.choose_login') }}">&laquo; {{ t('back') }}</a>
+                    <a href="{{ url_for('auth.register_patient') }}">{{ t('new_patient_btn') }}</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

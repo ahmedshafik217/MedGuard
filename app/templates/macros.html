@@ -1,0 +1,13 @@
+{% macro render_alerts(alerts) %}
+    {% for alert in alerts %}
+    <div class="alert-card level-{{ alert.level }}">
+        <strong>
+            {% if alert.level == 'danger' %}🚫 {{ t('danger') }}
+            {% elif alert.level == 'warning' %}⚠️ {{ t('warning') }}
+            {% else %}ℹ️ {{ t('info') }}{% endif %}
+            — {{ alert.title }}
+        </strong>
+        <div>{{ alert.message }}</div>
+    </div>
+    {% endfor %}
+{% endmacro %}

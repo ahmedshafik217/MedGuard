@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h3 class="mb-4">➕ {{ t('new_patient_btn') }}</h3>
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label">{{ t('full_name_optional') }}</label>
+                        <input type="text" name="full_name" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ t('gender') }}</label>
+                        <select name="gender" class="form-select" required>
+                            <option value="female">{{ t('female') }}</option>
+                            <option value="male">{{ t('male') }}</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ t('date_of_birth') }}</label>
+                        <input type="date" name="date_of_birth" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ t('password_optional') }}</label>
+                        <input type="password" name="password" class="form-control">
+                    </div>
+                    <button type="submit" class="btn btn-brand w-100">{{ t('create_record') }}</button>
+                </form>
+                <div class="mt-3">
+                    <a href="{{ url_for('auth.choose_login') }}">&laquo; {{ t('back') }}</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

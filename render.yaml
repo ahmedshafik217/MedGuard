@@ -1,0 +1,27 @@
+# Render "Blueprint" spec: lets Ahmed deploy with New + → Blueprint on
+# render.com, which reads this file and pre-fills the service instead of
+# him configuring every field by hand. See README.md section "Deploying a
+# public link (Render)" for the full step-by-step walkthrough.
+services:
+  - type: web
+    name: alshefa-app
+    env: docker
+    plan: free
+    healthCheckPath: /auth/
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SESSION_COOKIE_SECURE
+        value: "1"
+      - key: OWNER_USERNAME
+        value: admin
+      - key: OWNER_PASSWORD
+        sync: false
+      - key: RECENT_EXPOSURE_DAYS
+        value: "30"
+      - key: LOGIN_ATTEMPT_LIMIT
+        value: "5"
+      - key: LOGIN_ATTEMPT_WINDOW_MINUTES
+        value: "15"
+      - key: LOGIN_IP_ATTEMPT_LIMIT
+        value: "20"

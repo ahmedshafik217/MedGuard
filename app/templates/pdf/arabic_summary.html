@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8">
+<title>ملخص سلامة المضادات الحيوية — {{ patient.public_id }}</title>
+<style>
+    @page { margin: 0; }
+    * { box-sizing: border-box; }
+    body {
+        font-family: "DejaVu Sans", "Arial", sans-serif;
+        direction: rtl;
+        text-align: right;
+        color: #1a1a1a;
+        font-size: 12px;
+        line-height: 1.5;
+        margin: 0;
+    }
+    .logo-wrap { text-align: center; margin-bottom: 4px; }
+    /* px/% only here, deliberately -- this wkhtmltopdf build scales absolute
+       CSS length units (mm/cm/in) inconsistently with the actual printed
+       page size (verified: "width:178mm" prints at ~137mm), so anything
+       that needs to match the real page geometry is sized in px/% instead. */
+    .logo-wrap img { max-width: 65%; max-height: 130px; }
+    h1.fallback-title {
+        text-align: center;
+        color: #092440;
+        font-size: 20px;
+        margin: 0 0 4px 0;
+    }
+    p.subtitle {
+        text-align: center;
+        color: #0f6677;
+        font-weight: bold;
+        font-size: 13px;
+        margin: 0 0 14px 0;
+    }
+    table.info {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 10px;
+    }
+    table.info td {
+        padding: 4px 6px;
+        border-bottom: 0.5px solid #dddddd;
+        vertical-align: top;
+        font-size: 11px;
+    }
+    table.info td.label { font-weight: bold; width: 32%; }
+    h2.section {
+        color: #0f6677;
+        font-size: 14px;
+        margin: 16px 0 6px 0;
+        border-bottom: 1.5px solid #1bbad8;
+        padding-bottom: 3px;
+    }
+    p.empty-note { color: #444444; font-size: 11px; margin: 0 0 6px 0; }
+    table.data {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 4px;
+    }
+    table.data th {
+        background: #1bbad8;
+        color: #ffffff;
+        font-size: 10.5px;
+        text-align: right;
+        padding: 5px 6px;
+        border: 0.5px solid #cccccc;
+    }
+    table.data td {
+        font-size: 10px;
+        padding: 5px 6px;
+        border: 0.5px solid #cccccc;
+        vertical-align: top;
+    }
+    table.data tr:nth-child(even) td { background: #f4faf9; }
+    .antibiotic-name { font-weight: bold; }
+    .alert-line { margin: 0 0 4px 0; }
+    .alert-line:last-child { margin-bottom: 0; }
+    .alert-badge {
+        font-weight: bold;
+        padding: 0 3px;
+    }
+    .alert-danger .alert-badge, .alert-danger .alert-title { color: #bd2031; }
+    .alert-warning .alert-badge, .alert-warning .alert-title { color: #92400e; }
+    .alert-info .alert-badge, .alert-info .alert-title { color: #0f6677; }
+    .alert-title { font-weight: bold; }
+    .disclaimer {
+        margin-top: 16px;
+        background: #fff8e6;
+        color: #7a5b00;
+        border: 0.5px solid #f0dca3;
+        padding: 8px 10px;
+        font-size: 10px;
+        line-height: 1.7;
+    }
+    /* NOTE on this wkhtmltopdf build's real, verified Arabic rendering bugs
+       (checked with pdftotext -bbox against the actual printable-area
+       boundary, not just by eye):
+       1) A line of Arabic text that ends right at a bare "." gets its whole
+          line shifted further right than it should, pushing content past
+          the printable-area edge where it is silently not painted (present
+          in the text layer, invisible on the page). Fix: put a space before
+          any trailing period in Arabic text on this page ("... أعلاه ."
+          not "...أعلاه.") -- verified this alone resolves it.
+       2) Three or more stacked lines of Arabic text in one block (however
+          produced: auto-wrap, multiple <br>, sibling <p>/<tr>) corrupts the
+          3rd line onward. Two stacked lines are fine. Kept to exactly one
+          <br> below for that reason.
+       If this text is ever edited, re-render the PDF and check it with
+       pdftotext -bbox (or at least look closely at the actual image) rather
+       than trusting the HTML source. */
+</style>
+</head>
+<body>
+
+{% if logo_data_uri %}
+<div class="logo-wrap"><img src="{{ logo_data_uri }}" alt="Al Shefa Specialized Hospital"></div>
+{% else %}
+<h1 class="fallback-title">مستشفى الشفاء التخصصي</h1>
+{% endif %}
+<p class="subtitle">تحليل سلامة المضادات الحيوية للمريض بالذكاء الاصطناعي</p>
+
+<table class="info">
+    <tr><td class="label">رقم المريض</td><td>{{ patient.public_id }}</td></tr>
+    <tr><td class="label">الاسم</td><td>{{ patient.full_name or '—' }}</td></tr>
+    <tr><td class="label">الجنس</td><td>{{ gender_label }}</td></tr>
+    <tr>
+        <td class="label">تاريخ الميلاد</td>
+        <td>
+            {{ patient.date_of_birth or '—' }}
+            {% if patient.age_years is not none %}({{ patient.age_years }} سنة){% endif %}
+        </td>
+    </tr>
+    <tr><td class="label">حالة الحمل</td><td>{{ pregnancy_label }}</td></tr>
+    <tr><td class="label">تاريخ الإنشاء</td><td>{{ generated_at }}</td></tr>
+</table>
+
+<h2 class="section">الحساسية المعروفة</h2>
+{% if allergies %}
+<table class="data">
+    <thead>
+        <tr>
+            <th>المادة المسببة للحساسية</th>
+            <th>فئة الدواء</th>
+            <th>الشدة</th>
+            <th>رد الفعل</th>
+            <th>تاريخ التسجيل</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for a in allergies %}
+        <tr>
+            <td>{{ a.allergen }}</td>
+            <td>{{ a.drug_class or '—' }}</td>
+            <td>{{ severity_labels.get(a.severity, a.severity or '—') }}</td>
+            <td>{{ a.reaction or '—' }}</td>
+            <td>{{ (a.recorded_at or '')[:10] }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="empty-note">لا توجد حساسية مسجلة .</p>
+{% endif %}
+
+<h2 class="section">الحالات المرضية</h2>
+{% if conditions %}
+<table class="data">
+    <thead>
+        <tr>
+            <th>الحالة</th>
+            <th>ملاحظات</th>
+            <th>تاريخ التسجيل</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for c in conditions %}
+        <tr>
+            <td>{{ c.condition_name }}</td>
+            <td>{{ c.notes or '—' }}</td>
+            <td>{{ (c.recorded_at or '')[:10] }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="empty-note">لا توجد حالات مرضية مسجلة .</p>
+{% endif %}
+
+<h2 class="section">سجل المضادات الحيوية</h2>
+{% if records %}
+<table class="data">
+    <thead>
+        <tr>
+            <th>التاريخ</th>
+            <th>المضاد الحيوي</th>
+            <th>الجرعة</th>
+            <th>المدة</th>
+            <th>بواسطة</th>
+            <th>التنبيهات وقت الإضافة</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for r in records %}
+        <tr>
+            <td>{{ r.prescribed_date }}</td>
+            <td class="antibiotic-name">{{ r.display_name }}</td>
+            <td>{{ r.dose or '—' }}</td>
+            <td>{{ r.duration or '—' }}</td>
+            <td>{{ r.prescribed_by or r.added_by or '—' }}</td>
+            <td>
+                {% set alerts = r.alerts or [] %}
+                {% if alerts and alerts[0].code not in ('no_issues_found',) %}
+                    {% for a in alerts %}
+                    <p class="alert-line alert-{{ a.level }}">
+                        <span class="alert-badge">[{{ alert_labels.get(a.level, a.level) }}]</span>
+                        <span class="alert-title">{{ a.title }}</span><br>{{ a.message }}
+                    </p>
+                    {% endfor %}
+                {% elif alerts %}
+                    <p class="alert-line">لم يتم العثور على مشاكل معروفة .</p>
+                {% else %}
+                    <p class="alert-line">—</p>
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="empty-note">لا توجد مضادات حيوية مسجلة بعد .</p>
+{% endif %}
+
+<!-- Exactly one <br>, and a space before every trailing "." -- see the
+     .disclaimer comment in <style> above before changing this. -->
+<div class="disclaimer">يعكس هذا المستند البيانات التي أدخلها المريض في تطبيق سلامة المضادات الحيوية الخاص بمستشفى الشفاء حتى تاريخ الإنشاء أعلاه .<br>هذا ملخص لدعم القرار السريري ولا يغني عن التقييم المستقل من طبيب أو صيدلي مختص . يُرجى التحقق من جميع البيانات مباشرة مع المريض .</div>
+
+</body>
+</html>
