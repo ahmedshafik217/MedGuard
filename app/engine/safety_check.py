@@ -30,7 +30,7 @@ def _class_matches(a, b):
 
 
 def check_antibiotic(patient, antibiotic, allergies, conditions, recent_record=None,
-                      recent_exposure_days=30):
+                      recent_exposure_days=30, recent_class_record=None):
     """
     patient: dict (Patient row) -- needs 'pregnancy_status'
     antibiotic: dict (Antibiotic row) or None if a free-text/custom name was
@@ -39,6 +39,10 @@ def check_antibiotic(patient, antibiotic, allergies, conditions, recent_record=N
     conditions: list[dict] -- this patient's PatientCondition rows
     recent_record: dict or None -- most recent prior AntibioticRecord of the
                     SAME antibiotic within the lookback window, if any
+    recent_class_record: dict or None -- most recent prior AntibioticRecord
+                    of a DIFFERENT antibiotic in the SAME drug class within
+                    the lookback window, if any (e.g. Augmentin after a
+                    recent Amoxicillin course -- both Penicillins)
     Returns: list[dict] alerts (empty means the caller should show "no issues").
     """
     alerts = []
@@ -104,6 +108,24 @@ def check_antibiotic(patient, antibiotic, allergies, conditions, recent_record=N
                 f"Patient already received {antibiotic['generic_name']} on "
                 f"{recent_record['prescribed_date']}, within the last "
                 f"{recent_exposure_days} days. Review necessity/resistance risk."
+            ),
+        })
+
+    # 3b. Recent exposure to a DIFFERENT antibiotic in the SAME class (e.g.
+    # two different penicillins within the lookback window). Kept as a
+    # separate alert from #3 above so the message correctly says which drug
+    # was actually given before, rather than implying it was the same one.
+    if antibiotic and recent_class_record:
+        alerts.append({
+            "level": "warning",
+            "code": "recent_exposure_class",
+            "title": "Recent exposure to the same antibiotic group",
+            "message": (
+                f"Patient already received {recent_class_record['display_name']} "
+                f"(also {antibiotic.get('drug_class')}) on "
+                f"{recent_class_record['prescribed_date']}, within the last "
+                f"{recent_exposure_days} days. Same-class repeat exposure -- "
+                "review necessity/resistance risk."
             ),
         })
 

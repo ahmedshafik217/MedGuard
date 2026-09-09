@@ -43,14 +43,21 @@ def add_antibiotic_from_form(patient, form, added_by):
 
     recent_days = current_app.config.get("RECENT_EXPOSURE_DAYS", 30)
     recent_record = None
+    recent_class_record = None
     if antibiotic:
         cutoff = recent_cutoff_date(recent_days)
         recent_record = models.find_recent_record(patient["id"], antibiotic["id"], cutoff)
+        if antibiotic.get("drug_class"):
+            recent_class_record = models.find_recent_record_by_class(
+                patient["id"], antibiotic["drug_class"], cutoff,
+                exclude_antibiotic_id=antibiotic["id"],
+            )
 
     allergies = models.list_allergies(patient["id"])
     conditions = models.list_conditions(patient["id"])
     alerts = check_antibiotic(patient, antibiotic, allergies, conditions,
-                               recent_record=recent_record, recent_exposure_days=recent_days)
+                               recent_record=recent_record, recent_exposure_days=recent_days,
+                               recent_class_record=recent_class_record)
 
     record = models.add_antibiotic_record(
         patient_id=patient["id"],
