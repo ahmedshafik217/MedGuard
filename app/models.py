@@ -344,6 +344,28 @@ def find_recent_record(patient_id, antibiotic_id, cutoff_date_str, exclude_recor
     return _record_row_to_dict(db.execute(query, params).fetchone())
 
 
+def find_recent_record_by_class(patient_id, drug_class, cutoff_date_str, exclude_antibiotic_id=None):
+    """Most recent prior record of a DIFFERENT antibiotic in the same drug
+    class (e.g. two different penicillins, or a cephalosporin after a
+    penicillin) on/after cutoff_date_str. This is what catches "same
+    antibiotic GROUP within a month" -- find_recent_record() above only
+    catches the exact same drug, so a patient given Amoxicillin then, three
+    weeks later, Augmentin (both Penicillins) was previously not flagged at
+    all since they're different antibiotic rows. Requires a JOIN against
+    antibiotics since drug_class lives there, not on antibiotic_records."""
+    db = get_db()
+    query = """SELECT ar.* FROM antibiotic_records ar
+               JOIN antibiotics a ON a.id = ar.antibiotic_id
+               WHERE ar.patient_id = ? AND lower(a.drug_class) = lower(?)
+                 AND ar.prescribed_date >= ?"""
+    params = [patient_id, drug_class, cutoff_date_str]
+    if exclude_antibiotic_id:
+        query += " AND ar.antibiotic_id != ?"
+        params.append(exclude_antibiotic_id)
+    query += " ORDER BY ar.prescribed_date DESC LIMIT 1"
+    return _record_row_to_dict(db.execute(query, params).fetchone())
+
+
 def count_antibiotic_records():
     db = get_db()
     return db.execute("SELECT COUNT(*) AS c FROM antibiotic_records").fetchone()["c"]
