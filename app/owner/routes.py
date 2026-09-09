@@ -15,7 +15,13 @@ from app.utils import current_actor_label, current_owner, current_owner_role, fu
 def dashboard():
     is_full = models.is_full_owner(current_owner())
     q = request.args.get("q", "").strip()
-    patients = models.list_patients(search=q or None)
+    if is_full:
+        patients = models.list_patients(search=q or None)
+    else:
+        # Staff can only pull up a specific patient by exact full name or
+        # ID -- no default browsing of the whole patient list, and no
+        # partial-substring search either. See models.find_patients_exact.
+        patients = models.find_patients_exact(q) if q else []
     stats = flagged_records = recent_records = None
     if is_full:
         # The controller/clinical-pharmacist dashboard surfaces what needs
