@@ -35,6 +35,20 @@ STRINGS = {
     "antibiotic_reference": {"en": "Antibiotic Reference Database", "ar": "قاعدة بيانات المضادات الحيوية"},
     "audit_log": {"en": "Audit Log", "ar": "سجل النشاط"},
     "search_patients": {"en": "Search by patient ID or name...", "ar": "ابحث برقم المريض أو الاسم..."},
+    "staff_search_placeholder": {
+        "en": "Enter the patient's full name or ID exactly...",
+        "ar": "اكتب اسم المريض بالكامل أو رقم المريض بالضبط...",
+    },
+    "staff_search_hint": {
+        "en": "Type a patient's full name or ID above to open their record. "
+              "For patient privacy, staff accounts can't browse the full patient list.",
+        "ar": "اكتب اسم المريض بالكامل أو رقم المريض في الأعلى لعرض سجله. "
+              "حفاظاً على خصوصية المرضى، لا يمكن لحسابات الموظفين تصفح كل قائمة المرضى.",
+    },
+    "no_patient_found": {
+        "en": "No patient found with that exact name or ID. Double-check the spelling with the patient.",
+        "ar": "لا يوجد مريض بهذا الاسم أو الرقم بالضبط. تأكد من التهجئة مع المريض.",
+    },
     "view": {"en": "View", "ar": "عرض"},
     "patient_dashboard": {"en": "My Health Record", "ar": "سجلي الصحي"},
     "my_profile": {"en": "My Profile", "ar": "بياناتي"},

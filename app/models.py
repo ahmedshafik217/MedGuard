@@ -179,6 +179,30 @@ def count_patients():
     return db.execute("SELECT COUNT(*) AS c FROM patients").fetchone()["c"]
 
 
+def find_patients_exact(query):
+    """Exact match (case-insensitive, trimmed) on public_id OR full_name --
+    NOT a partial/substring search like list_patients() above. This backs
+    the staff-role patient lookup: staff should only be able to pull up a
+    specific patient they already know the full name or ID of, not browse
+    or fish through the whole patient list by typing a couple of letters
+    (that's the controller/owner's privilege, via list_patients()). Empty
+    query returns no results rather than everyone, deliberately -- staff
+    landing on the dashboard with no search typed should see nobody's data
+    by default. May return more than one row if two patients happen to
+    share the exact same full name."""
+    q = (query or "").strip()
+    if not q:
+        return []
+    db = get_db()
+    rows = db.execute(
+        """SELECT * FROM patients
+           WHERE lower(public_id) = lower(?) OR lower(trim(full_name)) = lower(?)
+           ORDER BY created_at DESC""",
+        (q, q),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
 # --------------------------------------------------------------- allergies --
 
 def add_allergy(patient_id, allergen, drug_class=None, reaction=None, severity="unknown"):
