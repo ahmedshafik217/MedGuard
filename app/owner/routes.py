@@ -6,7 +6,9 @@ from app import models
 from app.owner import bp
 from app.pdf_export import generate_patient_history_pdf
 from app.pdf_export_ar import WkhtmltopdfNotFound, generate_patient_history_pdf_arabic
-from app.records import add_allergy_from_form, add_antibiotic_from_form, add_condition_from_form
+from app.records import (
+    add_allergy_from_form, add_antibiotic_from_form, add_condition_from_form, add_medication_from_form,
+)
 from app.utils import current_actor_label, current_owner, current_owner_role, full_owner_required, owner_required
 
 
@@ -115,6 +117,7 @@ def patient_detail(public_id):
         return ("Patient not found.", 404)
     patient["allergies"] = models.list_allergies(patient["id"])
     patient["conditions"] = models.list_conditions(patient["id"])
+    patient["medications"] = models.list_medications(patient["id"])
     patient["antibiotic_records"] = models.list_antibiotic_records(patient["id"])
     models.log_action("owner", current_actor_label(), "view_patient", target=public_id)
     return render_template("owner/patient_detail.html", patient=patient)
@@ -194,6 +197,17 @@ def add_patient_condition(public_id):
         return ("Patient not found.", 404)
     add_condition_from_form(patient, request.form)
     models.log_action("owner", current_actor_label(), "add_condition", target=public_id)
+    return redirect(url_for("owner.patient_detail", public_id=public_id))
+
+
+@bp.route("/patients/<public_id>/medications/add", methods=["POST"])
+@full_owner_required
+def add_patient_medication(public_id):
+    patient = models.get_patient_by_public_id(public_id)
+    if not patient:
+        return ("Patient not found.", 404)
+    add_medication_from_form(patient, request.form)
+    models.log_action("owner", current_actor_label(), "add_medication", target=public_id)
     return redirect(url_for("owner.patient_detail", public_id=public_id))
 
 
@@ -327,6 +341,74 @@ def delete_antibiotic(item_id):
     models.log_action("owner", current_actor_label(), "delete_antibiotic_reference", details=item["generic_name"])
     flash("Antibiotic removed from reference database.", "success")
     return redirect(url_for("owner.antibiotics"))
+
+
+def _interaction_form_fields(form):
+    return dict(
+        antibiotic_name=form.get("antibiotic_name", "").strip() or None,
+        antibiotic_class=form.get("antibiotic_class", "").strip() or None,
+        interacting_drug=form.get("interacting_drug", "").strip(),
+        severity=form.get("severity", "warning").strip() or "warning",
+        category_label=form.get("category_label", "").strip() or None,
+        mechanism=form.get("mechanism", "").strip() or None,
+        management=form.get("management", "").strip() or None,
+        notes=form.get("notes", "").strip() or None,
+    )
+
+
+@bp.route("/drug-interactions")
+@full_owner_required
+def drug_interactions():
+    items = models.list_drug_interactions()
+    return render_template("owner/drug_interactions.html", items=items)
+
+
+@bp.route("/drug-interactions/add", methods=["GET", "POST"])
+@full_owner_required
+def add_drug_interaction():
+    if request.method == "POST":
+        fields = _interaction_form_fields(request.form)
+        if not fields["interacting_drug"] or not (fields["antibiotic_name"] or fields["antibiotic_class"]):
+            flash("Enter the interacting drug, and either a specific antibiotic name or a drug class.", "error")
+        else:
+            models.add_drug_interaction(**fields)
+            models.log_action("owner", current_actor_label(), "add_drug_interaction",
+                              details=f"{fields['antibiotic_name'] or fields['antibiotic_class']} + {fields['interacting_drug']}")
+            flash("Drug interaction added to reference database.", "success")
+            return redirect(url_for("owner.drug_interactions"))
+    return render_template("owner/drug_interaction_form.html", item=None)
+
+
+@bp.route("/drug-interactions/<int:item_id>/edit", methods=["GET", "POST"])
+@full_owner_required
+def edit_drug_interaction(item_id):
+    item = models.get_drug_interaction_by_id(item_id)
+    if not item:
+        return ("Not found.", 404)
+    if request.method == "POST":
+        fields = _interaction_form_fields(request.form)
+        if not fields["interacting_drug"] or not (fields["antibiotic_name"] or fields["antibiotic_class"]):
+            flash("Enter the interacting drug, and either a specific antibiotic name or a drug class.", "error")
+        else:
+            models.update_drug_interaction(item_id, **fields)
+            models.log_action("owner", current_actor_label(), "edit_drug_interaction",
+                              details=f"{fields['antibiotic_name'] or fields['antibiotic_class']} + {fields['interacting_drug']}")
+            flash("Drug interaction updated.", "success")
+            return redirect(url_for("owner.drug_interactions"))
+    return render_template("owner/drug_interaction_form.html", item=item)
+
+
+@bp.route("/drug-interactions/<int:item_id>/delete", methods=["POST"])
+@full_owner_required
+def delete_drug_interaction(item_id):
+    item = models.get_drug_interaction_by_id(item_id)
+    if not item:
+        return ("Not found.", 404)
+    models.delete_drug_interaction(item_id)
+    models.log_action("owner", current_actor_label(), "delete_drug_interaction",
+                      details=item.get("interacting_drug"))
+    flash("Drug interaction removed from reference database.", "success")
+    return redirect(url_for("owner.drug_interactions"))
 
 
 @bp.route("/audit-log")
