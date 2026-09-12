@@ -7,6 +7,66 @@ immediately instead of silently showing blank text."""
 STRINGS = {
     "site_name": {"en": "Al Shefa Specialized Hospital", "ar": "مستشفى الشفاء التخصصي"},
     "app_tagline": {"en": "Patient Antibiotic Safety Record", "ar": "سجل سلامة المضادات الحيوية للمريض"},
+    # The app's own product identity, shown big on the welcome/login page
+    # hero -- distinct from "site_name" above, which is the hospital
+    # institution's name (still used in the navbar/footer/PDF exports).
+    "app_display_name": {"en": "AmanBio", "ar": "أمان بايو"},
+    "app_identity_tagline": {
+        "en": "Your antibiotic safety identity (AI supported)",
+        "ar": "هويتك للاستخدام الآمن للمضاد الحيوي (مدعوم بالذكاء الاصطناعي)",
+    },
+    "footer_credit": {
+        "en": "Built for Al Shefa Specialized Hospital",
+        "ar": "صُمم لمستشفى الشفاء التخصصي",
+    },
+    # --- New hospital-provided branded design (welcome page + sitewide
+    # header/footer), added for the AmanBio visual redesign. The hospital
+    # motto ("hospital_motto") is a brand slogan, not a normal UI string --
+    # per the reference design it's always shown in Arabic script even on
+    # the English site, with "hospital_motto_gloss" as a small English
+    # translation underneath (only shown in English mode).
+    "hospital_motto": {"en": "الشفاء غاية ورعاية وأمان", "ar": "الشفاء غاية ورعاية وأمان"},
+    "hospital_motto_gloss": {"en": "Together for a Safer Care", "ar": ""},
+    "hero_word_remember": {"en": "Remember", "ar": "تذكر"},
+    "hero_word_check": {"en": "Check", "ar": "تحقق"},
+    "hero_word_protect": {"en": "Protect", "ar": "احم نفسك"},
+    "hero_cursive_line1": {"en": "Better Care", "ar": "رعاية أفضل"},
+    "hero_cursive_line2": {"en": "Safer Tomorrow", "ar": "لمستقبل أكثر صحة"},
+    "feature_history_title": {"en": "Antibiotic History", "ar": "سجل المضادات الحيوية"},
+    "feature_history_desc": {"en": "Keep track of past antibiotics", "ar": "تابع استخدام المضادات الحيوية السابقة"},
+    "feature_allergy_title": {"en": "Allergy Check", "ar": "التحقق من الحساسية"},
+    "feature_allergy_desc": {"en": "Avoid allergic reactions", "ar": "تجنب ردود الفعل التحسسية"},
+    "feature_pregnancy_title": {"en": "Pregnancy Safety", "ar": "سلامة الحمل"},
+    "feature_pregnancy_desc": {"en": "Prevent contraindicated use", "ar": "منع الاستخدام غير المناسب"},
+    "feature_risk_title": {"en": "Risk Alerts", "ar": "تنبيهات المخاطر"},
+    "feature_risk_desc": {"en": "Identify important precautions", "ar": "التعرف على الاحتياطات المهمة"},
+    "najran_label": {"en": "Najran", "ar": "نجران"},
+    "najran_tagline": {"en": "For a Healthier Community", "ar": "من أجل مجتمع أكثر صحة"},
+    "staff_card_desc": {
+        "en": "For Doctors, Pharmacists and Authorized Staff",
+        "ar": "للأطباء والصيادلة والكوادر المصرح لهم",
+    },
+    "patient_card_title": {"en": "Patient Login", "ar": "دخول المريض"},
+    "patient_card_desc": {
+        "en": "Access your Antibiotic Safety ID",
+        "ar": "الوصول إلى هويتك لسلامة المضادات الحيوية",
+    },
+    "new_patient_card_title": {"en": "New Patient", "ar": "مريض جديد"},
+    "new_patient_card_desc": {
+        "en": "Create a new patient record and get your Antibiotic ID",
+        "ar": "إنشاء سجل مريض جديد والحصول على هويتك للمضادات الحيوية",
+    },
+    "login_button": {"en": "Login", "ar": "تسجيل الدخول"},
+    "create_record_button": {"en": "Create Record", "ar": "إنشاء سجل جديد"},
+    "strip_safe_title": {"en": "Safe Antibiotic Use", "ar": "الاستخدام الآمن للمضادات الحيوية"},
+    "strip_safe_desc": {"en": "For you. For your community.", "ar": "من أجلك. من أجل مجتمعك."},
+    "strip_support_title": {"en": "Support Clinical Decisions", "ar": "دعم القرارات السريرية"},
+    "strip_support_desc": {"en": "Evidence-based alerts", "ar": "تنبيهات مبنية على الأدلة"},
+    "strip_reduce_title": {"en": "Reduce Antibiotic Misuse", "ar": "الحد من إساءة استخدام المضادات الحيوية"},
+    "strip_reduce_desc": {"en": "A healthier tomorrow", "ar": "لمستقبل أكثر صحة"},
+    "strip_community_title": {"en": "Community Health", "ar": "صحة المجتمع"},
+    "strip_community_desc": {"en": "Our commitment to Najran", "ar": "ملتزمون من أجل نجران"},
+    "footer_region": {"en": "Najran, KSA", "ar": "نجران، المملكة العربية السعودية"},
     "disclaimer": {
         "en": "This tool supports clinical decisions. It does not replace the judgment of a "
               "licensed physician or pharmacist. Always verify alerts independently.",
@@ -165,6 +225,53 @@ STRINGS = {
         "en": "Only the clinical pharmacist / controller can add or change this.",
         "ar": "فقط الصيدلي الإكلينيكي / المتحكم يمكنه إضافة أو تعديل هذا.",
     },
+
+    # Structured dose/duration (app/dose_format.py). Fixed-vocabulary dropdown
+    # options instead of free text, so a dose entered while the UI is in
+    # Arabic still renders correctly on an English PDF and vice versa --
+    # translating a small closed set of unit/frequency codes via this same
+    # dictionary is safe, unlike running patient-entered free text through a
+    # machine translator (which risks silently mistranslating a number or
+    # unit on a patient-safety record).
+    "dose_amount": {"en": "Amount", "ar": "الكمية"},
+    "dose_unit": {"en": "Unit", "ar": "الوحدة"},
+    "frequency": {"en": "Frequency", "ar": "عدد مرات الجرعة"},
+    "duration_amount": {"en": "Duration", "ar": "المدة"},
+    "duration_unit": {"en": "Duration unit", "ar": "وحدة المدة"},
+    "choose_option": {"en": "-- choose --", "ar": "-- اختر --"},
+    "other_specify": {"en": "Other (type below)", "ar": "غير ذلك (اكتب في الأسفل)"},
+    "other_free_text_optional": {
+        "en": "If \"Other\" selected above, type it here (optional)",
+        "ar": "لو اخترت \"غير ذلك\" فوق، اكتبها هنا (اختياري)",
+    },
+
+    "dose_unit_mg": {"en": "mg", "ar": "مجم"},
+    "dose_unit_g": {"en": "g", "ar": "جم"},
+    "dose_unit_ml": {"en": "mL", "ar": "مل"},
+    "dose_unit_iu": {"en": "IU", "ar": "وحدة دولية"},
+    "dose_unit_tablet": {"en": "tablet(s)", "ar": "قرص/أقراص"},
+    "dose_unit_capsule": {"en": "capsule(s)", "ar": "كبسولة/كبسولات"},
+
+    "freq_once_daily": {"en": "once daily", "ar": "مرة واحدة يومياً"},
+    "freq_twice_daily": {"en": "twice daily", "ar": "مرتين يومياً"},
+    "freq_three_times_daily": {"en": "three times daily", "ar": "3 مرات يومياً"},
+    "freq_four_times_daily": {"en": "four times daily", "ar": "4 مرات يومياً"},
+    "freq_every_6h": {"en": "every 6 hours", "ar": "كل 6 ساعات"},
+    "freq_every_8h": {"en": "every 8 hours", "ar": "كل 8 ساعات"},
+    "freq_every_12h": {"en": "every 12 hours", "ar": "كل 12 ساعة"},
+    "freq_every_24h": {"en": "every 24 hours", "ar": "كل 24 ساعة"},
+    "freq_as_needed": {"en": "as needed (PRN)", "ar": "عند الحاجة"},
+    "freq_single_dose": {"en": "single dose", "ar": "جرعة واحدة فقط"},
+
+    # NOTE: deliberately "يوم"/"أسبوع" (singular), not the slash-joined
+    # day/days dual form ("يوم/أيام") the UI copy would normally use --
+    # confirmed via isolated wkhtmltopdf renders that a "word/word" slash
+    # pattern right next to a <bdi>-wrapped digit corrupts in the Arabic PDF
+    # (see app/bidi_fix.py). The number already in front of it makes the
+    # plural form obvious ("7 يوم" reads fine), so nothing is lost.
+    "duration_unit_day": {"en": "day(s)", "ar": "يوم"},
+    "duration_unit_week": {"en": "week(s)", "ar": "أسبوع"},
+    "duration_unit_dose": {"en": "single dose (one-time)", "ar": "جرعة واحدة (مرة واحدة فقط)"},
 }
 
 
