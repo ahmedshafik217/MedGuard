@@ -303,6 +303,39 @@ STRINGS = {
         "ar": "اتركه فارغاً لتقديره تلقائياً من تاريخ البداية (40 أسبوعاً). عدّله إذا كان هناك تاريخ أدق من الموجات فوق الصوتية.",
     },
     "weeks_pregnant": {"en": "weeks pregnant", "ar": "أسبوع حمل"},
+
+    # --- Patient's other (non-antibiotic) medications + the drug-drug
+    # interaction reference database checked against them whenever an
+    # antibiotic is added.
+    "my_medications": {"en": "My Other Medications", "ar": "أدويتي الأخرى"},
+    "my_medications_hint": {
+        "en": "Medications you take regularly (not antibiotics) — checked for interactions when an antibiotic is added.",
+        "ar": "الأدوية التي تتناولها بانتظام (غير المضادات الحيوية) — يتم فحصها للتفاعلات عند إضافة مضاد حيوي.",
+    },
+    "medication_name": {"en": "Medication name", "ar": "اسم الدواء"},
+    "add_medication": {"en": "Add medication", "ar": "إضافة دواء"},
+
+    "drug_interactions_reference": {"en": "Drug Interactions Reference", "ar": "قاعدة بيانات التداخلات الدوائية"},
+    "drug_interactions_hint": {
+        "en": "Known dangerous combinations between an antibiotic and another medication. Checked automatically "
+              "against each patient's \"Other Medications\" list whenever that antibiotic is added for them.",
+        "ar": "التوليفات الخطرة المعروفة بين مضاد حيوي ودواء آخر. يتم فحصها تلقائياً مقابل قائمة \"الأدوية الأخرى\" "
+              "لكل مريض عند إضافة ذلك المضاد الحيوي له.",
+    },
+    "add_drug_interaction": {"en": "Add drug interaction", "ar": "إضافة تداخل دوائي"},
+    "drug_interaction_match_hint": {
+        "en": "Fill in the antibiotic's exact generic name (matches one specific drug), or its drug class "
+              "(matches every antibiotic in that class), or both.",
+        "ar": "أدخل الاسم العلمي الدقيق للمضاد الحيوي (يطابق دواءً محدداً)، أو فئته الدوائية (تطابق كل مضاد حيوي "
+              "في تلك الفئة)، أو كليهما.",
+    },
+    "antibiotic_side": {"en": "Antibiotic / class", "ar": "المضاد الحيوي / الفئة"},
+    "antibiotic_class_optional": {"en": "Drug class (optional)", "ar": "الفئة الدوائية (اختياري)"},
+    "interacting_drug": {"en": "Interacting drug", "ar": "الدواء المتداخل"},
+    "severity": {"en": "Severity", "ar": "الخطورة"},
+    "category_label": {"en": "Category (e.g. Category X)", "ar": "الفئة (مثال: Category X)"},
+    "mechanism_optional": {"en": "Mechanism (optional)", "ar": "آلية التداخل (اختياري)"},
+    "management_optional": {"en": "Patient management (optional)", "ar": "التوصية العلاجية (اختياري)"},
 }
 
 

@@ -50,6 +50,32 @@ CREATE TABLE IF NOT EXISTS patient_conditions (
     recorded_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS patient_medications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    medication_name TEXT NOT NULL,
+    notes TEXT,
+    recorded_at TEXT NOT NULL
+);
+
+-- Reference table of known dangerous combinations between an antibiotic
+-- (matched either by its exact generic name, or by its whole drug class --
+-- either/both may be set) and some OTHER (non-antibiotic) medication the
+-- patient may already be taking. Owner-managed from Owner Dashboard ->
+-- Drug Interactions, same pattern as the antibiotics reference table.
+CREATE TABLE IF NOT EXISTS drug_interactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    antibiotic_name TEXT,
+    antibiotic_class TEXT,
+    interacting_drug TEXT NOT NULL,
+    severity TEXT NOT NULL DEFAULT 'warning',
+    category_label TEXT,
+    mechanism TEXT,
+    management TEXT,
+    notes TEXT,
+    created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS antibiotics (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     generic_name TEXT UNIQUE NOT NULL,

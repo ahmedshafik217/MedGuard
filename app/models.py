@@ -330,6 +330,98 @@ def list_conditions(patient_id):
     return [dict(r) for r in rows]
 
 
+# -------------------------------------------------- patient's other medications --
+
+def add_medication(patient_id, medication_name, notes=None):
+    db = get_db()
+    db.execute(
+        """INSERT INTO patient_medications (patient_id, medication_name, notes, recorded_at)
+           VALUES (?, ?, ?, ?)""",
+        (patient_id, medication_name, notes, _now()),
+    )
+    db.commit()
+
+
+def list_medications(patient_id):
+    db = get_db()
+    rows = db.execute(
+        "SELECT * FROM patient_medications WHERE patient_id = ? ORDER BY recorded_at DESC", (patient_id,)
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+# ------------------------------------------------- drug-drug interaction reference --
+
+def add_drug_interaction(interacting_drug, severity="warning", antibiotic_name=None, antibiotic_class=None,
+                          category_label=None, mechanism=None, management=None, notes=None):
+    db = get_db()
+    db.execute(
+        """INSERT INTO drug_interactions
+           (antibiotic_name, antibiotic_class, interacting_drug, severity, category_label,
+            mechanism, management, notes, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (antibiotic_name or None, antibiotic_class or None, interacting_drug, severity,
+         category_label or None, mechanism or None, management or None, notes or None, _now()),
+    )
+    db.commit()
+
+
+def update_drug_interaction(item_id, interacting_drug, severity, antibiotic_name=None, antibiotic_class=None,
+                             category_label=None, mechanism=None, management=None, notes=None):
+    db = get_db()
+    db.execute(
+        """UPDATE drug_interactions
+           SET antibiotic_name = ?, antibiotic_class = ?, interacting_drug = ?, severity = ?,
+               category_label = ?, mechanism = ?, management = ?, notes = ?
+           WHERE id = ?""",
+        (antibiotic_name or None, antibiotic_class or None, interacting_drug, severity,
+         category_label or None, mechanism or None, management or None, notes or None, item_id),
+    )
+    db.commit()
+
+
+def delete_drug_interaction(item_id):
+    db = get_db()
+    db.execute("DELETE FROM drug_interactions WHERE id = ?", (item_id,))
+    db.commit()
+
+
+def get_drug_interaction_by_id(item_id):
+    db = get_db()
+    return _row_to_dict(db.execute("SELECT * FROM drug_interactions WHERE id = ?", (item_id,)).fetchone())
+
+
+def list_drug_interactions():
+    db = get_db()
+    rows = db.execute("SELECT * FROM drug_interactions ORDER BY antibiotic_name, interacting_drug").fetchall()
+    return [dict(r) for r in rows]
+
+
+def count_drug_interactions():
+    db = get_db()
+    return db.execute("SELECT COUNT(*) AS c FROM drug_interactions").fetchone()["c"]
+
+
+def list_interactions_for_antibiotic(antibiotic):
+    """Reference-table rows relevant to one resolved antibiotic -- matched
+    by exact generic name OR by drug class, so a single entry can either
+    flag one specific drug (e.g. 'Ciprofloxacin + Tizanidine') or a whole
+    class at once (e.g. 'any Fluoroquinolone + Tizanidine'). Returns []
+    for a free-text/unrecognized antibiotic, same as the other reference
+    lookups in this app."""
+    if not antibiotic:
+        return []
+    name = (antibiotic.get("generic_name") or "").strip().lower()
+    drug_class = (antibiotic.get("drug_class") or "").strip().lower()
+    matches = []
+    for row in list_drug_interactions():
+        ref_name = (row.get("antibiotic_name") or "").strip().lower()
+        ref_class = (row.get("antibiotic_class") or "").strip().lower()
+        if (ref_name and ref_name == name) or (ref_class and drug_class and ref_class == drug_class):
+            matches.append(row)
+    return matches
+
+
 # ------------------------------------------------------- antibiotic reference --
 
 def _antibiotic_row_to_dict(row):

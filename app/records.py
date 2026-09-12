@@ -28,6 +28,14 @@ def add_condition_from_form(patient, form):
     )
 
 
+def add_medication_from_form(patient, form):
+    models.add_medication(
+        patient_id=patient["id"],
+        medication_name=form.get("medication_name", "").strip(),
+        notes=form.get("notes", "").strip() or None,
+    )
+
+
 def add_antibiotic_from_form(patient, form, added_by):
     name = form.get("antibiotic_name", "").strip()
     antibiotic = models.get_antibiotic_by_name(name) if name else None
@@ -55,16 +63,30 @@ def add_antibiotic_from_form(patient, form, added_by):
 
     allergies = models.list_allergies(patient["id"])
     conditions = models.list_conditions(patient["id"])
+    medications = models.list_medications(patient["id"])
+    interactions = models.list_interactions_for_antibiotic(antibiotic)
     alerts = check_antibiotic(patient, antibiotic, allergies, conditions,
                                recent_record=recent_record, recent_exposure_days=recent_days,
-                               recent_class_record=recent_class_record)
+                               recent_class_record=recent_class_record,
+                               medications=medications, interactions=interactions)
 
     record = models.add_antibiotic_record(
         patient_id=patient["id"],
         antibiotic_id=antibiotic["id"] if antibiotic else None,
         custom_name=None if antibiotic else name,
-        dose=form.get("dose", "").strip() or None,
-        duration=form.get("duration", "").strip() or None,
+        # dose/duration free text kept for very old callers only; the
+        # actual dose/duration entry now goes entirely through the
+        # structured fields below (see app/dose_format.py).
+        dose=None,
+        duration=None,
+        dose_amount=form.get("dose_amount", "").strip() or None,
+        dose_unit=form.get("dose_unit", "").strip() or None,
+        dose_unit_other=form.get("dose_unit_other", "").strip() or None,
+        frequency=form.get("frequency", "").strip() or None,
+        frequency_other=form.get("frequency_other", "").strip() or None,
+        duration_amount=form.get("duration_amount", "").strip() or None,
+        duration_unit=form.get("duration_unit", "").strip() or None,
+        duration_unit_other=form.get("duration_unit_other", "").strip() or None,
         prescribed_by=form.get("prescribed_by", "").strip() or None,
         prescribed_date=prescribed_date,
         notes=form.get("notes", "").strip() or None,
