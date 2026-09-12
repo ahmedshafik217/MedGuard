@@ -3,6 +3,7 @@ from flask import Flask, redirect, request, session, url_for
 from app.config import Config
 from app.csrf import init_csrf
 from app.db import init_db
+from app.dose_format import format_dose, format_duration
 from app.translations import t as translate
 
 
@@ -38,6 +39,10 @@ def create_app(config_class=Config):
             "t": lambda key: translate(key, lang),
             "lang": lang,
             "dir": "rtl" if lang == "ar" else "ltr",
+            # Render a record's structured dose/duration in whichever
+            # language the current page is in -- see app/dose_format.py.
+            "format_dose": lambda record: format_dose(record, lang),
+            "format_duration": lambda record: format_duration(record, lang),
         }
 
     @app.context_processor
