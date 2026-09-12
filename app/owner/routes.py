@@ -52,6 +52,7 @@ def create_patient():
         gender = request.form.get("gender", "unspecified")
         full_name = request.form.get("full_name", "").strip() or None
         password = request.form.get("password", "").strip() or None
+        phone_number = request.form.get("phone_number", "").strip() or None
         dob_raw = request.form.get("date_of_birth", "").strip()
 
         date_of_birth = None
@@ -62,7 +63,8 @@ def create_patient():
                 date_of_birth = None
 
         patient = models.create_patient(
-            gender=gender, full_name=full_name, date_of_birth=date_of_birth, password=password
+            gender=gender, full_name=full_name, date_of_birth=date_of_birth, password=password,
+            phone_number=phone_number,
         )
 
         if gender == "female":
@@ -194,6 +196,18 @@ def update_patient_pregnancy_status(public_id):
     return redirect(url_for("owner.patient_detail", public_id=public_id))
 
 
+@bp.route("/patients/<public_id>/phone-number", methods=["POST"])
+@full_owner_required
+def update_patient_phone(public_id):
+    patient = models.get_patient_by_public_id(public_id)
+    if not patient:
+        return ("Patient not found.", 404)
+    models.update_phone_number(patient["id"], request.form.get("phone_number", "").strip() or None)
+    models.log_action("owner", current_actor_label(), "update_phone_number", target=public_id)
+    flash("Phone number updated.", "success")
+    return redirect(url_for("owner.patient_detail", public_id=public_id))
+
+
 @bp.route("/patients/<public_id>/antibiotics/add", methods=["POST"])
 @owner_required
 def add_patient_antibiotic(public_id):
@@ -203,7 +217,21 @@ def add_patient_antibiotic(public_id):
     record, alerts = add_antibiotic_from_form(patient, request.form, added_by=current_owner_role() or "owner")
     models.log_action("owner", current_actor_label(), "add_antibiotic_record", target=public_id,
                       details=record["display_name"])
-    return render_template("owner/antibiotic_result.html", patient=patient, record=record, alerts=alerts)
+    # Redirect (rather than rendering the result directly) so the browser's
+    # Back button doesn't try to resubmit this POST -- see antibiotic_result().
+    return redirect(url_for("owner.antibiotic_result", public_id=public_id, record_id=record["id"]))
+
+
+@bp.route("/patients/<public_id>/antibiotics/<int:record_id>/result")
+@owner_required
+def antibiotic_result(public_id, record_id):
+    patient = models.get_patient_by_public_id(public_id)
+    if not patient:
+        return ("Patient not found.", 404)
+    record = models.get_antibiotic_record_by_id(record_id)
+    if not record or record["patient_id"] != patient["id"]:
+        return ("Record not found.", 404)
+    return render_template("owner/antibiotic_result.html", patient=patient, record=record, alerts=record["alerts"])
 
 
 @bp.route("/antibiotics")
