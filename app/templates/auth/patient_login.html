@@ -13,9 +13,12 @@
                 <input type="text" name="public_id" class="form-control" placeholder="ASH-XXXXXX"
                        value="{{ prefill_id or '' }}" required {{ 'autofocus' if not prefill_id else '' }}>
             </div>
-            <div class="mb-3">
+            <div class="mb-2">
                 <label class="form-label">{{ t('password') }}</label>
                 <input type="password" name="password" class="form-control" {{ 'autofocus' if prefill_id else '' }}>
+            </div>
+            <div class="mb-3 text-end">
+                <a href="{{ url_for('auth.forgot_password', prefill=prefill_id) if prefill_id else url_for('auth.forgot_password') }}" class="small">{{ t('forgot_password_link') }}</a>
             </div>
             <button type="submit" class="btn-theme">{{ t('login') }}</button>
         </form>
