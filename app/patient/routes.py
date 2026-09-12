@@ -1,3 +1,5 @@
+from datetime import date
+
 from flask import Response, redirect, render_template, request, url_for
 
 from app import models
@@ -93,7 +95,20 @@ def add_condition():
 @patient_required
 def update_pregnancy_status():
     patient = current_patient()
-    models.update_pregnancy_status(patient["id"], request.form.get("pregnancy_status", patient["pregnancy_status"]))
+    dob_start_raw = request.form.get("pregnancy_start_date", "").strip()
+    edd_raw = request.form.get("expected_delivery_date", "").strip()
+    try:
+        start_date = date.fromisoformat(dob_start_raw).isoformat() if dob_start_raw else None
+    except ValueError:
+        start_date = None
+    try:
+        due_date = date.fromisoformat(edd_raw).isoformat() if edd_raw else None
+    except ValueError:
+        due_date = None
+    models.update_pregnancy_status(
+        patient["id"], request.form.get("pregnancy_status", patient["pregnancy_status"]),
+        pregnancy_start_date=start_date, expected_delivery_date=due_date,
+    )
     models.log_action("patient", patient["public_id"], "update_pregnancy_status", target=patient["public_id"])
     return redirect(url_for("patient.dashboard"))
 
