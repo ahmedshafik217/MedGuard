@@ -1,28 +1,27 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-5">
-        <div class="card shadow-sm">
-            <div class="card-body p-4">
-                <h3 class="mb-4">🧑‍⚕️ {{ t('patient_login_btn') }}</h3>
-                <form method="post">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="mb-3">
-                        <label class="form-label">{{ t('patient_id') }}</label>
-                        <input type="text" name="public_id" class="form-control" placeholder="ASH-XXXXXX"
-                               value="{{ prefill_id or '' }}" required {{ 'autofocus' if not prefill_id else '' }}>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">{{ t('password') }}</label>
-                        <input type="password" name="password" class="form-control" {{ 'autofocus' if prefill_id else '' }}>
-                    </div>
-                    <button type="submit" class="btn btn-brand w-100">{{ t('login') }}</button>
-                </form>
-                <div class="mt-3 d-flex justify-content-between">
-                    <a href="{{ url_for('auth.choose_login') }}">&laquo; {{ t('back') }}</a>
-                    <a href="{{ url_for('auth.register_patient') }}">{{ t('new_patient_btn') }}</a>
-                </div>
+<div class="auth-form-wrap">
+    <div class="auth-form-card theme-teal">
+        <span class="auth-form-icon">
+            <svg viewBox="0 0 24 24" width="34" height="34"><circle cx="12" cy="7.5" r="3.7" fill="currentColor"/><path d="M4.5 21c0-4 3.3-7 7.5-7s7.5 3 7.5 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+        <h3 class="auth-form-title">{{ t('patient_card_title') }}</h3>
+        <form method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+                <label class="form-label">{{ t('patient_id') }}</label>
+                <input type="text" name="public_id" class="form-control" placeholder="ASH-XXXXXX"
+                       value="{{ prefill_id or '' }}" required {{ 'autofocus' if not prefill_id else '' }}>
             </div>
+            <div class="mb-3">
+                <label class="form-label">{{ t('password') }}</label>
+                <input type="password" name="password" class="form-control" {{ 'autofocus' if prefill_id else '' }}>
+            </div>
+            <button type="submit" class="btn-theme">{{ t('login') }}</button>
+        </form>
+        <div class="auth-form-links">
+            <a href="{{ url_for('auth.choose_login') }}">&laquo; {{ t('back') }}</a>
+            <a href="{{ url_for('auth.register_patient') }}">{{ t('new_patient_btn') }}</a>
         </div>
     </div>
 </div>

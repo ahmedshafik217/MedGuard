@@ -1,23 +1,111 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-body text-center py-5">
-                <h2 class="mb-4">{{ t('choose_login_title') }}</h2>
-                <div class="d-grid gap-3">
-                    <a href="{{ url_for('auth.owner_login') }}" class="btn btn-outline-dark btn-lg">
-                        🛡️ {{ t('owner_login_btn') }}
-                    </a>
-                    <a href="{{ url_for('auth.patient_login') }}" class="btn btn-brand btn-lg">
-                        🧑‍⚕️ {{ t('patient_login_btn') }}
-                    </a>
-                    <a href="{{ url_for('auth.register_patient') }}" class="btn btn-outline-secondary">
-                        ➕ {{ t('new_patient_btn') }}
-                    </a>
-                </div>
+<div class="hero-wrap">
+    <div class="hero-grid">
+        <div class="hero-photo-col">
+            <span class="hero-cursive-tag">{{ t('hero_cursive_line1') }}<br>{{ t('hero_cursive_line2') }}</span>
+        </div>
+        <div class="hero-center-col">
+            <img src="{{ url_for('static', filename='img/amanbio_shield.png') }}" alt="AmanBio" class="hero-shield">
+            <div class="hero-lockup">
+                <span class="amanbio-en hero-amanbio"><span class="aman">Aman</span><span class="bio">Bio</span></span>
+                <span class="amanbio-ar hero-amanbio-ar">أمان بايو</span>
+            </div>
+            <p class="hero-tagline">{{ t('app_identity_tagline') }}</p>
+            <div class="hero-three-words">
+                <span>{{ t('hero_word_remember') }}</span>
+                <span class="dot">&bull;</span>
+                <span>{{ t('hero_word_check') }}</span>
+                <span class="dot">&bull;</span>
+                <span>{{ t('hero_word_protect') }}</span>
             </div>
         </div>
+        <div class="hero-features-col">
+            <div class="feature-row">
+                <span class="feature-icon icon-blue">
+                    <svg viewBox="0 0 24 24" width="22" height="22"><rect x="4" y="4" width="16" height="4" rx="2" fill="currentColor"/><rect x="4" y="10" width="16" height="4" rx="2" fill="currentColor"/><rect x="4" y="16" width="16" height="4" rx="2" fill="currentColor"/></svg>
+                </span>
+                <span class="feature-text"><strong>{{ t('feature_history_title') }}</strong><br>{{ t('feature_history_desc') }}</span>
+            </div>
+            <div class="feature-row">
+                <span class="feature-icon icon-blue">
+                    <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2 L20 5 V11 C20 16 16.5 20 12 22 C7.5 20 4 16 4 11 V5 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><polyline points="8,12 11,15 16,9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="feature-text"><strong>{{ t('feature_allergy_title') }}</strong><br>{{ t('feature_allergy_desc') }}</span>
+            </div>
+            <div class="feature-row">
+                <span class="feature-icon icon-pink">
+                    <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="9" cy="7" r="3" fill="currentColor"/><path d="M4 21c0-3.3 2.4-6 5-6s5 2.7 5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="17.5" cy="16.5" r="2.3" fill="currentColor"/></svg>
+                </span>
+                <span class="feature-text"><strong>{{ t('feature_pregnancy_title') }}</strong><br>{{ t('feature_pregnancy_desc') }}</span>
+            </div>
+            <div class="feature-row">
+                <span class="feature-icon icon-warn">
+                    <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 3 L22 20 H2 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="9" x2="12" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.2" fill="currentColor"/></svg>
+                </span>
+                <span class="feature-text"><strong>{{ t('feature_risk_title') }}</strong><br>{{ t('feature_risk_desc') }}</span>
+            </div>
+            <div class="najran-badge">
+                <span class="najran-palm">🌴</span>
+                <span><strong>{{ t('najran_label') }}</strong><br>{{ t('najran_tagline') }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h2 class="choose-login-heading text-center">{{ t('choose_login_title') }}</h2>
+<div class="login-cards-grid">
+    <a href="{{ url_for('auth.owner_login') }}" class="login-card theme-blue">
+        <span class="login-card-icon">
+            <svg viewBox="0 0 24 24" width="34" height="34"><circle cx="9" cy="7" r="3.2" fill="currentColor"/><path d="M3.5 21c0-3.6 2.5-6.2 5.5-6.2s5.5 2.6 5.5 6.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="15" y="12.5" width="7.5" height="7.5" rx="1.6" fill="currentColor" opacity="0.18"/><line x1="18.75" y1="14.2" x2="18.75" y2="18.3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><line x1="16.7" y1="16.25" x2="20.8" y2="16.25" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        </span>
+        <span class="login-card-title">{{ t('owner_login_btn') }}</span>
+        <span class="login-card-desc">{{ t('staff_card_desc') }}</span>
+        <span class="login-card-btn">
+            {{ t('login_button') }}
+            <span class="arrow">{{ '←' if dir == 'rtl' else '→' }}</span>
+        </span>
+    </a>
+    <a href="{{ url_for('auth.patient_login') }}" class="login-card theme-teal">
+        <span class="login-card-icon">
+            <svg viewBox="0 0 24 24" width="34" height="34"><circle cx="12" cy="7.5" r="3.7" fill="currentColor"/><path d="M4.5 21c0-4 3.3-7 7.5-7s7.5 3 7.5 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+        <span class="login-card-title">{{ t('patient_card_title') }}</span>
+        <span class="login-card-desc">{{ t('patient_card_desc') }}</span>
+        <span class="login-card-btn">
+            {{ t('login_button') }}
+            <span class="arrow">{{ '←' if dir == 'rtl' else '→' }}</span>
+        </span>
+    </a>
+    <a href="{{ url_for('auth.register_patient') }}" class="login-card theme-red">
+        <span class="login-card-icon">
+            <svg viewBox="0 0 24 24" width="34" height="34"><rect x="5" y="2.5" width="11" height="16" rx="1.6" fill="none" stroke="currentColor" stroke-width="2"/><line x1="7.7" y1="7" x2="13.3" y2="7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="7.7" y1="10.3" x2="13.3" y2="10.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="17" cy="16" r="5" fill="currentColor"/><line x1="17" y1="13.4" x2="17" y2="18.6" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/><line x1="14.4" y1="16" x2="19.6" y2="16" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/></svg>
+        </span>
+        <span class="login-card-title">{{ t('new_patient_card_title') }}</span>
+        <span class="login-card-desc">{{ t('new_patient_card_desc') }}</span>
+        <span class="login-card-btn">
+            {{ t('create_record_button') }}
+            <span class="arrow">{{ '←' if dir == 'rtl' else '→' }}</span>
+        </span>
+    </a>
+</div>
+
+<div class="feature-strip">
+    <div class="strip-item">
+        <svg viewBox="0 0 24 24" width="24" height="24"><circle cx="8" cy="8" r="3" fill="currentColor"/><circle cx="17" cy="9" r="2.4" fill="currentColor" opacity="0.7"/><path d="M2 21c0-3.6 2.7-6.2 6-6.2s6 2.6 6 6.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M14.5 21c0-2.6 1.8-4.6 4-4.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.7"/></svg>
+        <span><strong>{{ t('strip_safe_title') }}</strong><br>{{ t('strip_safe_desc') }}</span>
+    </div>
+    <div class="strip-item">
+        <svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg>
+        <span><strong>{{ t('strip_support_title') }}</strong><br>{{ t('strip_support_desc') }}</span>
+    </div>
+    <div class="strip-item">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M12 2 L20 5 V11 C20 16 16.5 20 12 22 C7.5 20 4 16 4 11 V5 Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><polyline points="8,12 11,15 16,9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span><strong>{{ t('strip_reduce_title') }}</strong><br>{{ t('strip_reduce_desc') }}</span>
+    </div>
+    <div class="strip-item">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M12 21s-7-4.35-9.5-8.5C1 9 2.5 5 6 5c2 0 3.5 1.2 4 2.5 0.5-1.3 2-2.5 4-2.5 3.5 0 5 4 3.5 7.5C19 16.65 12 21 12 21z" fill="currentColor"/></svg>
+        <span><strong>{{ t('strip_community_title') }}</strong><br>{{ t('strip_community_desc') }}</span>
     </div>
 </div>
 {% endblock %}
