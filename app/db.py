@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS patients (
     date_of_birth TEXT,
     pregnancy_status TEXT NOT NULL DEFAULT 'unknown',
     pregnancy_updated_at TEXT,
+    pregnancy_start_date TEXT,
+    expected_delivery_date TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -164,6 +166,12 @@ def _migrate(db):
         # created before this feature keep working unchanged.
         db.execute("ALTER TABLE patients ADD COLUMN phone_number TEXT")
         db.commit()
+
+    patient_cols = {row["name"] for row in db.execute("PRAGMA table_info(patients)")}
+    for col in ("pregnancy_start_date", "expected_delivery_date"):
+        if col not in patient_cols:
+            db.execute(f"ALTER TABLE patients ADD COLUMN {col} TEXT")
+    db.commit()
 
 
 def init_db(app):

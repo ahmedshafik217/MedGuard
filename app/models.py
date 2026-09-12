@@ -5,7 +5,7 @@ query explicit and easy to audit for a patient-safety tool."""
 import json
 import secrets
 import string
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -116,6 +116,9 @@ def get_patient_by_id(patient_id):
     row = _row_to_dict(db.execute("SELECT * FROM patients WHERE id = ?", (patient_id,)).fetchone())
     if row:
         row["age_years"] = age_years(row["date_of_birth"])
+        row["pregnancy_weeks"] = (
+            pregnancy_weeks(row["pregnancy_start_date"]) if row["pregnancy_status"] == "pregnant" else None
+        )
     return row
 
 
@@ -126,6 +129,9 @@ def get_patient_by_public_id(public_id):
     ).fetchone())
     if row:
         row["age_years"] = age_years(row["date_of_birth"])
+        row["pregnancy_weeks"] = (
+            pregnancy_weeks(row["pregnancy_start_date"]) if row["pregnancy_status"] == "pregnant" else None
+        )
     return row
 
 
@@ -149,11 +155,55 @@ def set_patient_password(patient_id, password):
     db.commit()
 
 
-def update_pregnancy_status(patient_id, status):
+def estimate_due_date(pregnancy_start_date):
+    """Naegele's rule: due date = start date (first day of last menstrual
+    period, or the closest known start point) + 280 days (40 weeks). Only
+    used as a default when staff/patient don't enter their own
+    ultrasound-based due date -- it's always overridable."""
+    if not pregnancy_start_date:
+        return None
+    try:
+        start = date.fromisoformat(pregnancy_start_date)
+    except ValueError:
+        return None
+    return (start + timedelta(days=280)).isoformat()
+
+
+def pregnancy_weeks(pregnancy_start_date):
+    if not pregnancy_start_date:
+        return None
+    try:
+        start = date.fromisoformat(pregnancy_start_date)
+    except ValueError:
+        return None
+    days = (date.today() - start).days
+    if days < 0:
+        return None
+    return days // 7
+
+
+def update_pregnancy_status(patient_id, status, pregnancy_start_date=None, expected_delivery_date=None):
     db = get_db()
+    if status == "pregnant":
+        # Keep whichever due date is actually known: use what was typed in,
+        # otherwise fall back to the Naegele's-rule estimate from the start
+        # date, otherwise leave it blank (dates are optional -- a status of
+        # "pregnant" with no dates yet is still allowed, e.g. right after
+        # staff first mark it before the patient recalls the exact date).
+        expected_delivery_date = expected_delivery_date or estimate_due_date(pregnancy_start_date)
+    else:
+        # Status changed away from pregnant -- the old dates no longer
+        # apply to a current pregnancy, so clear them rather than leave
+        # stale dates showing next time someone is marked pregnant again.
+        pregnancy_start_date = None
+        expected_delivery_date = None
+
     db.execute(
-        "UPDATE patients SET pregnancy_status = ?, pregnancy_updated_at = ?, updated_at = ? WHERE id = ?",
-        (status, _now(), _now(), patient_id),
+        """UPDATE patients
+           SET pregnancy_status = ?, pregnancy_updated_at = ?,
+               pregnancy_start_date = ?, expected_delivery_date = ?, updated_at = ?
+           WHERE id = ?""",
+        (status, _now(), pregnancy_start_date, expected_delivery_date, _now(), patient_id),
     )
     db.commit()
 

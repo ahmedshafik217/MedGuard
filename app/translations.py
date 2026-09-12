@@ -289,6 +289,20 @@ STRINGS = {
     },
     "new_password": {"en": "New password", "ar": "كلمة المرور الجديدة"},
     "reset_password_button": {"en": "Reset password", "ar": "إعادة تعيين كلمة المرور"},
+
+    # --- Pregnancy dates (start/LMP date + expected delivery date), added
+    # so "pregnant" isn't just a fixed flag with no timeline attached.
+    "pregnancy_start_date": {"en": "Pregnancy start date (LMP)", "ar": "تاريخ بداية الحمل (آخر دورة شهرية)"},
+    "pregnancy_start_date_hint": {
+        "en": "First day of the last menstrual period, if known.",
+        "ar": "اليوم الأول لآخر دورة شهرية، إن كان معروفاً.",
+    },
+    "expected_delivery_date": {"en": "Expected delivery date", "ar": "تاريخ الولادة المتوقع"},
+    "expected_delivery_date_hint": {
+        "en": "Leave blank to auto-estimate from the start date (40 weeks). Overwrite it if an ultrasound gave a more accurate date.",
+        "ar": "اتركه فارغاً لتقديره تلقائياً من تاريخ البداية (40 أسبوعاً). عدّله إذا كان هناك تاريخ أدق من الموجات فوق الصوتية.",
+    },
+    "weeks_pregnant": {"en": "weeks pregnant", "ar": "أسبوع حمل"},
 }
 
 
