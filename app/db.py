@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS patients (
     public_id TEXT UNIQUE NOT NULL,
     password_hash TEXT,
     full_name TEXT,
+    phone_number TEXT,
     gender TEXT NOT NULL DEFAULT 'unspecified',
     date_of_birth TEXT,
     pregnancy_status TEXT NOT NULL DEFAULT 'unknown',
@@ -65,6 +66,19 @@ CREATE TABLE IF NOT EXISTS antibiotic_records (
     custom_name TEXT,
     dose TEXT,
     duration TEXT,
+    -- Structured dose/duration (added so a dose entered in Arabic still
+    -- displays correctly on an English PDF and vice versa -- see
+    -- app/dose_format.py. dose/duration above are kept only as a fallback
+    -- for records created before this existed; new records go entirely
+    -- through the columns below instead of free text.
+    dose_amount TEXT,
+    dose_unit TEXT,
+    dose_unit_other TEXT,
+    frequency TEXT,
+    frequency_other TEXT,
+    duration_amount TEXT,
+    duration_unit TEXT,
+    duration_unit_other TEXT,
     prescribed_by TEXT,
     prescribed_date TEXT NOT NULL,
     notes TEXT,
@@ -130,6 +144,25 @@ def _migrate(db):
         # 'owner' = full access (the account(s) that existed before roles
         # existed keep full access, which is what they had before).
         db.execute("ALTER TABLE owner_users ADD COLUMN role TEXT NOT NULL DEFAULT 'owner'")
+        db.commit()
+
+    record_cols = {row["name"] for row in db.execute("PRAGMA table_info(antibiotic_records)")}
+    new_record_cols = [
+        "dose_amount", "dose_unit", "dose_unit_other",
+        "frequency", "frequency_other",
+        "duration_amount", "duration_unit", "duration_unit_other",
+    ]
+    for col in new_record_cols:
+        if col not in record_cols:
+            db.execute(f"ALTER TABLE antibiotic_records ADD COLUMN {col} TEXT")
+    db.commit()
+
+    patient_cols = {row["name"] for row in db.execute("PRAGMA table_info(patients)")}
+    if "phone_number" not in patient_cols:
+        # Added for self-service "forgot password" recovery (phone number +
+        # date of birth check) -- optional so existing patient records
+        # created before this feature keep working unchanged.
+        db.execute("ALTER TABLE patients ADD COLUMN phone_number TEXT")
         db.commit()
 
 

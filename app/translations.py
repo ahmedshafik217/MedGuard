@@ -272,6 +272,23 @@ STRINGS = {
     "duration_unit_day": {"en": "day(s)", "ar": "يوم"},
     "duration_unit_week": {"en": "week(s)", "ar": "أسبوع"},
     "duration_unit_dose": {"en": "single dose (one-time)", "ar": "جرعة واحدة (مرة واحدة فقط)"},
+
+    # --- Phone number + self-service "forgot password" (no SMS involved --
+    # identity is checked against phone number + date of birth on file).
+    "phone_number": {"en": "Phone number", "ar": "رقم الهاتف"},
+    "phone_number_optional": {"en": "Phone number (optional)", "ar": "رقم الهاتف (اختياري)"},
+    "phone_number_hint": {
+        "en": "Add this so you can reset your own password later if you forget it.",
+        "ar": "أضف رقمك حتى تتمكن من إعادة تعيين كلمة المرور بنفسك لاحقاً إذا نسيتها.",
+    },
+    "forgot_password_link": {"en": "Forgot password?", "ar": "نسيت كلمة المرور؟"},
+    "forgot_password_title": {"en": "Reset your password", "ar": "إعادة تعيين كلمة المرور"},
+    "forgot_password_subtext": {
+        "en": "Enter your patient ID, phone number and date of birth exactly as on file to set a new password.",
+        "ar": "أدخل رقم المريض ورقم الهاتف وتاريخ الميلاد كما هي مسجلة لتعيين كلمة مرور جديدة.",
+    },
+    "new_password": {"en": "New password", "ar": "كلمة المرور الجديدة"},
+    "reset_password_button": {"en": "Reset password", "ar": "إعادة تعيين كلمة المرور"},
 }
 
 

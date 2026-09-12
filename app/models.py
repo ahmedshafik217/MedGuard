@@ -89,7 +89,7 @@ def list_owners():
 
 # --------------------------------------------------------------- patients --
 
-def create_patient(gender="unspecified", full_name=None, date_of_birth=None, password=None):
+def create_patient(gender="unspecified", full_name=None, date_of_birth=None, password=None, phone_number=None):
     db = get_db()
     public_id = new_public_id()
     while get_patient_by_public_id(public_id):  # astronomically unlikely, but be safe
@@ -101,10 +101,10 @@ def create_patient(gender="unspecified", full_name=None, date_of_birth=None, pas
 
     cur = db.execute(
         """INSERT INTO patients
-           (public_id, password_hash, full_name, gender, date_of_birth,
+           (public_id, password_hash, full_name, phone_number, gender, date_of_birth,
             pregnancy_status, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-        (public_id, password_hash, full_name, gender, date_of_birth,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (public_id, password_hash, full_name, phone_number or None, gender, date_of_birth,
          pregnancy_status, now, now),
     )
     db.commit()
@@ -156,6 +156,43 @@ def update_pregnancy_status(patient_id, status):
         (status, _now(), _now(), patient_id),
     )
     db.commit()
+
+
+def update_phone_number(patient_id, phone_number):
+    db = get_db()
+    db.execute(
+        "UPDATE patients SET phone_number = ?, updated_at = ? WHERE id = ?",
+        (phone_number or None, _now(), patient_id),
+    )
+    db.commit()
+
+
+def _normalize_phone(raw):
+    """Digits only, keeping just the last 9 -- so '0512345678', '512345678'
+    and '+966512345678' (with or without spaces/dashes) all compare equal.
+    Good enough for a self-service identity check; not used for anything
+    that actually sends an SMS."""
+    digits = "".join(ch for ch in (raw or "") if ch.isdigit())
+    return digits[-9:] if len(digits) >= 9 else digits
+
+
+def find_patient_for_reset(public_id, phone_number, date_of_birth):
+    """Looks up a patient by their ID and checks the phone number + date of
+    birth they typed against what's on file -- the "forgot password"
+    self-service check. Returns the patient dict only if all three match
+    AND the patient actually has both a phone number and a date of birth on
+    file (a record missing either can't be verified this way; the owner/
+    staff-assisted reset is still available for those)."""
+    patient = get_patient_by_public_id(public_id) if public_id else None
+    if not patient:
+        return None
+    if not patient.get("phone_number") or not patient.get("date_of_birth"):
+        return None
+    if _normalize_phone(patient["phone_number"]) != _normalize_phone(phone_number):
+        return None
+    if patient["date_of_birth"] != (date_of_birth or ""):
+        return None
+    return patient
 
 
 def list_patients(search=None, limit=200):
@@ -325,15 +362,27 @@ def _record_row_to_dict(row):
 
 
 def add_antibiotic_record(patient_id, antibiotic_id, custom_name, dose, duration,
-                           prescribed_by, prescribed_date, notes, alerts, added_by):
+                           prescribed_by, prescribed_date, notes, alerts, added_by,
+                           dose_amount=None, dose_unit=None, dose_unit_other=None,
+                           frequency=None, frequency_other=None,
+                           duration_amount=None, duration_unit=None, duration_unit_other=None):
+    # dose/duration (free text) are kept only for backward compatibility --
+    # new callers should leave them None and use the structured fields
+    # below instead (see app/dose_format.py for why: a fixed-vocabulary
+    # code can be safely translated per-language at display time, free
+    # text typed in one language can't be).
     db = get_db()
     cur = db.execute(
         """INSERT INTO antibiotic_records
-           (patient_id, antibiotic_id, custom_name, dose, duration, prescribed_by,
-            prescribed_date, notes, alerts_json, added_by, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        (patient_id, antibiotic_id, custom_name, dose, duration, prescribed_by,
-         prescribed_date, notes, json.dumps(alerts or []), added_by, _now()),
+           (patient_id, antibiotic_id, custom_name, dose, duration,
+            dose_amount, dose_unit, dose_unit_other, frequency, frequency_other,
+            duration_amount, duration_unit, duration_unit_other,
+            prescribed_by, prescribed_date, notes, alerts_json, added_by, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (patient_id, antibiotic_id, custom_name, dose, duration,
+         dose_amount, dose_unit, dose_unit_other, frequency, frequency_other,
+         duration_amount, duration_unit, duration_unit_other,
+         prescribed_by, prescribed_date, notes, json.dumps(alerts or []), added_by, _now()),
     )
     db.commit()
     return get_antibiotic_record_by_id(cur.lastrowid)
