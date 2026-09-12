@@ -35,14 +35,34 @@
             <form method="post" action="{{ url_for('owner.update_patient_pregnancy_status', public_id=patient.public_id) }}" class="mb-3">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <label class="form-label">{{ t('pregnancy_status') }}</label>
-                <select name="pregnancy_status" class="form-select mb-2">
+                <select name="pregnancy_status" id="owner-pregnancy-select" class="form-select mb-2">
                     <option value="pregnant" {{ 'selected' if patient.pregnancy_status=='pregnant' }}>{{ t('pregnant') }}</option>
                     <option value="not_pregnant" {{ 'selected' if patient.pregnancy_status=='not_pregnant' }}>{{ t('not_pregnant') }}</option>
                     <option value="not_applicable" {{ 'selected' if patient.pregnancy_status=='not_applicable' }}>{{ t('not_applicable') }}</option>
                     <option value="unknown" {{ 'selected' if patient.pregnancy_status=='unknown' }}>{{ t('unknown') }}</option>
                 </select>
+                <div id="owner-pregnancy-dates">
+                    <label class="form-label">{{ t('pregnancy_start_date') }}</label>
+                    <input type="date" name="pregnancy_start_date" class="form-control mb-1" value="{{ patient.pregnancy_start_date or '' }}">
+                    <div class="form-text mb-2">{{ t('pregnancy_start_date_hint') }}</div>
+                    <label class="form-label">{{ t('expected_delivery_date') }}</label>
+                    <input type="date" name="expected_delivery_date" class="form-control mb-1" value="{{ patient.expected_delivery_date or '' }}">
+                    <div class="form-text mb-2">{{ t('expected_delivery_date_hint') }}</div>
+                    {% if patient.pregnancy_weeks is not none %}
+                    <div class="small text-muted mb-2">{{ patient.pregnancy_weeks }} {{ t('weeks_pregnant') }}</div>
+                    {% endif %}
+                </div>
                 <button class="btn btn-sm btn-brand">{{ t('save') }}</button>
             </form>
+            <script>
+                (function () {
+                    var sel = document.getElementById('owner-pregnancy-select');
+                    var dates = document.getElementById('owner-pregnancy-dates');
+                    function toggle() { dates.style.display = sel.value === 'pregnant' ? '' : 'none'; }
+                    sel.addEventListener('change', toggle);
+                    toggle();
+                })();
+            </script>
             <hr>
             <form method="post" action="{{ url_for('owner.reset_patient_password', public_id=patient.public_id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -53,6 +73,13 @@
             {% else %}
             <hr>
             <p class="mb-0">{{ t('pregnancy_status') }}: {{ t(patient.pregnancy_status) if patient.pregnancy_status in ['pregnant','not_pregnant','not_applicable','unknown'] else patient.pregnancy_status }}</p>
+            {% if patient.pregnancy_status == 'pregnant' %}
+            <p class="small text-muted mb-0">
+                {% if patient.pregnancy_start_date %}{{ t('pregnancy_start_date') }}: {{ patient.pregnancy_start_date }}<br>{% endif %}
+                {% if patient.expected_delivery_date %}{{ t('expected_delivery_date') }}: {{ patient.expected_delivery_date }}<br>{% endif %}
+                {% if patient.pregnancy_weeks is not none %}{{ patient.pregnancy_weeks }} {{ t('weeks_pregnant') }}{% endif %}
+            </p>
+            {% endif %}
             <p class="small text-muted mb-0">{{ t('staff_view_only_note') }}</p>
             {% endif %}
         </div>

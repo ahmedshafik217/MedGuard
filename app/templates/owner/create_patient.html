@@ -27,11 +27,19 @@
         </div>
         <div class="mb-3" id="pregnancy-field">
             <label class="form-label">{{ t('pregnancy_status') }}</label>
-            <select name="pregnancy_status" class="form-select">
+            <select name="pregnancy_status" id="new-patient-pregnancy-select" class="form-select mb-2">
                 <option value="unknown">{{ t('unknown') }}</option>
                 <option value="pregnant">{{ t('pregnant') }}</option>
                 <option value="not_pregnant">{{ t('not_pregnant') }}</option>
             </select>
+            <div id="new-patient-pregnancy-dates">
+                <label class="form-label">{{ t('pregnancy_start_date') }}</label>
+                <input type="date" name="pregnancy_start_date" class="form-control mb-1">
+                <div class="form-text mb-2">{{ t('pregnancy_start_date_hint') }}</div>
+                <label class="form-label">{{ t('expected_delivery_date') }}</label>
+                <input type="date" name="expected_delivery_date" class="form-control mb-1">
+                <div class="form-text mb-2">{{ t('expected_delivery_date_hint') }}</div>
+            </div>
         </div>
         <div class="mb-3">
             <label class="form-label">{{ t('optional_initial_password') }}</label>
@@ -44,10 +52,17 @@
 <script>
     const genderSelect = document.getElementById('gender-select');
     const pregnancyField = document.getElementById('pregnancy-field');
+    const pregnancyStatusSelect = document.getElementById('new-patient-pregnancy-select');
+    const pregnancyDates = document.getElementById('new-patient-pregnancy-dates');
     function togglePregnancyField() {
         pregnancyField.style.display = genderSelect.value === 'female' ? '' : 'none';
     }
+    function togglePregnancyDates() {
+        pregnancyDates.style.display = pregnancyStatusSelect.value === 'pregnant' ? '' : 'none';
+    }
     genderSelect.addEventListener('change', togglePregnancyField);
+    pregnancyStatusSelect.addEventListener('change', togglePregnancyDates);
     togglePregnancyField();
+    togglePregnancyDates();
 </script>
 {% endblock %}
