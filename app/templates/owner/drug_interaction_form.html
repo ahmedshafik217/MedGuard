@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<a href="{{ url_for('owner.drug_interactions') }}">&laquo; {{ t('back') }}</a>
+<h3 class="my-3">{{ t('add_drug_interaction') }}</h3>
+<div class="card p-4">
+<form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <p class="text-muted small">{{ t('drug_interaction_match_hint') }}</p>
+    <div class="mb-3">
+        <label class="form-label">{{ t('antibiotic_name') }}</label>
+        <input type="text" name="antibiotic_name" class="form-control" placeholder="e.g. Ciprofloxacin"
+               value="{{ item.antibiotic_name if item else '' }}">
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ t('antibiotic_class_optional') }}</label>
+        <input type="text" name="antibiotic_class" class="form-control" placeholder="e.g. Fluoroquinolone"
+               value="{{ item.antibiotic_class if item else '' }}">
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ t('interacting_drug') }}</label>
+        <input type="text" name="interacting_drug" class="form-control" placeholder="e.g. Tizanidine"
+               value="{{ item.interacting_drug if item else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ t('severity') }}</label>
+        <select name="severity" class="form-select">
+            <option value="danger" {{ 'selected' if item and item.severity=='danger' }}>{{ t('danger') }}</option>
+            <option value="warning" {{ 'selected' if not item or item.severity=='warning' }}>{{ t('warning') }}</option>
+            <option value="info" {{ 'selected' if item and item.severity=='info' }}>{{ t('info') }}</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ t('category_label') }}</label>
+        <input type="text" name="category_label" class="form-control" placeholder="e.g. Category X"
+               value="{{ item.category_label if item else '' }}">
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ t('mechanism_optional') }}</label>
+        <textarea name="mechanism" class="form-control">{{ item.mechanism if item else '' }}</textarea>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ t('management_optional') }}</label>
+        <textarea name="management" class="form-control">{{ item.management if item else '' }}</textarea>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ t('notes_optional') }}</label>
+        <textarea name="notes" class="form-control">{{ item.notes if item else '' }}</textarea>
+    </div>
+    <button class="btn btn-brand">{{ t('save') }}</button>
+</form>
+</div>
+{% endblock %}

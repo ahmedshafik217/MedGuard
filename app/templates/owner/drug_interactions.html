@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<a href="{{ url_for('owner.dashboard') }}">&laquo; {{ t('back') }}</a>
+<div class="d-flex justify-content-between align-items-center my-3">
+    <h2>{{ t('drug_interactions_reference') }}</h2>
+    <a href="{{ url_for('owner.add_drug_interaction') }}" class="btn btn-brand">{{ t('add_drug_interaction') }}</a>
+</div>
+<p class="text-muted">{{ t('drug_interactions_hint') }}</p>
+<div class="card p-3">
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>{{ t('antibiotic_side') }}</th>
+                <th>{{ t('interacting_drug') }}</th>
+                <th>{{ t('severity') }}</th>
+                <th>{{ t('category_label') }}</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for item in items %}
+            <tr>
+                <td>{{ item.antibiotic_name or item.antibiotic_class }}{% if item.antibiotic_name and item.antibiotic_class %}<div class="small text-muted">{{ item.antibiotic_class }}</div>{% endif %}</td>
+                <td>{{ item.interacting_drug }}</td>
+                <td><span class="badge bg-{{ 'danger' if item.severity == 'danger' else ('warning text-dark' if item.severity == 'warning' else 'secondary') }}">{{ t(item.severity) }}</span></td>
+                <td class="small">{{ item.category_label or '—' }}</td>
+                <td class="d-flex gap-2">
+                    <a href="{{ url_for('owner.edit_drug_interaction', item_id=item.id) }}" class="btn btn-sm btn-outline-dark">{{ t('view') }}</a>
+                    <form method="post" action="{{ url_for('owner.delete_drug_interaction', item_id=item.id) }}" onsubmit="return confirm('{{ t('confirm_delete') }}');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-sm btn-outline-danger">{{ t('delete') }}</button>
+                    </form>
+                </td>
+            </tr>
+        {% else %}
+            <tr><td colspan="5">{{ t('no_records_yet') }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

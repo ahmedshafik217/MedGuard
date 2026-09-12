@@ -6,6 +6,7 @@
     <div class="d-flex gap-2 flex-wrap">
         <a href="{{ url_for('owner.create_patient') }}" class="btn btn-brand">{{ t('add_new_patient') }}</a>
         <a href="{{ url_for('owner.antibiotics') }}" class="btn btn-outline-dark">{{ t('antibiotic_reference') }}</a>
+        <a href="{{ url_for('owner.drug_interactions') }}" class="btn btn-outline-dark">{{ t('drug_interactions_reference') }}</a>
         <a href="{{ url_for('owner.audit_log') }}" class="btn btn-outline-dark">{{ t('audit_log') }}</a>
         <a href="{{ url_for('owner.settings') }}" class="btn btn-outline-dark">{{ t('site_settings') }}</a>
     </div>

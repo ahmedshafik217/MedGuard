@@ -12,7 +12,7 @@
 </div>
 
 <div class="row g-3">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card p-3">
             <h5>{{ t('my_profile') }}</h5>
             <p class="mb-1">{{ t('full_name_optional') }}: {{ patient.full_name or '—' }}</p>
@@ -85,7 +85,7 @@
         </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card p-3">
             <h5>{{ t('my_allergies') }}</h5>
             <ul class="list-group mb-3">
@@ -119,7 +119,7 @@
         </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card p-3">
             <h5>{{ t('my_conditions') }}</h5>
             <ul class="list-group mb-3">
@@ -138,6 +138,33 @@
                 <input type="text" name="condition_name" class="form-control mb-2" placeholder="{{ t('condition_name') }}" required>
                 <input type="text" name="notes" class="form-control mb-2" placeholder="{{ t('notes_optional') }}">
                 <button class="btn btn-sm btn-brand w-100">{{ t('add_condition') }}</button>
+            </form>
+            {% else %}
+            <p class="small text-muted mb-0">{{ t('staff_view_only_note') }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card p-3">
+            <h5>{{ t('my_medications') }}</h5>
+            <p class="small text-muted">{{ t('my_medications_hint') }}</p>
+            <ul class="list-group mb-3">
+                {% for m in patient.medications %}
+                <li class="list-group-item">
+                    <strong>{{ m.medication_name }}</strong>
+                    {% if m.notes %}<div class="small text-muted">{{ m.notes }}</div>{% endif %}
+                </li>
+                {% else %}
+                <li class="list-group-item text-muted">{{ t('no_records_yet') }}</li>
+                {% endfor %}
+            </ul>
+            {% if owner_role == 'owner' %}
+            <form method="post" action="{{ url_for('owner.add_patient_medication', public_id=patient.public_id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="text" name="medication_name" class="form-control mb-2" placeholder="{{ t('medication_name') }}" required>
+                <input type="text" name="notes" class="form-control mb-2" placeholder="{{ t('notes_optional') }}">
+                <button class="btn btn-sm btn-brand w-100">{{ t('add_medication') }}</button>
             </form>
             {% else %}
             <p class="small text-muted mb-0">{{ t('staff_view_only_note') }}</p>
