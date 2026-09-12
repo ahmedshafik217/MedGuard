@@ -30,7 +30,8 @@ def _class_matches(a, b):
 
 
 def check_antibiotic(patient, antibiotic, allergies, conditions, recent_record=None,
-                      recent_exposure_days=30, recent_class_record=None):
+                      recent_exposure_days=30, recent_class_record=None,
+                      medications=None, interactions=None):
     """
     patient: dict (Patient row) -- needs 'pregnancy_status'
     antibiotic: dict (Antibiotic row) or None if a free-text/custom name was
@@ -43,6 +44,11 @@ def check_antibiotic(patient, antibiotic, allergies, conditions, recent_record=N
                     of a DIFFERENT antibiotic in the SAME drug class within
                     the lookback window, if any (e.g. Augmentin after a
                     recent Amoxicillin course -- both Penicillins)
+    medications: list[dict] or None -- this patient's PatientMedication rows
+                    (other, non-antibiotic drugs they're currently taking)
+    interactions: list[dict] or None -- DrugInteraction reference rows
+                    already narrowed down (by app.models.list_interactions_
+                    for_antibiotic) to ones relevant to THIS antibiotic
     Returns: list[dict] alerts (empty means the caller should show "no issues").
     """
     alerts = []
@@ -143,6 +149,44 @@ def check_antibiotic(patient, antibiotic, allergies, conditions, recent_record=N
                         f"Patient has a recorded condition '{condition.get('condition_name')}' which is "
                         f"listed as a contraindication for {antibiotic['generic_name']}."
                     ),
+                })
+
+    # 5. Drug-drug interactions with another medication the patient is
+    # currently recorded as taking (not itself an antibiotic -- e.g.
+    # tizanidine, warfarin). Reference rows are pre-narrowed by the caller
+    # to ones that apply to THIS antibiotic (by exact name or whole class);
+    # here we just match those against what's on the patient's medication
+    # list. Severity/level comes from the reference entry itself (sensible
+    # to store danger for a hard contraindication, warning for "monitor
+    # closely", etc.) rather than being hardcoded, since real interaction
+    # severity varies entry to entry.
+    if antibiotic and medications and interactions:
+        for medication in medications:
+            med_name = (medication.get("medication_name") or "").strip().lower()
+            if not med_name:
+                continue
+            for interaction in interactions:
+                ref_drug = (interaction.get("interacting_drug") or "").strip().lower()
+                if not ref_drug or ref_drug != med_name:
+                    continue
+                message_parts = []
+                if interaction.get("category_label"):
+                    message_parts.append(f"[{interaction['category_label']}]")
+                if interaction.get("mechanism"):
+                    message_parts.append(interaction["mechanism"])
+                if interaction.get("management"):
+                    message_parts.append(f"Management: {interaction['management']}")
+                if interaction.get("notes"):
+                    message_parts.append(interaction["notes"])
+                message = " ".join(message_parts).strip() or (
+                    f"{antibiotic['generic_name']} has a recorded interaction with "
+                    f"{medication.get('medication_name')}."
+                )
+                alerts.append({
+                    "level": interaction.get("severity") or "warning",
+                    "code": "drug_drug_interaction",
+                    "title": f"Interaction: {antibiotic['generic_name']} + {medication.get('medication_name')}",
+                    "message": message,
                 })
 
     if not antibiotic:
