@@ -98,6 +98,15 @@ def update_pregnancy_status():
     return redirect(url_for("patient.dashboard"))
 
 
+@bp.route("/phone-number", methods=["POST"])
+@patient_required
+def update_phone():
+    patient = current_patient()
+    models.update_phone_number(patient["id"], request.form.get("phone_number", "").strip() or None)
+    models.log_action("patient", patient["public_id"], "update_phone_number", target=patient["public_id"])
+    return redirect(url_for("patient.dashboard"))
+
+
 @bp.route("/antibiotics/add", methods=["GET", "POST"])
 @patient_required
 def add_antibiotic():
@@ -106,7 +115,19 @@ def add_antibiotic():
         record, alerts = add_antibiotic_from_form(patient, request.form, added_by="patient")
         models.log_action("patient", patient["public_id"], "add_antibiotic_record",
                           target=patient["public_id"], details=record["display_name"])
-        return render_template("patient/antibiotic_result.html", patient=patient,
-                               record=record, alerts=alerts)
+        # Redirect (rather than rendering the result directly) so the
+        # browser's Back button doesn't try to resubmit this POST.
+        return redirect(url_for("patient.antibiotic_result", record_id=record["id"]))
     reference_names = [a["generic_name"] for a in models.list_antibiotics()]
     return render_template("patient/add_antibiotic.html", reference_names=reference_names)
+
+
+@bp.route("/antibiotics/<int:record_id>/result")
+@patient_required
+def antibiotic_result(record_id):
+    patient = current_patient()
+    record = models.get_antibiotic_record_by_id(record_id)
+    if not record or record["patient_id"] != patient["id"]:
+        return ("Record not found.", 404)
+    return render_template("patient/antibiotic_result.html", patient=patient,
+                           record=record, alerts=record["alerts"])
