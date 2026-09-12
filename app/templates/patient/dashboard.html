@@ -34,13 +34,33 @@
             <form method="post" action="{{ url_for('patient.update_pregnancy_status') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <label class="form-label">{{ t('pregnancy_status') }}</label>
-                <select name="pregnancy_status" class="form-select mb-2">
+                <select name="pregnancy_status" id="patient-pregnancy-select" class="form-select mb-2">
                     <option value="pregnant" {{ 'selected' if patient.pregnancy_status=='pregnant' }}>{{ t('pregnant') }}</option>
                     <option value="not_pregnant" {{ 'selected' if patient.pregnancy_status=='not_pregnant' }}>{{ t('not_pregnant') }}</option>
                     <option value="unknown" {{ 'selected' if patient.pregnancy_status=='unknown' }}>{{ t('unknown') }}</option>
                 </select>
+                <div id="patient-pregnancy-dates">
+                    <label class="form-label">{{ t('pregnancy_start_date') }}</label>
+                    <input type="date" name="pregnancy_start_date" class="form-control mb-1" value="{{ patient.pregnancy_start_date or '' }}">
+                    <div class="form-text mb-2">{{ t('pregnancy_start_date_hint') }}</div>
+                    <label class="form-label">{{ t('expected_delivery_date') }}</label>
+                    <input type="date" name="expected_delivery_date" class="form-control mb-1" value="{{ patient.expected_delivery_date or '' }}">
+                    <div class="form-text mb-2">{{ t('expected_delivery_date_hint') }}</div>
+                    {% if patient.pregnancy_weeks is not none %}
+                    <div class="small text-muted mb-2">{{ patient.pregnancy_weeks }} {{ t('weeks_pregnant') }}</div>
+                    {% endif %}
+                </div>
                 <button class="btn btn-sm btn-brand w-100">{{ t('save') }}</button>
             </form>
+            <script>
+                (function () {
+                    var sel = document.getElementById('patient-pregnancy-select');
+                    var dates = document.getElementById('patient-pregnancy-dates');
+                    function toggle() { dates.style.display = sel.value === 'pregnant' ? '' : 'none'; }
+                    sel.addEventListener('change', toggle);
+                    toggle();
+                })();
+            </script>
             {% endif %}
         </div>
     </div>
