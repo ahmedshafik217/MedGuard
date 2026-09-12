@@ -21,7 +21,16 @@
                 {{ t('date_of_birth') }}: {{ patient.date_of_birth or '—' }}
                 {% if patient.age_years is not none %} ({{ patient.age_years }} {{ t('years_old') }}){% endif %}
             </p>
+            <p class="mb-1">{{ t('phone_number') }}: {{ patient.phone_number or '—' }}</p>
             {% if owner_role == 'owner' %}
+            <hr>
+            <form method="post" action="{{ url_for('owner.update_patient_phone', public_id=patient.public_id) }}" class="mb-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="form-label">{{ t('phone_number') }}</label>
+                <input type="tel" name="phone_number" class="form-control mb-2" placeholder="05XXXXXXXX" value="{{ patient.phone_number or '' }}">
+                <div class="form-text mb-2">{{ t('phone_number_hint') }}</div>
+                <button class="btn btn-sm btn-brand">{{ t('save') }}</button>
+            </form>
             <hr>
             <form method="post" action="{{ url_for('owner.update_patient_pregnancy_status', public_id=patient.public_id) }}" class="mb-3">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -118,8 +127,8 @@
         {% for r in patient.antibiotic_records %}
             <tr>
                 <td>{{ r.display_name }}</td>
-                <td>{{ r.dose or '—' }}</td>
-                <td>{{ r.duration or '—' }}</td>
+                <td>{{ format_dose(r) or '—' }}</td>
+                <td>{{ format_duration(r) or '—' }}</td>
                 <td>{{ r.prescribed_date }}</td>
                 <td>{{ r.added_by }}</td>
             </tr>
@@ -130,14 +139,15 @@
     </table>
 
     <h6 class="mt-3">{{ t('add_antibiotic') }}</h6>
-    <form method="post" action="{{ url_for('owner.add_patient_antibiotic', public_id=patient.public_id) }}" class="row g-2">
+    <form method="post" action="{{ url_for('owner.add_patient_antibiotic', public_id=patient.public_id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="col-md-3"><input type="text" name="antibiotic_name" class="form-control" placeholder="{{ t('antibiotic_name') }}" required></div>
-        <div class="col-md-2"><input type="text" name="dose" class="form-control" placeholder="{{ t('dose') }}"></div>
-        <div class="col-md-2"><input type="text" name="duration" class="form-control" placeholder="{{ t('duration') }}"></div>
-        <div class="col-md-2"><input type="date" name="prescribed_date" class="form-control"></div>
-        <div class="col-md-2"><input type="text" name="prescribed_by" class="form-control" placeholder="{{ t('prescribed_by_optional') }}"></div>
-        <div class="col-md-1"><button class="btn btn-brand w-100">{{ t('submit_check') }}</button></div>
+        <div class="row g-2">
+            <div class="col-md-4"><input type="text" name="antibiotic_name" class="form-control" placeholder="{{ t('antibiotic_name') }}" required></div>
+            <div class="col-md-4"><input type="date" name="prescribed_date" class="form-control"></div>
+            <div class="col-md-4"><input type="text" name="prescribed_by" class="form-control" placeholder="{{ t('prescribed_by_optional') }}"></div>
+        </div>
+        {{ macros.dose_duration_fields() }}
+        <button class="btn btn-brand">{{ t('submit_check') }}</button>
     </form>
 </div>
 {% endblock %}
