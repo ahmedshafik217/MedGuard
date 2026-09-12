@@ -1,6 +1,66 @@
+{% macro dose_duration_fields() %}
+{# Fixed dropdowns instead of free-text dose/duration -- see
+   app/dose_format.py for why (a dose typed in Arabic used to show up
+   untranslated on an English PDF). Keep these option codes in sync with
+   DOSE_UNITS / FREQUENCIES / DURATION_UNITS in app/dose_format.py. #}
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <label class="form-label">{{ t('dose_amount') }}</label>
+        <input type="text" name="dose_amount" class="form-control" inputmode="decimal" placeholder="500">
+    </div>
+    <div class="col-md-3 mb-3">
+        <label class="form-label">{{ t('dose_unit') }}</label>
+        <select name="dose_unit" class="form-select">
+            <option value="">{{ t('choose_option') }}</option>
+            {% for u in ['mg', 'g', 'ml', 'iu', 'tablet', 'capsule'] %}
+            <option value="{{ u }}">{{ t('dose_unit_' ~ u) }}</option>
+            {% endfor %}
+            <option value="other">{{ t('other_specify') }}</option>
+        </select>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">{{ t('frequency') }}</label>
+        <select name="frequency" class="form-select">
+            <option value="">{{ t('choose_option') }}</option>
+            {% for f in ['once_daily', 'twice_daily', 'three_times_daily', 'four_times_daily', 'every_6h', 'every_8h', 'every_12h', 'every_24h', 'as_needed', 'single_dose'] %}
+            <option value="{{ f }}">{{ t('freq_' ~ f) }}</option>
+            {% endfor %}
+            <option value="other">{{ t('other_specify') }}</option>
+        </select>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <input type="text" name="dose_unit_other" class="form-control" placeholder="{{ t('other_free_text_optional') }}">
+    </div>
+    <div class="col-md-4 mb-3">
+        <input type="text" name="frequency_other" class="form-control" placeholder="{{ t('other_free_text_optional') }}">
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label class="form-label">{{ t('duration_amount') }}</label>
+        <input type="text" name="duration_amount" class="form-control" inputmode="decimal" placeholder="7">
+    </div>
+    <div class="col-md-4 mb-3">
+        <label class="form-label">{{ t('duration_unit') }}</label>
+        <select name="duration_unit" class="form-select">
+            <option value="">{{ t('choose_option') }}</option>
+            {% for u in ['day', 'week', 'dose'] %}
+            <option value="{{ u }}">{{ t('duration_unit_' ~ u) }}</option>
+            {% endfor %}
+            <option value="other">{{ t('other_specify') }}</option>
+        </select>
+    </div>
+    <div class="col-md-4 mb-3">
+        <input type="text" name="duration_unit_other" class="form-control" placeholder="{{ t('other_free_text_optional') }}">
+    </div>
+</div>
+{% endmacro %}
+
 {% macro render_alerts(alerts) %}
     {% for alert in alerts %}
-    <div class="alert-card level-{{ alert.level }}">
+    <div class="alert-card level-{{ alert.level }} code-{{ alert.code }}">
         <strong>
             {% if alert.level == 'danger' %}🚫 {{ t('danger') }}
             {% elif alert.level == 'warning' %}⚠️ {{ t('warning') }}
