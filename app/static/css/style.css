@@ -590,6 +590,13 @@ html[dir="rtl"] .login-card:hover .login-card-btn .arrow {
     margin-bottom: 1.5rem;
 }
 
+.auth-form-subtext {
+    text-align: center;
+    font-size: 0.88rem;
+    color: #4a5c68;
+    margin: -1rem 0 1.25rem;
+}
+
 .auth-form-card .form-label {
     font-weight: 600;
     color: var(--brand-blue-dark);
