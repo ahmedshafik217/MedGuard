@@ -6,7 +6,9 @@ from app import models
 from app.patient import bp
 from app.pdf_export import generate_patient_history_pdf
 from app.pdf_export_ar import WkhtmltopdfNotFound, generate_patient_history_pdf_arabic
-from app.records import add_allergy_from_form, add_antibiotic_from_form, add_condition_from_form
+from app.records import (
+    add_allergy_from_form, add_antibiotic_from_form, add_condition_from_form, add_medication_from_form,
+)
 from app.utils import current_patient, patient_required
 
 
@@ -16,6 +18,7 @@ def dashboard():
     patient = current_patient()
     patient["allergies"] = models.list_allergies(patient["id"])
     patient["conditions"] = models.list_conditions(patient["id"])
+    patient["medications"] = models.list_medications(patient["id"])
     patient["antibiotic_records"] = models.list_antibiotic_records(patient["id"])
     return render_template("patient/dashboard.html", patient=patient)
 
@@ -88,6 +91,15 @@ def add_condition():
     patient = current_patient()
     add_condition_from_form(patient, request.form)
     models.log_action("patient", patient["public_id"], "add_condition", target=patient["public_id"])
+    return redirect(url_for("patient.dashboard"))
+
+
+@bp.route("/medications/add", methods=["POST"])
+@patient_required
+def add_medication():
+    patient = current_patient()
+    add_medication_from_form(patient, request.form)
+    models.log_action("patient", patient["public_id"], "add_medication", target=patient["public_id"])
     return redirect(url_for("patient.dashboard"))
 
 
