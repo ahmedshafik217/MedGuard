@@ -79,6 +79,61 @@ def patient_login():
     return render_template("auth/patient_login.html", prefill_id=prefill_id)
 
 
+@bp.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    """Self-service password reset: no email/SMS involved (this deployment
+    doesn't have an SMS provider hooked up) -- identity is instead checked
+    against phone number + date of birth already on file, the same way a
+    front-desk check would ask "what's your ID, phone, and birth date".
+    A patient whose record has no phone number and/or no date of birth on
+    file can't use this and needs an owner/staff-assisted reset instead
+    (see owner.reset_patient_password)."""
+    prefill_id = request.args.get("prefill", "").strip().upper()
+    if request.method == "POST":
+        public_id = request.form.get("public_id", "").strip().upper()
+        phone_number = request.form.get("phone_number", "").strip()
+        dob_raw = request.form.get("date_of_birth", "").strip()
+        new_password = request.form.get("new_password", "").strip()
+        ip_address = _client_ip()
+
+        wait_minutes = check_lockout("patient_reset", public_id or "(blank)", ip_address)
+        if wait_minutes:
+            flash(_too_many_attempts_message(wait_minutes), "error")
+            return render_template("auth/forgot_password.html", prefill_id=public_id)
+
+        try:
+            date_of_birth = date.fromisoformat(dob_raw).isoformat() if dob_raw else None
+        except ValueError:
+            date_of_birth = None
+
+        if not new_password:
+            flash(_t("Please enter a new password.", "يرجى إدخال كلمة مرور جديدة."), "error")
+            return render_template("auth/forgot_password.html", prefill_id=public_id)
+
+        patient = models.find_patient_for_reset(public_id, phone_number, date_of_birth)
+        record_attempt("patient_reset", public_id or "(blank)", ip_address, success=bool(patient))
+        if not patient:
+            models.log_action("patient", public_id or "(blank)", "password_reset_failed", target=public_id or None)
+            flash(
+                _t(
+                    "We couldn't verify those details. Check your patient ID, phone number and date of "
+                    "birth, or ask hospital/pharmacy staff to reset your password for you.",
+                    "تعذر التحقق من هذه البيانات. تأكد من رقم المريض ورقم الهاتف وتاريخ الميلاد، أو "
+                    "اطلب من موظفي المستشفى/الصيدلية إعادة تعيين كلمة المرور لك.",
+                ),
+                "error",
+            )
+            return render_template("auth/forgot_password.html", prefill_id=public_id)
+
+        models.set_patient_password(patient["id"], new_password)
+        models.log_action("patient", patient["public_id"], "password_reset_self", target=patient["public_id"])
+        flash(_t("Password updated — you can log in now.", "تم تحديث كلمة المرور — يمكنك تسجيل الدخول الآن."),
+              "success")
+        return redirect(url_for("auth.patient_login", prefill=patient["public_id"]))
+
+    return render_template("auth/forgot_password.html", prefill_id=prefill_id)
+
+
 @bp.route("/go/<public_id>")
 def go_via_qr(public_id):
     """Magic-link target for a patient's QR code. If the patient has no
@@ -123,6 +178,7 @@ def register_patient():
         gender = request.form.get("gender", "unspecified")
         password = request.form.get("password", "").strip() or None
         full_name = request.form.get("full_name", "").strip() or None
+        phone_number = request.form.get("phone_number", "").strip() or None
         dob_raw = request.form.get("date_of_birth", "").strip()
 
         date_of_birth = None
@@ -133,7 +189,8 @@ def register_patient():
                 date_of_birth = None
 
         patient = models.create_patient(
-            gender=gender, full_name=full_name, date_of_birth=date_of_birth, password=password
+            gender=gender, full_name=full_name, date_of_birth=date_of_birth, password=password,
+            phone_number=phone_number,
         )
         models.log_action("patient", patient["public_id"], "record_created", target=patient["public_id"])
 
