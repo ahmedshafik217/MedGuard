@@ -1,46 +1,29 @@
 :root {
-    --brand-teal: #0f766e;
-    --brand-teal-dark: #0b544e;
+    --brand-blue: #034d9c;
+    --brand-blue-dark: #023a78;
+    --brand-teal: #048e8d;
+    --brand-teal-dark: #026f6e;
+    --brand-red: #ce162b;
+    --brand-red-dark: #a01120;
     --brand-bg: #f4faf9;
     --alert-danger-bg: #fdecec;
     --alert-warning-bg: #fff8e6;
     --alert-info-bg: #eaf6f6;
+
+    /* Sampled directly from the hospital's ASH logo. */
+    --brand-navy: #0f2233;
+    --brand-cyan: #1eb3cf;
+
+    /* Sampled directly from the hospital-provided AmanBio design mockups. */
+    --card-blue-bg: #eaf5fd;
+    --card-teal-bg: #e9f7f6;
+    --card-red-bg: #fdecef;
+    --page-wash: #eaf6fd;
 }
 
 body {
-    background-color: var(--brand-bg);
-}
-
-.navbar-brand {
-    font-weight: 700;
-}
-
-.brand-bar {
-    background-color: var(--brand-teal);
-}
-
-.brand-bar a, .brand-bar .navbar-brand {
-    color: #fff !important;
-}
-
-.btn-brand {
-    background-color: var(--brand-teal);
-    border-color: var(--brand-teal);
-    color: #fff;
-}
-
-.btn-brand:hover {
-    background-color: var(--brand-teal-dark);
-    border-color: var(--brand-teal-dark);
-    color: #fff;
-}
-
-.disclaimer-banner {
-    background-color: #fff8e6;
-    border-bottom: 1px solid #f0d98c;
-    font-size: 0.9rem;
-    padding: 0.5rem 1rem;
-    text-align: center;
+    background: linear-gradient(180deg, var(--page-wash) 0%, #ffffff 460px);
+    background-attachment: fixed;
 }
 
 .card {
@@ -69,20 +52,637 @@ body {
     border-color: #b9dedd;
 }
 
+/* Contraindicated-medical-condition alerts get their own distinct pink,
+   separate from the paler shared "danger" red used for allergy/pregnancy
+   alerts, so a pharmacist can tell at a glance which kind of danger alert
+   this is without reading the text first. Still counts as level="danger"
+   everywhere else in the app (dashboard alert feed, flagged-records list,
+   etc.) -- only the color changes. */
+.alert-card.code-condition_contraindicated {
+    background-color: #ffe3f1;
+    border-color: #ff8fc7;
+}
+
 .patient-id-badge {
     font-family: monospace;
     font-size: 1.1rem;
     letter-spacing: 0.05em;
 }
 
-.lang-switch a {
+.btn-brand {
+    background-color: var(--brand-teal);
+    border-color: var(--brand-teal);
     color: #fff;
-    text-decoration: none;
-    opacity: 0.85;
 }
 
-.lang-switch a.active {
-    opacity: 1;
+.btn-brand:hover {
+    background-color: var(--brand-teal-dark);
+    border-color: var(--brand-teal-dark);
+    color: #fff;
+}
+
+.disclaimer-banner {
+    background-color: #fff8e6;
+    border-bottom: 1px solid #f0d98c;
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+    text-align: center;
+}
+
+/* ==========================================================================
+   Utility bar (language switch + logout) -- thin strip above the main
+   branded header, present on every page.
+   ========================================================================== */
+.utility-bar {
+    background: #f3f9fd;
+    padding: 0.4rem 1rem;
+    border-bottom: 1px solid #e4eef5;
+}
+
+.lang-pill-group {
+    display: inline-flex;
+    background: #fff;
+    border-radius: 999px;
+    padding: 3px;
+    border: 1px solid #dbe8f0;
+}
+
+.lang-pill-group a {
+    display: inline-block;
+    padding: 0.2rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    text-decoration: none;
+    color: var(--brand-blue);
+}
+
+.lang-pill-group a.active {
+    background: var(--brand-blue);
+    color: #fff;
     font-weight: 700;
-    text-decoration: underline;
+}
+
+/* ==========================================================================
+   Site header -- ASH logo, hospital motto, AmanBio mark, hospital photo
+   strip with a diagonal ribbon accent. Shared across every page (see
+   base.html); the welcome page additionally shows the big hero below it.
+   ========================================================================== */
+.site-header {
+    background: #ffffff;
+    border-bottom: 1px solid #eef2f5;
+}
+
+.site-header-inner {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    flex-wrap: wrap;
+}
+
+.brand-left {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    color: var(--brand-blue);
+}
+
+.brand-left-logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: contain;
+    background: #fff;
+}
+
+.brand-left-name {
+    font-weight: 800;
+    font-size: 1.05rem;
+    line-height: 1.15;
+}
+
+.header-divider {
+    width: 1px;
+    height: 2rem;
+    background: #d9e3ea;
+    flex-shrink: 0;
+}
+
+.brand-motto {
+    font-size: 0.9rem;
+    color: var(--brand-blue);
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.brand-motto .motto-gloss {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--brand-teal);
+}
+
+.brand-center {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.brand-center-shield {
+    width: 40px;
+    height: auto;
+}
+
+.brand-center-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+}
+
+.amanbio-en {
+    font-family: "Cairo", sans-serif;
+    font-weight: 900;
+    font-size: 1.15rem;
+}
+
+.amanbio-en .aman { color: var(--brand-blue); }
+.amanbio-en .bio { color: var(--brand-red); }
+
+.amanbio-ar {
+    font-family: "Cairo", sans-serif;
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: var(--brand-red);
+}
+
+.brand-photo {
+    width: 220px;
+    height: 70px;
+    border-radius: 0.6rem;
+    background-image: url("../img/hospital_building.png");
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.brand-photo::after,
+.hero-photo-col::after {
+    content: "";
+    position: absolute;
+    top: -40%;
+    right: -40%;
+    width: 90px;
+    height: 90px;
+    background: linear-gradient(135deg, var(--brand-blue) 50%, var(--brand-red) 50%);
+    transform: rotate(45deg);
+}
+
+@media (max-width: 767px) {
+    .brand-photo { display: none; }
+    .brand-motto { display: none; }
+}
+
+/* ==========================================================================
+   Fixed bilingual layout order -- the hospital's approved design keeps the
+   SAME left-to-right visual arrangement in both languages (only the text
+   itself translates), so these row/grid containers are locked to ltr flow
+   for child placement while each item resets back to the page's real
+   direction internally, so its own text still reads correctly. */
+.site-header-inner,
+.hero-grid,
+.login-cards-grid,
+.feature-strip {
+    direction: ltr;
+}
+
+html[dir="rtl"] .brand-left,
+html[dir="rtl"] .brand-motto {
+    direction: rtl;
+    text-align: right;
+}
+
+html[dir="rtl"] .brand-center,
+html[dir="rtl"] .hero-photo-col,
+html[dir="rtl"] .hero-center-col,
+html[dir="rtl"] .hero-features-col,
+html[dir="rtl"] .login-card,
+html[dir="rtl"] .strip-item {
+    direction: rtl;
+}
+
+/* ==========================================================================
+   Welcome page hero
+   ========================================================================== */
+.hero-wrap {
+    background: linear-gradient(180deg, #eef8fd 0%, #ffffff 100%);
+    border-radius: 1rem;
+    box-shadow: 0 8px 24px rgba(15, 34, 51, 0.12);
+    overflow: hidden;
+    margin: 1.5rem 0 2rem;
+}
+
+.hero-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1.3fr 1fr;
+    gap: 0;
+}
+
+@media (max-width: 991px) {
+    .hero-grid { grid-template-columns: 1fr; }
+}
+
+.hero-photo-col {
+    background-image: url("../img/hospital_building.png");
+    background-size: cover;
+    background-position: center;
+    min-height: 280px;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    padding: 1.25rem;
+    overflow: hidden;
+}
+
+.hero-cursive-tag {
+    font-family: "Dancing Script", cursive;
+    font-weight: 700;
+    font-size: 1.6rem;
+    color: var(--brand-blue-dark);
+    line-height: 1.2;
+    text-shadow: 0 1px 6px rgba(255, 255, 255, 0.8);
+    border-bottom: 2px solid var(--brand-red);
+    padding-bottom: 0.15rem;
+}
+
+html[dir="rtl"] .hero-cursive-tag {
+    font-family: "Cairo", sans-serif;
+    font-style: italic;
+    font-weight: 800;
+}
+
+.hero-center-col {
+    text-align: center;
+    padding: 2rem 1.25rem;
+}
+
+.hero-shield {
+    width: 110px;
+    height: auto;
+    margin-bottom: 0.5rem;
+}
+
+.hero-lockup {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+}
+
+.hero-amanbio {
+    font-family: "Cairo", sans-serif;
+    font-weight: 900;
+    font-size: 2.4rem;
+}
+
+.hero-amanbio-ar {
+    font-family: "Cairo", sans-serif;
+    font-weight: 800;
+    font-size: 1.5rem;
+    color: var(--brand-red);
+}
+
+.hero-tagline {
+    color: var(--brand-blue-dark);
+    font-weight: 600;
+    margin: 0.75rem 0 0.5rem;
+}
+
+.hero-three-words {
+    color: var(--brand-blue);
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.hero-three-words .dot {
+    color: var(--brand-red);
+    margin: 0 0.4rem;
+}
+
+.hero-features-col {
+    background: #fbfeff;
+    padding: 1.5rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.feature-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.feature-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.feature-icon.icon-blue { background: var(--card-blue-bg); color: var(--brand-blue); }
+.feature-icon.icon-pink { background: var(--card-red-bg); color: var(--brand-red); }
+.feature-icon.icon-warn { background: #fff3d6; color: #b8790a; }
+
+.feature-text {
+    font-size: 0.88rem;
+    color: #333;
+    line-height: 1.35;
+}
+
+.feature-text strong {
+    color: var(--brand-blue-dark);
+    font-size: 0.92rem;
+}
+
+.najran-badge {
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--card-blue-bg);
+    border-radius: 0.75rem;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+    color: var(--brand-blue-dark);
+}
+
+.najran-palm {
+    font-size: 1.5rem;
+}
+
+/* --- Choose-login heading + cards --------------------------------------- */
+.choose-login-heading {
+    color: var(--brand-blue-dark);
+    font-weight: 800;
+    margin-bottom: 1.25rem;
+}
+
+.login-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 767px) {
+    .login-cards-grid { grid-template-columns: 1fr; }
+}
+
+.login-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 1rem;
+    padding: 1.75rem 1.25rem;
+    box-shadow: 0 4px 14px rgba(15, 34, 51, 0.08);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.login-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 22px rgba(15, 34, 51, 0.14);
+}
+
+.login-card.theme-blue { background: var(--card-blue-bg); }
+.login-card.theme-teal { background: var(--card-teal-bg); }
+.login-card.theme-red { background: var(--card-red-bg); }
+
+.login-card-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.9rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.theme-blue .login-card-icon { color: var(--brand-blue); }
+.theme-teal .login-card-icon { color: var(--brand-teal); }
+.theme-red .login-card-icon { color: var(--brand-red); }
+
+.login-card-title {
+    font-weight: 800;
+    font-size: 1.15rem;
+    color: var(--brand-blue-dark);
+    margin-bottom: 0.35rem;
+}
+
+.login-card-desc {
+    font-size: 0.85rem;
+    color: #4a5a67;
+    margin-bottom: 1.1rem;
+    min-height: 2.4em;
+}
+
+.login-card-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.65rem 1rem;
+    border-radius: 999px;
+    color: #fff;
+    font-weight: 700;
+}
+
+.theme-blue .login-card-btn { background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-blue-dark) 100%); }
+.theme-teal .login-card-btn { background: linear-gradient(135deg, var(--brand-teal) 0%, var(--brand-teal-dark) 100%); }
+.theme-red .login-card-btn { background: linear-gradient(135deg, var(--brand-red) 0%, var(--brand-red-dark) 100%); }
+
+.login-card-btn .arrow {
+    transition: transform 0.15s ease;
+}
+
+.login-card:hover .login-card-btn .arrow {
+    transform: translateX(3px);
+}
+
+html[dir="rtl"] .login-card:hover .login-card-btn .arrow {
+    transform: translateX(-3px);
+}
+
+/* --- Bottom feature strip ------------------------------------------------ */
+.feature-strip {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem 2.5rem;
+    padding: 1rem 0.5rem 2rem;
+    color: var(--brand-blue);
+}
+
+.strip-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.82rem;
+    color: #445;
+    max-width: 220px;
+}
+
+.strip-item svg { color: var(--brand-blue); flex-shrink: 0; }
+.strip-item strong { color: var(--brand-blue-dark); display: block; font-size: 0.86rem; }
+
+/* ==========================================================================
+   Auth forms (staff login, patient login, new-patient registration) --
+   same tinted-card + icon-badge + gradient-button language as the welcome
+   page's three login cards, so the whole sign-in flow feels like one
+   connected experience instead of switching styles between pages.
+   ========================================================================== */
+.auth-form-wrap {
+    max-width: 30rem;
+    margin: 1.5rem auto 2rem;
+}
+
+.auth-form-card {
+    border-radius: 1rem;
+    padding: 2rem 1.75rem;
+    box-shadow: 0 6px 20px rgba(15, 34, 51, 0.1);
+}
+
+.auth-form-card.theme-blue { background: var(--card-blue-bg); }
+.auth-form-card.theme-teal { background: var(--card-teal-bg); }
+.auth-form-card.theme-red { background: var(--card-red-bg); }
+
+.auth-form-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.75rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.theme-blue .auth-form-icon { color: var(--brand-blue); }
+.theme-teal .auth-form-icon { color: var(--brand-teal); }
+.theme-red .auth-form-icon { color: var(--brand-red); }
+
+.auth-form-title {
+    text-align: center;
+    font-weight: 800;
+    color: var(--brand-blue-dark);
+    margin-bottom: 1.5rem;
+}
+
+.auth-form-card .form-label {
+    font-weight: 600;
+    color: var(--brand-blue-dark);
+    font-size: 0.9rem;
+}
+
+.auth-form-card .form-control,
+.auth-form-card .form-select {
+    border-radius: 0.6rem;
+    border-color: #d7e6ef;
+}
+
+.auth-form-card .form-control:focus,
+.auth-form-card .form-select:focus {
+    border-color: var(--brand-blue);
+    box-shadow: 0 0 0 0.2rem rgba(3, 77, 156, 0.15);
+}
+
+.btn-theme {
+    display: block;
+    width: 100%;
+    border: none;
+    border-radius: 999px;
+    padding: 0.7rem 1rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.theme-blue .btn-theme { background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-blue-dark) 100%); }
+.theme-teal .btn-theme { background: linear-gradient(135deg, var(--brand-teal) 0%, var(--brand-teal-dark) 100%); }
+.theme-red .btn-theme { background: linear-gradient(135deg, var(--brand-red) 0%, var(--brand-red-dark) 100%); }
+
+.btn-theme:hover { opacity: 0.92; color: #fff; }
+
+.auth-form-links {
+    margin-top: 1.1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.auth-form-links a {
+    color: var(--brand-blue);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.auth-form-links a:hover { text-decoration: underline; }
+
+/* ==========================================================================
+   Footer -- shared across every page.
+   ========================================================================== */
+.site-footer-new {
+    margin-top: 2rem;
+    padding: 1rem 0 1.5rem;
+    border-top: 1px solid #e3e9ee;
+    background-color: #fbfefe;
+}
+
+.footer-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.footer-cursive {
+    font-family: "Dancing Script", cursive;
+    font-weight: 700;
+    color: var(--brand-blue-dark);
+    font-size: 1.1rem;
+    line-height: 1.15;
+}
+
+html[dir="rtl"] .footer-cursive {
+    font-family: "Cairo", sans-serif;
+    font-style: italic;
+    font-weight: 800;
+    font-size: 0.85rem;
+}
+
+.footer-disclaimer {
+    font-size: 0.75rem;
+    color: #6c7a79;
+    text-align: center;
+    flex: 1 1 320px;
+}
+
+.footer-location {
+    font-size: 0.8rem;
+    color: var(--brand-blue);
+    font-weight: 600;
+    white-space: nowrap;
 }
