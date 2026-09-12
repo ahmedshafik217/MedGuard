@@ -20,6 +20,15 @@
                 {{ t('date_of_birth') }}: {{ patient.date_of_birth or '—' }}
                 {% if patient.age_years is not none %} ({{ patient.age_years }} {{ t('years_old') }}){% endif %}
             </p>
+            <p class="mb-1">{{ t('phone_number') }}: {{ patient.phone_number or '—' }}</p>
+            <hr>
+            <form method="post" action="{{ url_for('patient.update_phone') }}" class="mb-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="form-label">{{ t('phone_number') }}</label>
+                <input type="tel" name="phone_number" class="form-control mb-2" placeholder="05XXXXXXXX" value="{{ patient.phone_number or '' }}">
+                <div class="form-text mb-2">{{ t('phone_number_hint') }}</div>
+                <button class="btn btn-sm btn-brand w-100">{{ t('save') }}</button>
+            </form>
             {% if patient.gender == 'female' %}
             <hr>
             <form method="post" action="{{ url_for('patient.update_pregnancy_status') }}">
@@ -100,8 +109,8 @@
         {% for r in patient.antibiotic_records %}
             <tr>
                 <td>{{ r.display_name }}</td>
-                <td>{{ r.dose or '—' }}</td>
-                <td>{{ r.duration or '—' }}</td>
+                <td>{{ format_dose(r) or '—' }}</td>
+                <td>{{ format_duration(r) or '—' }}</td>
                 <td>{{ r.prescribed_date }}</td>
             </tr>
         {% else %}
