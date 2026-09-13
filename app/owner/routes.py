@@ -6,23 +6,34 @@ from app import models
 from app.owner import bp
 from app.pdf_export import generate_patient_history_pdf
 from app.pdf_export_ar import WkhtmltopdfNotFound, generate_patient_history_pdf_arabic
+from app.pdf_reports import generate_pharmacy_report_pdf, generate_quality_report_pdf
 from app.records import (
     add_allergy_from_form, add_antibiotic_from_form, add_condition_from_form, add_medication_from_form,
 )
-from app.utils import current_actor_label, current_owner, current_owner_role, full_owner_required, owner_required
+from app.roles import CREATABLE_ROLES, DEFAULT_SAFE_ROLE
+from app.utils import (
+    antibiotic_add_required, current_actor_label, current_owner, current_owner_permissions, current_owner_role,
+    full_owner_required, owner_required, pharmacy_report_required, quality_report_required,
+)
 
 
 @bp.route("/")
 @owner_required
 def dashboard():
     is_full = models.is_full_owner(current_owner())
+    perms = current_owner_permissions()
     q = request.args.get("q", "").strip()
-    if is_full:
+    if perms["browse_all_patients"]:
+        # Full owner/controller, Infection Control, Head Nurse, Quality
+        # Control Manager and Pharmacy Manager can all browse the whole
+        # hospital-wide patient list (with or without a search filter).
         patients = models.list_patients(search=q or None)
     else:
-        # Staff can only pull up a specific patient by exact full name or
-        # ID -- no default browsing of the whole patient list, and no
-        # partial-substring search either. See models.find_patients_exact.
+        # Every other role (Resident, Specialist, Pharmacist, Senior
+        # Specialist, Consultant, Nurse, legacy staff) can only pull up a
+        # specific patient by exact full name or ID -- no default browsing
+        # of the whole patient list, and no partial-substring search
+        # either. See models.find_patients_exact.
         patients = models.find_patients_exact(q) if q else []
     stats = flagged_records = recent_records = None
     if is_full:
@@ -120,7 +131,22 @@ def patient_detail(public_id):
     patient["medications"] = models.list_medications(patient["id"])
     patient["antibiotic_records"] = models.list_antibiotic_records(patient["id"])
     models.log_action("owner", current_actor_label(), "view_patient", target=public_id)
-    return render_template("owner/patient_detail.html", patient=patient)
+
+    # Autocomplete list for the "Add antibiotic" field below -- only shown
+    # to roles that can add antibiotics at all, and only the antibiotics
+    # THIS role is actually allowed to add (excludes Restricted ones for
+    # Resident/Specialist/Pharmacist). This is a convenience only -- the
+    # real enforcement happens server-side in add_patient_antibiotic().
+    perms = current_owner_permissions()
+    available_antibiotics = []
+    if perms["add_antibiotic"]:
+        all_abx = models.list_antibiotics()
+        if perms["add_restricted_antibiotic"]:
+            available_antibiotics = [a["generic_name"] for a in all_abx]
+        else:
+            available_antibiotics = [a["generic_name"] for a in all_abx if not a.get("restricted")]
+
+    return render_template("owner/patient_detail.html", patient=patient, available_antibiotics=available_antibiotics)
 
 
 @bp.route("/patients/<public_id>/export-pdf")
@@ -248,11 +274,30 @@ def update_patient_phone(public_id):
 
 
 @bp.route("/patients/<public_id>/antibiotics/add", methods=["POST"])
-@owner_required
+@antibiotic_add_required
 def add_patient_antibiotic(public_id):
     patient = models.get_patient_by_public_id(public_id)
     if not patient:
         return ("Patient not found.", 404)
+
+    # Restricted-antibiotic enforcement: a Resident/Specialist/Pharmacist
+    # cannot add an antibiotic marked Restricted, even if they type its
+    # name in directly (the datalist on the form only hides restricted
+    # names as a convenience -- this is the actual safety check). Senior
+    # Specialist, Consultant, legacy staff, and the full owner/controller
+    # are unaffected (add_restricted_antibiotic is True for them).
+    name = request.form.get("antibiotic_name", "").strip()
+    antibiotic = models.get_antibiotic_by_name(name) if name else None
+    if antibiotic and antibiotic.get("restricted") and not current_owner_permissions()["add_restricted_antibiotic"]:
+        models.log_action("owner", current_actor_label(), "add_antibiotic_blocked_restricted",
+                          target=public_id, details=antibiotic["generic_name"])
+        flash(
+            f"{antibiotic['generic_name']} is a Restricted antibiotic — only a Senior Specialist, "
+            "Consultant, or the Admin/Controller can add it. Please ask one of them to add this entry.",
+            "error",
+        )
+        return redirect(url_for("owner.patient_detail", public_id=public_id))
+
     record, alerts = add_antibiotic_from_form(patient, request.form, added_by=current_owner_role() or "owner")
     models.log_action("owner", current_actor_label(), "add_antibiotic_record", target=public_id,
                       details=record["display_name"])
@@ -299,6 +344,7 @@ def add_antibiotic():
                 pregnancy_notes=request.form.get("pregnancy_notes", "").strip() or None,
                 contraindicated_conditions=[c.strip() for c in conditions_raw.split(",") if c.strip()],
                 notes=request.form.get("notes", "").strip() or None,
+                restricted=bool(request.form.get("restricted")),
             )
             models.log_action("owner", current_actor_label(), "add_antibiotic_reference", details=name)
             flash("Antibiotic added to reference database.", "success")
@@ -323,6 +369,7 @@ def edit_antibiotic(item_id):
             pregnancy_notes=request.form.get("pregnancy_notes", "").strip() or None,
             contraindicated_conditions=[c.strip() for c in conditions_raw.split(",") if c.strip()],
             notes=request.form.get("notes", "").strip() or None,
+            restricted=bool(request.form.get("restricted")),
         )
         models.log_action("owner", current_actor_label(), "edit_antibiotic_reference",
                           details=request.form.get("generic_name", "").strip())
@@ -424,9 +471,12 @@ def settings():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
-        role = request.form.get("role", "staff").strip()
-        if role not in models.OWNER_ROLES:
-            role = "staff"
+        role = request.form.get("role", DEFAULT_SAFE_ROLE).strip()
+        if role not in CREATABLE_ROLES:
+            # Never silently fall back to a broad role on a bad/tampered
+            # value -- the safest option (nurse: view-only) is the
+            # fallback, not a prescribing role.
+            role = DEFAULT_SAFE_ROLE
         if not username or not password:
             flash("Username and password are required.", "error")
         elif models.get_owner_by_username(username):
@@ -436,4 +486,52 @@ def settings():
             models.log_action("owner", current_actor_label(), "add_owner_account", details=f"{username} ({role})")
             flash("New account created.", "success")
     owners = models.list_owners()
-    return render_template("owner/settings.html", owners=owners)
+    return render_template("owner/settings.html", owners=owners, creatable_roles=CREATABLE_ROLES)
+
+
+@bp.route("/reports/quality")
+@quality_report_required
+def quality_report():
+    flagged = models.list_flagged_records_all()
+    return render_template("owner/quality_report.html", flagged=flagged)
+
+
+@bp.route("/reports/quality/export-pdf")
+@quality_report_required
+def quality_report_pdf():
+    flagged = models.list_flagged_records_all()
+    pdf_bytes = generate_quality_report_pdf(flagged)
+    models.log_action("owner", current_actor_label(), "export_quality_report_pdf")
+    return Response(
+        pdf_bytes, mimetype="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="quality-control-analysis.pdf"'},
+    )
+
+
+@bp.route("/reports/pharmacy")
+@pharmacy_report_required
+def pharmacy_report():
+    today = date.today()
+    year = request.args.get("year", type=int) or today.year
+    month = request.args.get("month", type=int) or today.month
+    if not (1 <= month <= 12):
+        month = today.month
+    counts = models.monthly_antibiotic_counts(year, month)
+    return render_template("owner/pharmacy_report.html", counts=counts, year=year, month=month)
+
+
+@bp.route("/reports/pharmacy/export-pdf")
+@pharmacy_report_required
+def pharmacy_report_pdf():
+    today = date.today()
+    year = request.args.get("year", type=int) or today.year
+    month = request.args.get("month", type=int) or today.month
+    if not (1 <= month <= 12):
+        month = today.month
+    counts = models.monthly_antibiotic_counts(year, month)
+    pdf_bytes = generate_pharmacy_report_pdf(year, month, counts)
+    models.log_action("owner", current_actor_label(), "export_pharmacy_report_pdf", details=f"{year}-{month:02d}")
+    return Response(
+        pdf_bytes, mimetype="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="pharmacy-usage-{year}-{month:02d}.pdf"'},
+    )
