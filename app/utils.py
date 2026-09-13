@@ -10,6 +10,7 @@ from functools import wraps
 from flask import abort, g, session
 
 from app import models
+from app.roles import permissions_for
 
 
 def _clear_session_keep_lang():
@@ -67,10 +68,27 @@ def current_actor_label():
 
 
 def current_owner_role():
-    """'owner' (clinical pharmacist / controller, full access), 'staff'
-    (limited account), or None if there's no owner-side session at all."""
+    """The current owner-side account's role key -- 'owner' (clinical
+    pharmacist / controller, full access), one of the specific job-title
+    roles defined in app/roles.py (resident, nurse, pharmacy_manager, ...),
+    the legacy 'staff', or None if there's no owner-side session at all."""
     owner = current_owner()
     return owner.get("role", "owner") if owner else None
+
+
+def current_owner_permissions():
+    """Permission dict for the CURRENTLY LOGGED IN owner-side account (see
+    app/roles.py for what each key means). Returns the most restrictive
+    (view-nothing) permissions if there's no owner-side session at all, so
+    a template or check can call this safely even when nobody is logged
+    in."""
+    owner = current_owner()
+    if not owner:
+        return {
+            "browse_all_patients": False, "view_patient": False, "add_antibiotic": False,
+            "add_restricted_antibiotic": False, "quality_report": False, "pharmacy_report": False,
+        }
+    return permissions_for(owner.get("role", "owner"), is_owner=models.is_full_owner(owner))
 
 
 def owner_required(view):
@@ -93,6 +111,61 @@ def full_owner_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
         if not models.is_full_owner(current_owner()):
+            abort(403)
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def antibiotic_add_required(view):
+    """Any owner-side account whose role is allowed to add an antibiotic
+    entry AT ALL (Resident/Specialist/Pharmacist/Senior Specialist/
+    Consultant/legacy staff/full owner). Whether this specific antibiotic
+    is one they're allowed to add (i.e. it isn't marked Restricted, for the
+    roles that can't touch restricted drugs) is a separate check made
+    inside the route itself, since that depends on which antibiotic was
+    actually requested. Nurse, Infection Control, Head Nurse, Quality
+    Control Manager and Pharmacy Manager are all blocked here."""
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not current_owner() or not current_owner_permissions()["add_antibiotic"]:
+            abort(403)
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def hospital_browse_required(view):
+    """Any owner-side account whose role can browse the FULL hospital-wide
+    patient list (Infection Control, Head Nurse, Quality Control Manager,
+    Pharmacy Manager, or the full owner/controller). The search-only roles
+    (Resident, Specialist, Pharmacist, Senior Specialist, Consultant,
+    Nurse, legacy staff) are blocked here -- they can still view an
+    individual patient once they've found one via exact-match search,
+    that's checked separately."""
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not current_owner() or not current_owner_permissions()["browse_all_patients"]:
+            abort(403)
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def quality_report_required(view):
+    """Only the Quality Control Manager (or the full owner/controller) can
+    reach the quality/safety analysis PDF report screen."""
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not current_owner() or not current_owner_permissions()["quality_report"]:
+            abort(403)
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def pharmacy_report_required(view):
+    """Only the Pharmacy Manager (or the full owner/controller) can reach
+    the monthly antibiotic-usage PDF report screen."""
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not current_owner() or not current_owner_permissions()["pharmacy_report"]:
             abort(403)
         return view(*args, **kwargs)
     return wrapped

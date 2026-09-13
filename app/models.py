@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta, timezone
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.db import get_db
+from app.roles import ALL_ROLES, DEFAULT_SAFE_ROLE
 
 
 def _now():
@@ -41,17 +42,22 @@ def age_years(date_of_birth_str):
 # ---------------------------------------------------------------- owners --
 
 # 'owner' = full database access (the clinical pharmacist / hospital
-# controller account). 'staff' = limited account: can look up any patient
-# and view their record, and add antibiotic entries (the safety-check
-# workflow), but cannot edit allergies/conditions/pregnancy status, reset
-# passwords, manage the antibiotic reference database, view the audit log,
-# create new patient records, or create other accounts.
-OWNER_ROLES = ("owner", "staff")
+# controller account, always full access). Every other role key (resident,
+# specialist, senior_specialist, consultant, pharmacist, nurse,
+# infection_control, head_nurse, quality_control_manager, pharmacy_manager,
+# plus the legacy 'staff') is a limited account -- exactly which actions
+# each one can take is defined in app/roles.py, not here. Kept as
+# OWNER_ROLES too (not just app.roles.ALL_ROLES) since existing code/tests
+# import this name.
+OWNER_ROLES = ALL_ROLES
 
 
 def create_owner(username, password, role="owner"):
     if role not in OWNER_ROLES:
-        role = "owner"
+        # Never silently upgrade an unrecognized role to full access --
+        # fall back to the most restrictive role instead (see
+        # app.roles.DEFAULT_SAFE_ROLE).
+        role = DEFAULT_SAFE_ROLE
     db = get_db()
     db.execute(
         "INSERT INTO owner_users (username, password_hash, role, created_at) VALUES (?, ?, ?, ?)",
@@ -432,29 +438,30 @@ def _antibiotic_row_to_dict(row):
 
 
 def add_antibiotic(generic_name, drug_class, brand_names=None, pregnancy_contraindicated=False,
-                    pregnancy_notes=None, contraindicated_conditions=None, notes=None):
+                    pregnancy_notes=None, contraindicated_conditions=None, notes=None, restricted=False):
     db = get_db()
     db.execute(
         """INSERT INTO antibiotics
            (generic_name, brand_names, drug_class, pregnancy_contraindicated,
-            pregnancy_notes, contraindicated_conditions_json, notes)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            pregnancy_notes, contraindicated_conditions_json, notes, restricted)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
         (generic_name, brand_names, drug_class, int(bool(pregnancy_contraindicated)),
-         pregnancy_notes, json.dumps(contraindicated_conditions or []), notes),
+         pregnancy_notes, json.dumps(contraindicated_conditions or []), notes, int(bool(restricted))),
     )
     db.commit()
 
 
 def update_antibiotic(item_id, generic_name, drug_class, brand_names=None,
                        pregnancy_contraindicated=False, pregnancy_notes=None,
-                       contraindicated_conditions=None, notes=None):
+                       contraindicated_conditions=None, notes=None, restricted=False):
     db = get_db()
     db.execute(
         """UPDATE antibiotics SET generic_name=?, brand_names=?, drug_class=?,
-           pregnancy_contraindicated=?, pregnancy_notes=?, contraindicated_conditions_json=?, notes=?
+           pregnancy_contraindicated=?, pregnancy_notes=?, contraindicated_conditions_json=?, notes=?,
+           restricted=?
            WHERE id=?""",
         (generic_name, brand_names, drug_class, int(bool(pregnancy_contraindicated)),
-         pregnancy_notes, json.dumps(contraindicated_conditions or []), notes, item_id),
+         pregnancy_notes, json.dumps(contraindicated_conditions or []), notes, int(bool(restricted)), item_id),
     )
     db.commit()
 
@@ -614,6 +621,45 @@ def list_recent_flagged_records(scan_limit=300, max_results=15):
         if any(a.get("level") in ("danger", "warning") for a in r.get("alerts", []))
     ]
     return flagged[:max_results]
+
+
+def list_flagged_records_all(scan_limit=5000):
+    """EVERY antibiotic entry hospital-wide whose safety check produced a
+    danger or warning alert, newest first -- unlike
+    list_recent_flagged_records() above (which is a short dashboard
+    preview), this backs the Quality Control Manager's full analysis PDF
+    and is meant to be the complete list, not a preview. scan_limit is a
+    generous cap (not a "recent window") so a hospital with a very large
+    history still returns in one query."""
+    recent = list_recent_antibiotic_records(limit=scan_limit)
+    return [
+        r for r in recent
+        if any(a.get("level") in ("danger", "warning") for a in r.get("alerts", []))
+    ]
+
+
+def monthly_antibiotic_counts(year, month):
+    """How many times each antibiotic was prescribed within one calendar
+    month, hospital-wide, sorted most-prescribed first -- backs the
+    Pharmacy Manager's monthly usage report (e.g. "Ceftriaxone: 50").
+    Matched on prescribed_date (the clinically meaningful date), not
+    created_at. An antibiotic not found in the reference database (a
+    free-text custom_name) is still counted, grouped under whatever name
+    was typed."""
+    db = get_db()
+    month_prefix = f"{year:04d}-{month:02d}"
+    rows = db.execute(
+        """SELECT a.generic_name AS generic_name, ar.custom_name AS custom_name
+           FROM antibiotic_records ar
+           LEFT JOIN antibiotics a ON a.id = ar.antibiotic_id
+           WHERE ar.prescribed_date LIKE ?""",
+        (f"{month_prefix}%",),
+    ).fetchall()
+    counts = {}
+    for row in rows:
+        name = row["generic_name"] or row["custom_name"] or "Unknown"
+        counts[name] = counts.get(name, 0) + 1
+    return sorted(counts.items(), key=lambda pair: (-pair[1], pair[0].lower()))
 
 
 # -------------------------------------------------------------------- audit --

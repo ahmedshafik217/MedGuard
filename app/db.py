@@ -84,7 +84,11 @@ CREATE TABLE IF NOT EXISTS antibiotics (
     pregnancy_contraindicated INTEGER NOT NULL DEFAULT 0,
     pregnancy_notes TEXT,
     contraindicated_conditions_json TEXT,
-    notes TEXT
+    notes TEXT,
+    -- 1 = only a Senior Specialist/Consultant (or the Admin/Controller)
+    -- may add this antibiotic to a patient's record; Residents/
+    -- Specialists/Pharmacists are blocked from it (see app/roles.py).
+    restricted INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS antibiotic_records (
@@ -198,6 +202,15 @@ def _migrate(db):
         if col not in patient_cols:
             db.execute(f"ALTER TABLE patients ADD COLUMN {col} TEXT")
     db.commit()
+
+    antibiotic_cols = {row["name"] for row in db.execute("PRAGMA table_info(antibiotics)")}
+    if "restricted" not in antibiotic_cols:
+        # Existing antibiotics default to NOT restricted (0) -- nobody's
+        # prescribing ability silently narrows the moment this update
+        # ships; the owner/controller has to deliberately tick "Restricted"
+        # on the drugs that need it.
+        db.execute("ALTER TABLE antibiotics ADD COLUMN restricted INTEGER NOT NULL DEFAULT 0")
+        db.commit()
 
 
 def init_db(app):

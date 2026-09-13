@@ -217,10 +217,51 @@ STRINGS = {
         "ar": "صيدلي إكلينيكي / متحكم (وصول كامل)",
     },
     "role_staff": {
-        "en": "Staff (view patients & add antibiotics only)",
-        "ar": "موظف (عرض المرضى وإضافة المضادات فقط)",
+        "en": "Staff (legacy — view patients & add antibiotics only)",
+        "ar": "موظف (نظام سابق — عرض المرضى وإضافة المضادات فقط)",
     },
+    # Specific job-title roles (app/roles.py) offered when creating a new
+    # account. Each maps to a permission "tier" defined there -- see that
+    # file for exactly what each one can/can't do.
+    "role_resident": {"en": "Resident", "ar": "طبيب مقيم"},
+    "role_specialist": {"en": "Specialist", "ar": "أخصائي"},
+    "role_senior_specialist": {"en": "Senior Specialist", "ar": "أخصائي أول"},
+    "role_consultant": {"en": "Consultant", "ar": "استشاري"},
+    "role_pharmacist": {"en": "Pharmacist", "ar": "صيدلي"},
+    "role_nurse": {"en": "Nurse", "ar": "ممرض/ة"},
+    "role_head_nurse": {"en": "Head Nurse", "ar": "رئيس/ة التمريض"},
+    "role_infection_control": {"en": "Infection Control Specialist", "ar": "أخصائي مكافحة العدوى"},
+    "role_quality_control_manager": {"en": "Quality Control Manager", "ar": "مدير ضبط الجودة"},
+    "role_pharmacy_manager": {"en": "Pharmacy Manager", "ar": "مدير الصيدلية"},
     "accounts_list_title": {"en": "Controller & Staff Accounts", "ar": "حسابات المتحكم والموظفين"},
+    "restricted_antibiotic": {"en": "Restricted antibiotic", "ar": "مضاد حيوي مقيّد"},
+    "restricted_antibiotic_hint": {
+        "en": "Only a Senior Specialist, Consultant, or the Admin/Controller can add this antibiotic "
+              "to a patient's record.",
+        "ar": "فقط الأخصائي الأول أو الاستشاري أو المتحكم/المسؤول يمكنه إضافة هذا المضاد الحيوي لسجل المريض.",
+    },
+    "restricted_antibiotic_add_hint": {
+        "en": "Note: antibiotics marked \"Restricted\" are not available to you here — a Senior "
+              "Specialist, Consultant, or the Admin/Controller must add those.",
+        "ar": "ملاحظة: المضادات الحيوية المقيّدة غير متاحة لك هنا — يجب أن يضيفها أخصائي أول أو "
+              "استشاري أو المتحكم/المسؤول.",
+    },
+    "quality_report_title": {"en": "Quality Control Report", "ar": "تقرير ضبط الجودة"},
+    "quality_report_hint": {
+        "en": "Hospital-wide analysis of every antibiotic entry that triggered a safety alert "
+              "(allergy conflicts, pregnancy contraindications, repeated/recent exposure, condition "
+              "contraindications, or drug interactions).",
+        "ar": "تحليل شامل على مستوى المستشفى لكل إدخال مضاد حيوي أدى إلى تنبيه سلامة (تعارض حساسية، "
+              "مانع بسبب الحمل، تكرار تعرض حديث، مانع بسبب حالة مرضية، أو تداخل دوائي).",
+    },
+    "pharmacy_report_title": {"en": "Pharmacy Usage Report", "ar": "تقرير استخدام الصيدلية"},
+    "pharmacy_report_hint": {
+        "en": "How many times each antibiotic was prescribed hospital-wide within the selected month.",
+        "ar": "عدد مرات وصف كل مضاد حيوي على مستوى المستشفى خلال الشهر المحدد.",
+    },
+    "month": {"en": "Month", "ar": "الشهر"},
+    "year": {"en": "Year", "ar": "السنة"},
+    "times_prescribed": {"en": "Times prescribed", "ar": "عدد مرات الوصف"},
     "staff_view_only_note": {
         "en": "Only the clinical pharmacist / controller can add or change this.",
         "ar": "فقط الصيدلي الإكلينيكي / المتحكم يمكنه إضافة أو تعديل هذا.",
