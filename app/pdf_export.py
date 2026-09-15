@@ -57,6 +57,14 @@ ALERT_COLORS = {
 }
 ALERT_LABELS = {"danger": "DANGER", "warning": "WARNING", "info": "INFO"}
 
+# Optional per-issue-type color override (keyed by the safety-check engine's
+# alert "code", e.g. "allergy_direct", "drug_drug_interaction" -- see
+# app/pdf_reports.py's ALERT_CODE_LABELS for the full list of codes). Left
+# empty on purpose: when a code has no entry here, pdf_reports.py falls back
+# to the plain danger/warning/info coloring in ALERT_COLORS above. Add an
+# entry here only if a specific issue type should stand out with its own color.
+ALERT_COLORS_BY_CODE = {}
+
 
 def _styles():
     _ensure_fonts()
