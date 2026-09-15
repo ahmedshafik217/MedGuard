@@ -489,6 +489,54 @@ def settings():
     return render_template("owner/settings.html", owners=owners, creatable_roles=CREATABLE_ROLES)
 
 
+@bp.route("/settings/owners/<int:owner_id>/reset-password", methods=["POST"])
+@full_owner_required
+def reset_owner_password(owner_id):
+    """Full owner/controller resetting ANOTHER employee's (or their own)
+    password -- no old password needed, for the case an employee is
+    locked out and can't provide it. Self-service change for someone who
+    still knows their old password is the separate change_password route
+    below."""
+    target = models.get_owner_by_id(owner_id)
+    if not target:
+        return ("Account not found.", 404)
+    new_password = request.form.get("new_password", "").strip()
+    if not new_password:
+        flash("Enter a new password.", "error")
+        return redirect(url_for("owner.settings"))
+    models.set_owner_password(owner_id, new_password)
+    models.log_action("owner", current_actor_label(), "reset_owner_password", details=f"target={target['username']}")
+    flash(f"Password updated for {target['username']}.", "success")
+    return redirect(url_for("owner.settings"))
+
+
+@bp.route("/change-password", methods=["GET", "POST"])
+@owner_required
+def change_password():
+    """Self-service password change for the CURRENTLY LOGGED IN owner-side
+    account -- any role, not just the full owner/controller (open to any
+    employee, hence @owner_required rather than @full_owner_required).
+    Requires the current password, unlike reset_owner_password above which
+    the full owner uses to unlock someone who's forgotten theirs."""
+    if request.method == "POST":
+        owner = current_owner()
+        current_password = request.form.get("current_password", "")
+        new_password = request.form.get("new_password", "").strip()
+        confirm_password = request.form.get("confirm_password", "").strip()
+        if not models.check_owner_password(owner, current_password):
+            flash("Your current password is incorrect.", "error")
+        elif not new_password:
+            flash("Enter a new password.", "error")
+        elif new_password != confirm_password:
+            flash("New password and confirmation don't match.", "error")
+        else:
+            models.set_owner_password(owner["id"], new_password)
+            models.log_action("owner", current_actor_label(), "change_own_password")
+            flash("Your password has been changed.", "success")
+            return redirect(url_for("owner.dashboard"))
+    return render_template("owner/change_password.html")
+
+
 @bp.route("/reports/quality")
 @quality_report_required
 def quality_report():
