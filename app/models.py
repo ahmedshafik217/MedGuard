@@ -88,6 +88,20 @@ def check_owner_password(owner, password):
     return bool(owner) and check_password_hash(owner["password_hash"], password)
 
 
+def set_owner_password(owner_id, new_password):
+    """Used by both owner.reset_owner_password (the full owner/controller
+    resetting a locked-out employee's password, no old password needed)
+    and owner.change_password (an employee changing their OWN password,
+    after that route has already verified their current password via
+    check_owner_password)."""
+    db = get_db()
+    db.execute(
+        "UPDATE owner_users SET password_hash = ? WHERE id = ?",
+        (generate_password_hash(new_password), owner_id),
+    )
+    db.commit()
+
+
 def list_owners():
     db = get_db()
     return [dict(r) for r in db.execute("SELECT * FROM owner_users ORDER BY created_at").fetchall()]
