@@ -26,11 +26,23 @@
             <h5>{{ t('accounts_list_title') }}</h5>
             <ul class="list-group">
                 {% for o in owners %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    {{ o.username }}
-                    <span class="badge {{ 'bg-dark' if o.role == 'owner' else 'bg-secondary' }}">
-                        {{ t('role_owner') if o.role == 'owner' else t('role_staff') }}
-                    </span>
+                <li class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        {{ o.username }}
+                        <span class="badge {{ 'bg-dark' if o.role == 'owner' else 'bg-secondary' }}">
+                            {{ t('role_' ~ o.role) }}
+                        </span>
+                    </div>
+                    <details class="mt-2">
+                        <summary class="small text-muted" style="cursor:pointer;">{{ t('reset_password') }}</summary>
+                        <form method="post" action="{{ url_for('owner.reset_owner_password', owner_id=o.id) }}"
+                              class="d-flex gap-2 mt-2">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="password" name="new_password" class="form-control form-control-sm"
+                                   placeholder="{{ t('new_password') }}" required>
+                            <button class="btn btn-sm btn-outline-dark">{{ t('reset_password') }}</button>
+                        </form>
+                    </details>
                 </li>
                 {% endfor %}
             </ul>
