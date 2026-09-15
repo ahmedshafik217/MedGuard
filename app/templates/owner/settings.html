@@ -13,8 +13,9 @@
                 <input type="password" name="password" class="form-control mb-2" placeholder="{{ t('password') }}" required>
                 <label class="form-label">{{ t('role') }}</label>
                 <select name="role" class="form-select mb-2">
-                    <option value="staff" selected>{{ t('role_staff') }}</option>
-                    <option value="owner">{{ t('role_owner') }}</option>
+                    {% for role in creatable_roles %}
+                    <option value="{{ role }}"{% if role == 'nurse' %} selected{% endif %}>{{ t('role_' ~ role) }}</option>
+                    {% endfor %}
                 </select>
                 <button class="btn btn-brand">{{ t('save') }}</button>
             </form>
