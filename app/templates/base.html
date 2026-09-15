@@ -22,6 +22,19 @@
                 <a href="{{ url_for('set_language', lang='ar') }}" class="{{ 'active' if lang=='ar' }}">العربية</a>
                 <a href="{{ url_for('set_language', lang='en') }}" class="{{ 'active' if lang=='en' }}">English</a>
             </span>
+            {% if is_owner_session %}
+            <a href="{{ url_for('owner.change_password') }}" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+               title="{{ t('change_password') }}">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="7.5" cy="15.5" r="4.5"></circle>
+                    <path d="M11 12 20 3"></path>
+                    <path d="M16 8 19 11"></path>
+                    <path d="M13 5 16 8"></path>
+                </svg>
+                <span class="d-none d-sm-inline">{{ t('change_password') }}</span>
+            </a>
+            {% endif %}
             {% if is_authenticated %}
             <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-outline-secondary">{{ t('logout') }}</a>
             {% endif %}
