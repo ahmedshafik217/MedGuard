@@ -116,6 +116,12 @@ CREATE TABLE IF NOT EXISTS antibiotic_records (
     notes TEXT,
     alerts_json TEXT,
     added_by TEXT NOT NULL DEFAULT 'patient',
+    -- 'manual' (typed into the form, the default) or 'photo_ai' (extracted
+    -- from a prescription photo -- see app/prescription_scan.py). The
+    -- source photo itself is kept in source_photo for traceability (a
+    -- pharmacist can always go back and check what the AI actually read).
+    source TEXT NOT NULL DEFAULT 'manual',
+    source_photo BLOB,
     created_at TEXT NOT NULL
 );
 
@@ -187,6 +193,15 @@ def _migrate(db):
     for col in new_record_cols:
         if col not in record_cols:
             db.execute(f"ALTER TABLE antibiotic_records ADD COLUMN {col} TEXT")
+    db.commit()
+
+    record_cols = {row["name"] for row in db.execute("PRAGMA table_info(antibiotic_records)")}
+    if "source" not in record_cols:
+        # Existing records were all entered by hand -- 'manual' is the
+        # correct history for every row that predates this feature.
+        db.execute("ALTER TABLE antibiotic_records ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'")
+    if "source_photo" not in record_cols:
+        db.execute("ALTER TABLE antibiotic_records ADD COLUMN source_photo BLOB")
     db.commit()
 
     patient_cols = {row["name"] for row in db.execute("PRAGMA table_info(patients)")}

@@ -36,7 +36,7 @@ def add_medication_from_form(patient, form):
     )
 
 
-def add_antibiotic_from_form(patient, form, added_by):
+def add_antibiotic_from_form(patient, form, added_by, source="manual", source_photo=None):
     name = form.get("antibiotic_name", "").strip()
     antibiotic = models.get_antibiotic_by_name(name) if name else None
 
@@ -92,5 +92,7 @@ def add_antibiotic_from_form(patient, form, added_by):
         notes=form.get("notes", "").strip() or None,
         alerts=alerts,
         added_by=added_by,
+        source=source,
+        source_photo=source_photo,
     )
     return record, alerts

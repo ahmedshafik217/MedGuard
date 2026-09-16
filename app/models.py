@@ -528,24 +528,31 @@ def add_antibiotic_record(patient_id, antibiotic_id, custom_name, dose, duration
                            prescribed_by, prescribed_date, notes, alerts, added_by,
                            dose_amount=None, dose_unit=None, dose_unit_other=None,
                            frequency=None, frequency_other=None,
-                           duration_amount=None, duration_unit=None, duration_unit_other=None):
+                           duration_amount=None, duration_unit=None, duration_unit_other=None,
+                           source="manual", source_photo=None):
     # dose/duration (free text) are kept only for backward compatibility --
     # new callers should leave them None and use the structured fields
     # below instead (see app/dose_format.py for why: a fixed-vocabulary
     # code can be safely translated per-language at display time, free
     # text typed in one language can't be).
+    # source/source_photo: 'manual' (typed in, default) or 'photo_ai' (see
+    # app/prescription_scan.py) plus the original photo bytes, so a
+    # pharmacist can always trace an AI-extracted entry back to what was
+    # actually on the prescription.
     db = get_db()
     cur = db.execute(
         """INSERT INTO antibiotic_records
            (patient_id, antibiotic_id, custom_name, dose, duration,
             dose_amount, dose_unit, dose_unit_other, frequency, frequency_other,
             duration_amount, duration_unit, duration_unit_other,
-            prescribed_by, prescribed_date, notes, alerts_json, added_by, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            prescribed_by, prescribed_date, notes, alerts_json, added_by,
+            source, source_photo, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (patient_id, antibiotic_id, custom_name, dose, duration,
          dose_amount, dose_unit, dose_unit_other, frequency, frequency_other,
          duration_amount, duration_unit, duration_unit_other,
-         prescribed_by, prescribed_date, notes, json.dumps(alerts or []), added_by, _now()),
+         prescribed_by, prescribed_date, notes, json.dumps(alerts or []), added_by,
+         source, source_photo, _now()),
     )
     db.commit()
     return get_antibiotic_record_by_id(cur.lastrowid)
