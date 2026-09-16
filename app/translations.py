@@ -278,9 +278,11 @@ STRINGS = {
     # machine translator (which risks silently mistranslating a number or
     # unit on a patient-safety record).
     "dose_amount": {"en": "Amount", "ar": "الكمية"},
+    "dose_amount_example": {"en": "e.g. 500", "ar": "مثال: 500"},
     "dose_unit": {"en": "Unit", "ar": "الوحدة"},
     "frequency": {"en": "Frequency", "ar": "عدد مرات الجرعة"},
     "duration_amount": {"en": "Duration", "ar": "المدة"},
+    "duration_amount_example": {"en": "e.g. 7", "ar": "مثال: 7"},
     "duration_unit": {"en": "Duration unit", "ar": "وحدة المدة"},
     "choose_option": {"en": "-- choose --", "ar": "-- اختر --"},
     "other_specify": {"en": "Other (type below)", "ar": "غير ذلك (اكتب في الأسفل)"},
