@@ -12,12 +12,30 @@ heard text is returned unchanged, exactly as if it had been typed by hand:
 never worse than typing, just not auto-corrected.
 """
 import difflib
+import re
 
 # difflib similarity ratio (0-1). Loose enough to catch a minor mis-hearing
 # or a brand name typed/spoken slightly differently, tight enough that a
 # genuinely different drug name won't get silently swapped in -- a
 # patient-safety record should never auto-correct into the WRONG drug.
 MATCH_CUTOFF = 0.6
+
+# Per-word fallback cutoff (see below). Kept stricter than MATCH_CUTOFF
+# because short words swing the similarity ratio more easily on a single
+# character change, so a looser threshold there would risk matching the
+# wrong short drug name.
+WORD_MATCH_CUTOFF = 0.72
+
+_PUNCT_RE = re.compile(r"[^\w\s\-]")
+_SPACE_RE = re.compile(r"\s+")
+
+
+def _normalize(text):
+    """Strips stray punctuation the browser's speech recognizer sometimes
+    appends (periods, commas) and collapses whitespace, without touching
+    the letters themselves."""
+    text = _PUNCT_RE.sub("", text)
+    return _SPACE_RE.sub(" ", text).strip()
 
 
 def resolve_spoken_antibiotic_name(heard, known_antibiotics):
@@ -42,7 +60,20 @@ def resolve_spoken_antibiotic_name(heard, known_antibiotics):
     if not candidates:
         return {"heard": heard, "resolved_name": heard, "matched": False}
 
-    best = difflib.get_close_matches(heard.lower(), candidates.keys(), n=1, cutoff=MATCH_CUTOFF)
+    cleaned = _normalize(heard.lower())
+
+    best = difflib.get_close_matches(cleaned, candidates.keys(), n=1, cutoff=MATCH_CUTOFF)
     if best:
         return {"heard": heard, "resolved_name": candidates[best[0]], "matched": True}
+
+    # Fall back to matching individual words -- catches cases like "give me
+    # augmentin please" or a filler word the recognizer tacked on, where the
+    # drug name itself is clear but the full phrase doesn't match well.
+    for word in cleaned.split():
+        if len(word) < 3:
+            continue
+        word_best = difflib.get_close_matches(word, candidates.keys(), n=1, cutoff=WORD_MATCH_CUTOFF)
+        if word_best:
+            return {"heard": heard, "resolved_name": candidates[word_best[0]], "matched": True}
+
     return {"heard": heard, "resolved_name": heard, "matched": False}
