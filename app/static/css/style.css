@@ -873,3 +873,80 @@ html[dir="rtl"] .footer-cursive {
     .stat-tile { padding: 0.9rem; }
     .stat-tile-num { font-size: 1.6rem; }
 }
+
+/* ==========================================================================
+   "Immersive" page treatment -- a sustained gradient wash + soft decorative
+   blobs behind the content, and a bold gradient hero band for the page
+   title, echoing the hospital's own newer app screens (rounded floating
+   cards on a colored backdrop) instead of a flat white page. Opt-in via
+   {% block body_class %}page-immersive{% endblock %} so it only applies to
+   the pages that ask for it.
+   ========================================================================== */
+body.page-immersive {
+    background:
+        radial-gradient(650px circle at 8% 0%, rgba(30, 179, 207, 0.16), transparent 60%),
+        radial-gradient(700px circle at 100% 18%, rgba(3, 77, 156, 0.12), transparent 55%),
+        linear-gradient(180deg, var(--page-wash) 0%, #eef8fb 55%, #f6fbfd 100%);
+    background-attachment: fixed;
+}
+
+.page-hero-band {
+    background: linear-gradient(135deg, var(--brand-teal) 0%, var(--brand-blue) 55%, var(--brand-navy) 100%);
+    border-radius: 1.25rem;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 10px 28px rgba(3, 77, 156, 0.22);
+    color: #fff;
+}
+
+.page-hero-band h2 {
+    color: #fff;
+}
+
+.page-hero-band .btn-pill-outline {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: #fff;
+}
+.page-hero-band .btn-pill-outline:hover { background: rgba(255, 255, 255, 0.24); color: #fff; }
+
+.page-hero-band .btn-pill-solid {
+    background: #fff;
+    color: var(--brand-blue-dark);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+.page-hero-band .btn-pill-solid:hover { opacity: 1; background: #f2f8fc; }
+
+.icon-badge.theme-hero {
+    background: rgba(255, 255, 255, 0.22);
+    color: #fff;
+    box-shadow: none;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--brand-blue-dark);
+    text-decoration: none;
+}
+.back-link:hover { text-decoration: underline; }
+
+/* Slightly more elevated cards/buttons read better floating on the
+   gradient wash than the flatter shadows used on plain-white pages. */
+.page-immersive .section-card,
+.page-immersive .stat-tile {
+    border-radius: 1.15rem;
+    box-shadow: 0 8px 24px rgba(15, 34, 51, 0.09);
+}
+
+.page-immersive .btn-pill-solid {
+    box-shadow: 0 6px 16px rgba(4, 142, 141, 0.28);
+}
+
+/* Re-assert the hero band's own white-button shadow, since it needs to
+   win over the general glow rule above at equal selector specificity. */
+.page-immersive .page-hero-band .btn-pill-solid {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
