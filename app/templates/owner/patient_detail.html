@@ -1,16 +1,19 @@
 {% extends "base.html" %}
 {% import "macros.html" as macros with context %}
+{% block body_class %}page-immersive{% endblock %}
 {% block content %}
-<a href="{{ url_for('owner.dashboard') }}">&laquo; {{ t('back') }}</a>
-<div class="d-flex justify-content-between align-items-center my-3 flex-wrap gap-2">
-    <div class="d-flex align-items-center gap-2">
-        <span class="icon-badge theme-blue">🪪</span>
-        <h2 class="patient-id-badge mb-0">{{ patient.public_id }}</h2>
-    </div>
-    <div class="d-flex gap-2 flex-wrap">
-        <a href="{{ url_for('owner.patient_qr', public_id=patient.public_id) }}" class="btn-pill btn-pill-outline">🔳 {{ t('view_qr') }}</a>
-        <a href="{{ url_for('owner.export_patient_pdf', public_id=patient.public_id) }}" class="btn-pill btn-pill-solid">📄 {{ t('export_pdf_en') }}</a>
-        <a href="{{ url_for('owner.export_patient_pdf_ar', public_id=patient.public_id) }}" class="btn-pill btn-pill-solid">📄 {{ t('export_pdf_ar') }}</a>
+<a href="{{ url_for('owner.dashboard') }}" class="back-link">&laquo; {{ t('back') }}</a>
+<div class="page-hero-band my-3">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <span class="icon-badge lg theme-hero">🪪</span>
+            <h2 class="patient-id-badge mb-0">{{ patient.public_id }}</h2>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('owner.patient_qr', public_id=patient.public_id) }}" class="btn-pill btn-pill-outline">🔳 {{ t('view_qr') }}</a>
+            <a href="{{ url_for('owner.export_patient_pdf', public_id=patient.public_id) }}" class="btn-pill btn-pill-solid">📄 {{ t('export_pdf_en') }}</a>
+            <a href="{{ url_for('owner.export_patient_pdf_ar', public_id=patient.public_id) }}" class="btn-pill btn-pill-solid">📄 {{ t('export_pdf_ar') }}</a>
+        </div>
     </div>
 </div>
 
