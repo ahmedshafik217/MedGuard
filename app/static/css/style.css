@@ -950,3 +950,16 @@ body.page-immersive {
 .page-immersive .page-hero-band .btn-pill-solid {
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
 }
+
+/* --- Microphone button on "Add antibiotic" -- see patient_detail.html -- */
+.btn-pill.listening {
+    background: var(--brand-red);
+    border-color: var(--brand-red);
+    color: #fff;
+    animation: voice-pulse 1s ease-in-out infinite;
+}
+
+@keyframes voice-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
