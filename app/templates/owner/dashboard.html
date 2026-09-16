@@ -1,17 +1,20 @@
 {% extends "base.html" %}
+{% block body_class %}page-immersive{% endblock %}
 {% block content %}
 {% if owner_role == 'owner' %}
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-    <div class="d-flex align-items-center gap-2">
-        <span class="icon-badge theme-blue">🩺</span>
-        <h2 class="mb-0">{{ t('controller_dashboard_title') }}</h2>
-    </div>
-    <div class="d-flex gap-2 flex-wrap">
-        <a href="{{ url_for('owner.create_patient') }}" class="btn-pill btn-pill-solid">➕ {{ t('add_new_patient') }}</a>
-        <a href="{{ url_for('owner.antibiotics') }}" class="btn-pill btn-pill-outline">💊 {{ t('antibiotic_reference') }}</a>
-        <a href="{{ url_for('owner.drug_interactions') }}" class="btn-pill btn-pill-outline">🔗 {{ t('drug_interactions_reference') }}</a>
-        <a href="{{ url_for('owner.audit_log') }}" class="btn-pill btn-pill-outline">📜 {{ t('audit_log') }}</a>
-        <a href="{{ url_for('owner.settings') }}" class="btn-pill btn-pill-outline">⚙️ {{ t('site_settings') }}</a>
+<div class="page-hero-band mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-2">
+            <span class="icon-badge lg theme-hero">🩺</span>
+            <h2 class="mb-0">{{ t('controller_dashboard_title') }}</h2>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('owner.create_patient') }}" class="btn-pill btn-pill-solid">➕ {{ t('add_new_patient') }}</a>
+            <a href="{{ url_for('owner.antibiotics') }}" class="btn-pill btn-pill-outline">💊 {{ t('antibiotic_reference') }}</a>
+            <a href="{{ url_for('owner.drug_interactions') }}" class="btn-pill btn-pill-outline">🔗 {{ t('drug_interactions_reference') }}</a>
+            <a href="{{ url_for('owner.audit_log') }}" class="btn-pill btn-pill-outline">📜 {{ t('audit_log') }}</a>
+            <a href="{{ url_for('owner.settings') }}" class="btn-pill btn-pill-outline">⚙️ {{ t('site_settings') }}</a>
+        </div>
     </div>
 </div>
 
@@ -121,9 +124,11 @@
         {% endif %}
 </div>
 {% else %}
-<div class="d-flex align-items-center gap-2 mb-4">
-    <span class="icon-badge theme-teal">🧑‍⚕️</span>
-    <h2 class="mb-0">{{ t('staff_dashboard_title') }}</h2>
+<div class="page-hero-band mb-4">
+    <div class="d-flex align-items-center gap-2">
+        <span class="icon-badge lg theme-hero">🧑‍⚕️</span>
+        <h2 class="mb-0">{{ t('staff_dashboard_title') }}</h2>
+    </div>
 </div>
 {% endif %}
 
