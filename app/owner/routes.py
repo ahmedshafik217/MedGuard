@@ -1,12 +1,15 @@
 from datetime import date
 
-from flask import Response, flash, redirect, render_template, request, url_for
+from flask import Response, current_app, flash, redirect, render_template, request, url_for
 
 from app import models
 from app.owner import bp
 from app.pdf_export import generate_patient_history_pdf
 from app.pdf_export_ar import WkhtmltopdfNotFound, generate_patient_history_pdf_arabic
 from app.pdf_reports import generate_pharmacy_report_pdf, generate_quality_report_pdf
+from app.prescription_scan import (
+    PrescriptionScanError, PrescriptionScanNotConfigured, scan_prescription_image,
+)
 from app.records import (
     add_allergy_from_form, add_antibiotic_from_form, add_condition_from_form, add_medication_from_form,
 )
@@ -304,6 +307,123 @@ def add_patient_antibiotic(public_id):
     # Redirect (rather than rendering the result directly) so the browser's
     # Back button doesn't try to resubmit this POST -- see antibiotic_result().
     return redirect(url_for("owner.antibiotic_result", public_id=public_id, record_id=record["id"]))
+
+
+def _prescription_scan_note(item):
+    """Builds the antibiotic_record.notes text for a photo-extracted entry,
+    so a pharmacist reviewing patient history later can see exactly what
+    the AI read and how confident it was -- not just a bare drug name."""
+    as_written = (item.get("name_as_written") or "").strip()
+    confidence = item.get("confidence") or "unknown"
+    parts = [f'Read from a prescription photo (as written: "{as_written}"; confidence: {confidence}).']
+    if item.get("notes"):
+        parts.append(item["notes"].strip())
+    return " ".join(p for p in parts if p)
+
+
+@bp.route("/patients/<public_id>/antibiotics/scan-photo", methods=["POST"])
+@antibiotic_add_required
+def scan_patient_antibiotic_photo(public_id):
+    patient = models.get_patient_by_public_id(public_id)
+    if not patient:
+        return ("Patient not found.", 404)
+
+    photo = request.files.get("prescription_photo")
+    if not photo or not photo.filename:
+        flash("Choose or take a photo of the prescription first.", "error")
+        return redirect(url_for("owner.patient_detail", public_id=public_id))
+
+    image_bytes = photo.read()
+    if not image_bytes:
+        flash("That photo looks empty — please try again.", "error")
+        return redirect(url_for("owner.patient_detail", public_id=public_id))
+    if len(image_bytes) > current_app.config["PRESCRIPTION_PHOTO_MAX_BYTES"]:
+        max_mb = current_app.config["PRESCRIPTION_PHOTO_MAX_BYTES"] // (1024 * 1024)
+        flash(f"That photo is too large (max {max_mb} MB). Please retake it or choose a smaller file.", "error")
+        return redirect(url_for("owner.patient_detail", public_id=public_id))
+
+    known_antibiotics = models.list_antibiotics()
+    try:
+        result = scan_prescription_image(
+            image_bytes,
+            api_key=current_app.config["ANTHROPIC_API_KEY"],
+            model=current_app.config["ANTHROPIC_MODEL"],
+            known_antibiotics=known_antibiotics,
+        )
+    except PrescriptionScanNotConfigured as e:
+        flash(str(e), "error")
+        return redirect(url_for("owner.patient_detail", public_id=public_id))
+    except PrescriptionScanError as e:
+        models.log_action("owner", current_actor_label(), "prescription_scan_failed",
+                          target=public_id, details=str(e))
+        flash(f"Couldn't read that prescription photo: {e}", "error")
+        return redirect(url_for("owner.patient_detail", public_id=public_id))
+
+    perms = current_owner_permissions()
+    added_names = []
+    blocked_restricted = []
+
+    for item in result.get("antibiotics", []):
+        name = (item.get("antibiotic_name") or "").strip()
+        if not name:
+            continue
+        antibiotic = models.get_antibiotic_by_name(name)
+        if antibiotic and antibiotic.get("restricted") and not perms["add_restricted_antibiotic"]:
+            blocked_restricted.append(antibiotic["generic_name"])
+            continue
+
+        form_data = {
+            "antibiotic_name": name,
+            "prescribed_date": (item.get("prescribed_date") or "").strip(),
+            "prescribed_by": (item.get("prescribed_by") or "").strip(),
+            "dose_amount": (item.get("dose_amount") or "").strip(),
+            "dose_unit": (item.get("dose_unit") or "").strip(),
+            "dose_unit_other": (item.get("dose_unit_other") or "").strip(),
+            "frequency": (item.get("frequency") or "").strip(),
+            "frequency_other": (item.get("frequency_other") or "").strip(),
+            "duration_amount": (item.get("duration_amount") or "").strip(),
+            "duration_unit": (item.get("duration_unit") or "").strip(),
+            "duration_unit_other": (item.get("duration_unit_other") or "").strip(),
+            "notes": _prescription_scan_note(item),
+        }
+        record, _alerts = add_antibiotic_from_form(
+            patient, form_data,
+            added_by=f"{current_actor_label()} (📷 AI prescription scan)",
+            source="photo_ai",
+            source_photo=image_bytes,
+        )
+        added_names.append(record["display_name"])
+        models.log_action("owner", current_actor_label(), "add_antibiotic_record_from_photo",
+                          target=public_id, details=record["display_name"])
+
+    ignored = [n for n in (result.get("other_medications_ignored") or []) if n and n.strip()]
+
+    if added_names:
+        msg = f"Added from the prescription photo: {', '.join(added_names)}."
+        if ignored:
+            msg += f" Ignored (not antibiotics): {', '.join(ignored)}."
+        if result.get("read_issues"):
+            msg += f" Note: {result['read_issues']}"
+        flash(msg, "success")
+    else:
+        msg = "No antibiotics could be identified in that photo."
+        if ignored:
+            msg += f" Found other medication(s) ({', '.join(ignored)}) but no antibiotics."
+        if result.get("read_issues"):
+            msg += f" {result['read_issues']}"
+        msg += " Please add it manually below, or retake a clearer photo."
+        flash(msg, "error")
+
+    if blocked_restricted:
+        verb = "is" if len(blocked_restricted) == 1 else "are"
+        flash(
+            f"{', '.join(blocked_restricted)} {verb} Restricted antibiotic(s) found on the photo — only a "
+            "Senior Specialist, Consultant, or the Admin/Controller can add them. Please ask one of them "
+            "to add these entries.",
+            "error",
+        )
+
+    return redirect(url_for("owner.patient_detail", public_id=public_id))
 
 
 @bp.route("/patients/<public_id>/antibiotics/<int:record_id>/result")
