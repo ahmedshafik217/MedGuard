@@ -253,12 +253,90 @@
     <form method="post" action="{{ url_for('owner.add_patient_antibiotic', public_id=patient.public_id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="row g-2">
-            <div class="col-md-4"><input type="text" name="antibiotic_name" class="form-control" placeholder="{{ t('antibiotic_name') }}" required></div>
+            <div class="col-md-4">
+                <div class="d-flex gap-1">
+                    <input type="text" name="antibiotic_name" id="antibiotic-name-input" class="form-control" placeholder="{{ t('antibiotic_name') }}" required>
+                    <button type="button" class="btn-pill btn-pill-outline sm" id="voice-name-btn" title="{{ t('speak_antibiotic_name') }}">🎤</button>
+                </div>
+                <div id="voice-name-status" class="small text-muted mt-1" style="display:none"></div>
+            </div>
             <div class="col-md-4"><input type="date" name="prescribed_date" class="form-control"></div>
             <div class="col-md-4"><input type="text" name="prescribed_by" class="form-control" placeholder="{{ t('prescribed_by_optional') }}"></div>
         </div>
         {{ macros.dose_duration_fields() }}
         <button class="btn-pill btn-pill-solid">✔️ {{ t('submit_check') }}</button>
     </form>
+    <script>
+        (function () {
+            var btn = document.getElementById('voice-name-btn');
+            var input = document.getElementById('antibiotic-name-input');
+            var status = document.getElementById('voice-name-status');
+            if (!btn || !input || !status) return;
+
+            var SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognitionCtor) {
+                btn.style.display = 'none';
+                return;
+            }
+
+            var recognition = new SpeechRecognitionCtor();
+            recognition.lang = '{{ "ar-SA" if lang == "ar" else "en-US" }}';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+            var listening = false;
+
+            function setStatus(text) {
+                status.textContent = text;
+                status.style.display = text ? '' : 'none';
+            }
+
+            function resolveAndFill(heard) {
+                setStatus('{{ t("resolving_antibiotic_name") }}');
+                var body = new URLSearchParams();
+                var csrfInput = document.querySelector('input[name="csrf_token"]');
+                body.set('csrf_token', csrfInput ? csrfInput.value : '');
+                body.set('heard', heard);
+                fetch('{{ url_for("owner.resolve_antibiotic_voice_name") }}', { method: 'POST', body: body })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        input.value = data.resolved_name || heard;
+                        setStatus(data.matched
+                            ? '{{ t("voice_matched") }}: "' + heard + '" → ' + data.resolved_name
+                            : '{{ t("voice_not_matched") }}: "' + heard + '"');
+                    })
+                    .catch(function () {
+                        input.value = heard;
+                        setStatus('');
+                    });
+            }
+
+            recognition.onresult = function (event) {
+                var transcript = event.results[0][0].transcript;
+                resolveAndFill(transcript);
+            };
+            recognition.onerror = function () {
+                listening = false;
+                btn.classList.remove('listening');
+                setStatus('{{ t("voice_error") }}');
+            };
+            recognition.onend = function () {
+                listening = false;
+                btn.classList.remove('listening');
+            };
+
+            btn.addEventListener('click', function () {
+                if (listening) return;
+                listening = true;
+                btn.classList.add('listening');
+                setStatus('{{ t("voice_listening") }}');
+                try {
+                    recognition.start();
+                } catch (e) {
+                    listening = false;
+                    btn.classList.remove('listening');
+                }
+            });
+        })();
+    </script>
 </div>
 {% endblock %}
