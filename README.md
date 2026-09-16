@@ -323,6 +323,52 @@ werkzeug's `ProxyFix`) — otherwise every visitor appears to share one IP,
 which would make the per-IP limit either useless or (worse) lock out the
 whole hospital together. The per-identifier limit is unaffected either way.
 
+### 3.7 Prescription photo scan
+
+On any patient's page, Owner Dashboard → **Antibiotic History** offers
+**"Scan a prescription photo"**: staff take or upload a photo of a real
+(typed or handwritten) prescription, and the app reads it, pulls out only
+the antibiotic(s) on it (ignoring any other medication listed alongside
+them, e.g. painkillers or vitamins), resolves brand names to generic ones
+where it can, and adds each antibiotic to the patient's record
+automatically — running through the exact same allergy / condition /
+recent-exposure / drug-interaction safety checks as a hand-typed entry
+(`app/records.py` is the one shared code path both go through).
+
+**This needs an Anthropic API key to work at all.** Reading handwriting
+reliably is only realistic with a vision-capable AI model — there is no
+free/local fallback for that part. Without a key, the button is still
+there but shows a plain "not turned on yet" message; nothing else in the
+app is affected.
+
+**Setup:**
+1. Create an API key at [console.anthropic.com](https://console.anthropic.com)
+   (you'll need to add billing there — this is a normal pay-as-you-go API,
+   not part of a Claude.ai subscription). Each scan costs a small fraction
+   of a cent to a few cents, depending on photo size.
+2. On Render: your service → **Environment** → add `ANTHROPIC_API_KEY`
+   with that key as the value, then save (this redeploys the service).
+   `render.yaml` already declares this variable (`sync: false`, so its
+   value is never committed to GitHub) — you're just filling in the value
+   Render is expecting.
+3. Locally: add `ANTHROPIC_API_KEY=...` to your `.env` file.
+
+Optional: `ANTHROPIC_MODEL` (default `claude-sonnet-5`) and
+`PRESCRIPTION_PHOTO_MAX_MB` (default `10`) can also be set as environment
+variables if you ever want to change the model or the upload size limit.
+
+**Because this was chosen to auto-save without a review step**, every
+entry it creates is clearly marked "📷 From photo scan" in the antibiotic
+history table (and its notes field records exactly what text the AI read
+off the photo and how confident it was), and the original photo itself is
+kept (`antibiotic_records.source_photo`) so a pharmacist can always go back
+and check a photo-scanned entry against the source prescription. Given
+that a misread dose or drug name goes straight into a real patient's
+record with nobody checking it first, it is worth spot-checking scanned
+entries against the original photo periodically, especially early on while
+you're getting a feel for how reliable it is with your hospital's own
+handwriting.
+
 ## 4. Extending the antibiotic reference database
 
 Controller Dashboard → Antibiotic Reference Database (controller-only) lets

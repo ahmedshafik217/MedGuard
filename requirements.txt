@@ -6,11 +6,17 @@
 # summary. pdfkit generates the Arabic PDF summary -- it is a thin wrapper
 # around the wkhtmltopdf SYSTEM BINARY, which you must install separately
 # (it is not a pip package -- see README.md, section "Arabic PDF export").
-# gunicorn is the production WSGI server used when deployed (see
-# Dockerfile / docker-entrypoint.sh) -- `python run.py`'s built-in dev
-# server is for local development only.
+# Pillow is used only to downscale a prescription photo before it's sent
+# to the AI vision API (see app/prescription_scan.py, README.md section
+# "Prescription photo scan") -- the scan still works without it, just
+# sends the original photo unresized. gunicorn is the production WSGI
+# server used when deployed (see Dockerfile / docker-entrypoint.sh) --
+# `python run.py`'s built-in dev server is for local development only.
+# The prescription-photo-scan feature calls the Anthropic API directly
+# over HTTPS with the standard library (urllib) -- no SDK dependency.
 Flask>=3.0
 python-dotenv>=1.0
 reportlab>=4.0
 pdfkit>=1.0
+Pillow>=10.0
 gunicorn>=21.2

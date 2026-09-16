@@ -25,3 +25,10 @@ services:
         value: "15"
       - key: LOGIN_IP_ATTEMPT_LIMIT
         value: "20"
+      # Powers Owner Dashboard -> patient page -> "Scan a prescription
+      # photo". Leave unset and the rest of the app works exactly as
+      # before -- staff just see a clear "not turned on yet" message
+      # instead of the scan feature. See README.md section "Prescription
+      # photo scan" for where to get a key and what it costs.
+      - key: ANTHROPIC_API_KEY
+        sync: false
