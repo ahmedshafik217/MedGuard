@@ -1,165 +1,171 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <h2>{{ t('patient_dashboard') }}</h2>
+{% if owner_role == 'owner' %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
     <div class="d-flex align-items-center gap-2">
-        <span class="patient-id-badge badge bg-dark">{{ patient.public_id }}</span>
-        <a href="{{ url_for('patient.my_qr') }}" class="btn btn-sm btn-outline-dark">🔳 {{ t('view_qr') }}</a>
-        <a href="{{ url_for('patient.export_pdf') }}" class="btn btn-sm btn-brand">📄 {{ t('export_pdf_en') }}</a>
-        <a href="{{ url_for('patient.export_pdf_ar') }}" class="btn btn-sm btn-brand">📄 {{ t('export_pdf_ar') }}</a>
+        <span class="icon-badge theme-blue">🩺</span>
+        <h2 class="mb-0">{{ t('controller_dashboard_title') }}</h2>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('owner.create_patient') }}" class="btn-pill btn-pill-solid">➕ {{ t('add_new_patient') }}</a>
+        <a href="{{ url_for('owner.antibiotics') }}" class="btn-pill btn-pill-outline">💊 {{ t('antibiotic_reference') }}</a>
+        <a href="{{ url_for('owner.drug_interactions') }}" class="btn-pill btn-pill-outline">🔗 {{ t('drug_interactions_reference') }}</a>
+        <a href="{{ url_for('owner.audit_log') }}" class="btn-pill btn-pill-outline">📜 {{ t('audit_log') }}</a>
+        <a href="{{ url_for('owner.settings') }}" class="btn-pill btn-pill-outline">⚙️ {{ t('site_settings') }}</a>
     </div>
 </div>
 
-<div class="row g-3">
-    <div class="col-md-3">
-        <div class="card p-3">
-            <h5>{{ t('my_profile') }}</h5>
-            <p class="mb-1">{{ t('full_name_optional') }}: {{ patient.full_name or '—' }}</p>
-            <p class="mb-1">{{ t('gender') }}: {{ t(patient.gender) if patient.gender in ['male','female'] else patient.gender }}</p>
-            <p class="mb-1">
-                {{ t('date_of_birth') }}: {{ patient.date_of_birth or '—' }}
-                {% if patient.age_years is not none %} ({{ patient.age_years }} {{ t('years_old') }}){% endif %}
-            </p>
-            <p class="mb-1">{{ t('phone_number') }}: {{ patient.phone_number or '—' }}</p>
-            <hr>
-            <form method="post" action="{{ url_for('patient.update_phone') }}" class="mb-2">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <label class="form-label">{{ t('phone_number') }}</label>
-                <input type="tel" name="phone_number" class="form-control mb-2" placeholder="05XXXXXXXX" value="{{ patient.phone_number or '' }}">
-                <div class="form-text mb-2">{{ t('phone_number_hint') }}</div>
-                <button class="btn btn-sm btn-brand w-100">{{ t('save') }}</button>
-            </form>
-            {% if patient.gender == 'female' %}
-            <hr>
-            <form method="post" action="{{ url_for('patient.update_pregnancy_status') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <label class="form-label">{{ t('pregnancy_status') }}</label>
-                <select name="pregnancy_status" id="patient-pregnancy-select" class="form-select mb-2">
-                    <option value="pregnant" {{ 'selected' if patient.pregnancy_status=='pregnant' }}>{{ t('pregnant') }}</option>
-                    <option value="not_pregnant" {{ 'selected' if patient.pregnancy_status=='not_pregnant' }}>{{ t('not_pregnant') }}</option>
-                    <option value="unknown" {{ 'selected' if patient.pregnancy_status=='unknown' }}>{{ t('unknown') }}</option>
-                </select>
-                <div id="patient-pregnancy-dates">
-                    <label class="form-label">{{ t('pregnancy_start_date') }}</label>
-                    <input type="date" name="pregnancy_start_date" class="form-control mb-1" value="{{ patient.pregnancy_start_date or '' }}">
-                    <div class="form-text mb-2">{{ t('pregnancy_start_date_hint') }}</div>
-                    <label class="form-label">{{ t('expected_delivery_date') }}</label>
-                    <input type="date" name="expected_delivery_date" class="form-control mb-1" value="{{ patient.expected_delivery_date or '' }}">
-                    <div class="form-text mb-2">{{ t('expected_delivery_date_hint') }}</div>
-                    {% if patient.pregnancy_weeks is not none %}
-                    <div class="small text-muted mb-2">{{ patient.pregnancy_weeks }} {{ t('weeks_pregnant') }}</div>
-                    {% endif %}
-                </div>
-                <button class="btn btn-sm btn-brand w-100">{{ t('save') }}</button>
-            </form>
-            <script>
-                (function () {
-                    var sel = document.getElementById('patient-pregnancy-select');
-                    var dates = document.getElementById('patient-pregnancy-dates');
-                    function toggle() { dates.style.display = sel.value === 'pregnant' ? '' : 'none'; }
-                    sel.addEventListener('change', toggle);
-                    toggle();
-                })();
-            </script>
-            {% endif %}
+<div class="row mb-4 g-3">
+    <div class="col-md-4">
+        <div class="stat-tile">
+            <span class="icon-badge lg theme-blue">🧑‍🤝‍🧑</span>
+            <div>
+                <div class="stat-tile-num">{{ stats.patient_count }}</div>
+                <div class="stat-tile-label">{{ t('all_patients') }}</div>
+            </div>
         </div>
     </div>
-
-    <div class="col-md-3">
-        <div class="card p-3">
-            <h5>{{ t('my_allergies') }}</h5>
-            <ul class="list-group mb-3">
-                {% for a in patient.allergies %}
-                <li class="list-group-item">
-                    <strong>{{ a.allergen }}</strong> {% if a.drug_class %}({{ a.drug_class }}){% endif %}
-                    — {{ a.severity }}
-                    {% if a.reaction %}<div class="small text-muted">{{ a.reaction }}</div>{% endif %}
-                </li>
-                {% else %}
-                <li class="list-group-item text-muted">{{ t('no_records_yet') }}</li>
-                {% endfor %}
-            </ul>
-            <form method="post" action="{{ url_for('patient.add_allergy') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="text" name="allergen" class="form-control mb-2" placeholder="{{ t('allergen') }}" required>
-                <input type="text" name="drug_class" class="form-control mb-2" placeholder="{{ t('drug_class') }}">
-                <input type="text" name="reaction" class="form-control mb-2" placeholder="{{ t('reaction_optional') }}">
-                <select name="severity" class="form-select mb-2">
-                    <option value="mild">Mild</option>
-                    <option value="moderate">Moderate</option>
-                    <option value="severe">Severe</option>
-                    <option value="unknown" selected>Unknown</option>
-                </select>
-                <button class="btn btn-sm btn-brand w-100">{{ t('add_allergy') }}</button>
-            </form>
+    <div class="col-md-4">
+        <div class="stat-tile">
+            <span class="icon-badge lg theme-teal">💊</span>
+            <div>
+                <div class="stat-tile-num">{{ stats.antibiotic_count }}</div>
+                <div class="stat-tile-label">{{ t('antibiotic_reference') }}</div>
+            </div>
         </div>
     </div>
-
-    <div class="col-md-3">
-        <div class="card p-3">
-            <h5>{{ t('my_conditions') }}</h5>
-            <ul class="list-group mb-3">
-                {% for c in patient.conditions %}
-                <li class="list-group-item">
-                    <strong>{{ c.condition_name }}</strong>
-                    {% if c.notes %}<div class="small text-muted">{{ c.notes }}</div>{% endif %}
-                </li>
-                {% else %}
-                <li class="list-group-item text-muted">{{ t('no_records_yet') }}</li>
-                {% endfor %}
-            </ul>
-            <form method="post" action="{{ url_for('patient.add_condition') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="text" name="condition_name" class="form-control mb-2" placeholder="{{ t('condition_name') }}" required>
-                <input type="text" name="notes" class="form-control mb-2" placeholder="{{ t('notes_optional') }}">
-                <button class="btn btn-sm btn-brand w-100">{{ t('add_condition') }}</button>
-            </form>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card p-3">
-            <h5>{{ t('my_medications') }}</h5>
-            <p class="small text-muted">{{ t('my_medications_hint') }}</p>
-            <ul class="list-group mb-3">
-                {% for m in patient.medications %}
-                <li class="list-group-item">
-                    <strong>{{ m.medication_name }}</strong>
-                    {% if m.notes %}<div class="small text-muted">{{ m.notes }}</div>{% endif %}
-                </li>
-                {% else %}
-                <li class="list-group-item text-muted">{{ t('no_records_yet') }}</li>
-                {% endfor %}
-            </ul>
-            <form method="post" action="{{ url_for('patient.add_medication') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="text" name="medication_name" class="form-control mb-2" placeholder="{{ t('medication_name') }}" required>
-                <input type="text" name="notes" class="form-control mb-2" placeholder="{{ t('notes_optional') }}">
-                <button class="btn btn-sm btn-brand w-100">{{ t('add_medication') }}</button>
-            </form>
+    <div class="col-md-4">
+        <div class="stat-tile">
+            <span class="icon-badge lg theme-navy">📋</span>
+            <div>
+                <div class="stat-tile-num">{{ stats.record_count }}</div>
+                <div class="stat-tile-label">{{ t('antibiotic_history') }}</div>
+            </div>
         </div>
     </div>
 </div>
 
-<div class="card mt-3 p-3">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <h5 class="mb-0">{{ t('antibiotic_history') }}</h5>
-        <a href="{{ url_for('patient.add_antibiotic') }}" class="btn btn-brand">{{ t('add_antibiotic') }}</a>
+<div class="section-card mb-4">
+    <div class="section-card-head">
+        <span class="icon-badge theme-red">🚨</span>
+        <h5>{{ t('flagged_alerts_title') }}</h5>
     </div>
-    <table class="table table-sm">
-        <thead><tr><th>{{ t('antibiotic_name') }}</th><th>{{ t('dose') }}</th><th>{{ t('duration') }}</th><th>{{ t('prescribed_date') }}</th></tr></thead>
-        <tbody>
-        {% for r in patient.antibiotic_records %}
-            <tr>
-                <td>{{ r.display_name }}</td>
-                <td>{{ format_dose(r) or '—' }}</td>
-                <td>{{ format_duration(r) or '—' }}</td>
-                <td>{{ r.prescribed_date }}</td>
-            </tr>
+        {% if flagged_records %}
+        <div class="table-responsive">
+        <table class="table table-sm table-clean align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>{{ t('patient_id') }}</th>
+                    <th>{{ t('antibiotic_name') }}</th>
+                    <th>{{ t('prescribed_date') }}</th>
+                    <th>{{ t('danger') }} / {{ t('warning') }}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for r in flagged_records %}
+                <tr>
+                    <td class="patient-id-badge">{{ r.patient_public_id }}</td>
+                    <td>{{ r.display_name }}</td>
+                    <td>{{ r.prescribed_date }}</td>
+                    <td>
+                        {% for a in r.alerts %}
+                            {% if a.level in ('danger', 'warning') %}
+                            <span class="pill-badge {{ 'sev-severe' if a.code == 'condition_contraindicated' or a.level == 'danger' else 'sev-moderate' }} mb-1">{{ t(a.level) }}: {{ a.title }}</span><br>
+                            {% endif %}
+                        {% endfor %}
+                    </td>
+                    <td><a href="{{ url_for('owner.patient_detail', public_id=r.patient_public_id) }}" class="btn-pill btn-pill-solid sm">{{ t('view') }}</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
         {% else %}
-            <tr><td colspan="4">{{ t('no_records_yet') }}</td></tr>
-        {% endfor %}
-        </tbody>
-    </table>
+        <div class="empty-state"><span class="empty-icon">✅</span>{{ t('no_flagged_alerts') }}</div>
+        {% endif %}
+</div>
+
+<div class="section-card mb-4">
+    <div class="section-card-head">
+        <span class="icon-badge theme-navy">🕓</span>
+        <h5>{{ t('recent_activity_title') }}</h5>
+    </div>
+        {% if recent_records %}
+        <div class="table-responsive">
+        <table class="table table-sm table-clean align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>{{ t('patient_id') }}</th>
+                    <th>{{ t('antibiotic_name') }}</th>
+                    <th>{{ t('prescribed_date') }}</th>
+                    <th>{{ t('action') }}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for r in recent_records %}
+                <tr>
+                    <td class="patient-id-badge">{{ r.patient_public_id }}</td>
+                    <td>{{ r.display_name }}</td>
+                    <td>{{ r.prescribed_date }}</td>
+                    <td>{{ r.added_by }}</td>
+                    <td><a href="{{ url_for('owner.patient_detail', public_id=r.patient_public_id) }}" class="btn-pill btn-pill-outline sm">{{ t('view') }}</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <div class="empty-state"><span class="empty-icon">🗒️</span>{{ t('no_records_yet') }}</div>
+        {% endif %}
+</div>
+{% else %}
+<div class="d-flex align-items-center gap-2 mb-4">
+    <span class="icon-badge theme-teal">🧑‍⚕️</span>
+    <h2 class="mb-0">{{ t('staff_dashboard_title') }}</h2>
+</div>
+{% endif %}
+
+<div class="section-card">
+    <div class="section-card-head">
+        <span class="icon-badge theme-blue sm">🔍</span>
+        <h5>{{ t('all_patients') }}</h5>
+    </div>
+        <form method="get" class="mb-3">
+            <input type="text" name="q" value="{{ q }}" class="form-control"
+                   placeholder="{{ t('search_patients') if owner_role == 'owner' else t('staff_search_placeholder') }}">
+        </form>
+        {% if owner_role != 'owner' and not q %}
+        <div class="empty-state"><span class="empty-icon">🔎</span>{{ t('staff_search_hint') }}</div>
+        {% else %}
+        <div class="table-responsive">
+        <table class="table table-hover table-clean align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>{{ t('patient_id') }}</th>
+                    <th>{{ t('full_name_optional') }}</th>
+                    <th>{{ t('gender') }}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for p in patients %}
+                <tr>
+                    <td class="patient-id-badge">{{ p.public_id }}</td>
+                    <td>{{ p.full_name or '—' }}</td>
+                    <td>{{ t(p.gender) if p.gender in ['male','female'] else p.gender }}</td>
+                    <td class="d-flex gap-1">
+                        <a href="{{ url_for('owner.patient_detail', public_id=p.public_id) }}" class="btn-pill btn-pill-solid sm">{{ t('view') }}</a>
+                        <a href="{{ url_for('owner.patient_qr', public_id=p.public_id) }}" class="btn-pill btn-pill-outline sm">🔳</a>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="4">{{ t('no_patient_found') if owner_role != 'owner' else t('no_records_yet') }}</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% endif %}
 </div>
 {% endblock %}
