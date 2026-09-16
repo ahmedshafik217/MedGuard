@@ -117,6 +117,17 @@ STRINGS = {
     "my_conditions": {"en": "My Medical Conditions", "ar": "الحالات المرضية"},
     "antibiotic_history": {"en": "Antibiotic History", "ar": "سجل المضادات الحيوية"},
     "add_antibiotic": {"en": "Add a new antibiotic", "ar": "إضافة مضاد حيوي جديد"},
+    "scan_prescription_photo": {"en": "Scan a prescription photo", "ar": "مسح صورة روشتة"},
+    "scan_prescription_hint": {
+        "en": "Take or upload a photo of a written prescription. The system reads it (even handwriting), "
+              "pulls out only the antibiotics, and adds them automatically.",
+        "ar": "التقط أو ارفع صورة للروشتة المكتوبة. يقوم النظام بقراءتها (حتى لو بخط اليد)، ويستخرج "
+              "المضادات الحيوية فقط، ويضيفها تلقائياً.",
+    },
+    "scan_and_add": {"en": "Scan & add automatically", "ar": "مسح وإضافة تلقائياً"},
+    "scanning_in_progress": {"en": "Reading the prescription… this can take a few seconds.", "ar": "جاري قراءة الروشتة... قد يستغرق ثوانٍ."},
+    "or_add_manually": {"en": "Or add manually", "ar": "أو أضف يدوياً"},
+    "scanned_from_photo": {"en": "From photo scan", "ar": "من مسح صورة"},
     "add_allergy": {"en": "Add allergy", "ar": "إضافة حساسية"},
     "add_condition": {"en": "Add condition", "ar": "إضافة حالة مرضية"},
     "antibiotic_name": {"en": "Antibiotic name", "ar": "اسم المضاد الحيوي"},
