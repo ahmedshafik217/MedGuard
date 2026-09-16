@@ -67,6 +67,7 @@ STRINGS = {
     "strip_community_title": {"en": "Community Health", "ar": "صحة المجتمع"},
     "strip_community_desc": {"en": "Our commitment to Najran", "ar": "ملتزمون من أجل نجران"},
     "footer_region": {"en": "Najran, KSA", "ar": "نجران، المملكة العربية السعودية"},
+    "footer_phone_label": {"en": "Call us", "ar": "للتواصل"},
     "disclaimer": {
         "en": "This tool supports clinical decisions. It does not replace the judgment of a "
               "licensed physician or pharmacist. Always verify alerts independently.",
@@ -133,6 +134,9 @@ STRINGS = {
     "cancel": {"en": "Cancel", "ar": "إلغاء"},
     "no_records_yet": {"en": "No records yet.", "ar": "لا توجد سجلات بعد."},
     "severity": {"en": "Severity", "ar": "الشدة"},
+    "mild": {"en": "Mild", "ar": "خفيفة"},
+    "moderate": {"en": "Moderate", "ar": "متوسطة"},
+    "severe": {"en": "Severe", "ar": "شديدة"},
     "reaction_optional": {"en": "Reaction (optional)", "ar": "رد الفعل (اختياري)"},
     "allergen": {"en": "Allergen / drug", "ar": "المادة المسببة للحساسية / الدواء"},
     "condition_name": {"en": "Condition name", "ar": "اسم الحالة"},
