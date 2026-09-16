@@ -693,3 +693,183 @@ html[dir="rtl"] .footer-cursive {
     font-weight: 600;
     white-space: nowrap;
 }
+
+.footer-phone {
+    font-size: 0.8rem;
+    color: var(--brand-teal-dark);
+    font-weight: 700;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.footer-phone:hover {
+    color: var(--brand-teal);
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   Dashboard + patient-record design system -- extends the SAME
+   icon-badge / tinted-theme-card / gradient-pill-button language already
+   used on the welcome page and the auth forms (see .login-card,
+   .auth-form-card, .btn-theme above) into the day-to-day operational
+   pages, so the whole app reads as one product instead of a designed
+   landing page bolted onto plain Bootstrap screens.
+   ========================================================================== */
+
+/* --- Small icon-in-circle, for a section/card header title ------------- */
+.icon-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+    font-size: 1.15rem;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.icon-badge.sm { width: 2rem; height: 2rem; font-size: 0.95rem; }
+.icon-badge.lg { width: 3.25rem; height: 3.25rem; font-size: 1.5rem; }
+
+.icon-badge.theme-blue { background: var(--card-blue-bg); color: var(--brand-blue); }
+.icon-badge.theme-teal { background: var(--card-teal-bg); color: var(--brand-teal); }
+.icon-badge.theme-red { background: var(--card-red-bg); color: var(--brand-red); }
+.icon-badge.theme-warn { background: #fff3d6; color: #b8790a; }
+.icon-badge.theme-navy { background: var(--card-blue-bg); color: var(--brand-navy); }
+
+/* --- Section card: a .card with a colored icon-badge title row --------- */
+.section-card {
+    border-radius: 1rem;
+    border: 1px solid #eef2f5;
+    box-shadow: 0 3px 12px rgba(15, 34, 51, 0.06);
+    background: #fff;
+    padding: 1.1rem;
+    height: 100%;
+}
+
+.section-card-head {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 0.9rem;
+}
+
+.section-card-head h5,
+.section-card-head h6 {
+    margin: 0;
+    font-weight: 800;
+    color: var(--brand-blue-dark);
+}
+
+/* Soft tint variants for a section-card's own background (sparingly --
+   mainly for the four patient-record cards, so allergies/conditions/
+   medications/profile are visually distinguishable at a glance). */
+.section-card.tint-blue { background: var(--card-blue-bg); border-color: transparent; }
+.section-card.tint-teal { background: var(--card-teal-bg); border-color: transparent; }
+.section-card.tint-red { background: var(--card-red-bg); border-color: transparent; }
+.section-card.tint-warn { background: #fff8e8; border-color: transparent; }
+
+/* --- Dashboard stat tiles ------------------------------------------------ */
+.stat-tile {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    border-radius: 1rem;
+    background: #fff;
+    border: 1px solid #eef2f5;
+    box-shadow: 0 3px 12px rgba(15, 34, 51, 0.06);
+    padding: 1.1rem;
+}
+
+.stat-tile-num {
+    font-size: 1.9rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--brand-blue-dark);
+}
+
+.stat-tile-label {
+    font-size: 0.85rem;
+    color: #5a6b76;
+    font-weight: 600;
+    margin-top: 0.2rem;
+}
+
+/* --- Pill action buttons (dashboard header row, patient-page header) --- */
+.btn-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 999px;
+    padding: 0.5rem 1.1rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.btn-pill-solid {
+    background: linear-gradient(135deg, var(--brand-teal) 0%, var(--brand-teal-dark) 100%);
+    color: #fff;
+}
+.btn-pill-solid:hover { opacity: 0.92; color: #fff; }
+
+.btn-pill-outline {
+    background: #fff;
+    border-color: #d7e6ef;
+    color: var(--brand-blue-dark);
+}
+.btn-pill-outline:hover { background: var(--card-blue-bg); color: var(--brand-blue-dark); }
+
+.btn-pill.sm { padding: 0.32rem 0.8rem; font-size: 0.8rem; }
+
+/* --- Severity / alert-level pill badges ---------------------------------- */
+.pill-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border-radius: 999px;
+    padding: 0.2rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.pill-badge.sev-severe { background: var(--card-red-bg); color: var(--brand-red-dark); }
+.pill-badge.sev-moderate { background: #fff3d6; color: #b8790a; }
+.pill-badge.sev-mild { background: var(--card-teal-bg); color: var(--brand-teal-dark); }
+.pill-badge.sev-unknown { background: #eef1f4; color: #5a6b76; }
+
+/* --- Empty-state placeholder (replaces a bare "no records yet" line) --- */
+.empty-state {
+    text-align: center;
+    color: #8b98a3;
+    padding: 1.25rem 0.5rem;
+    font-size: 0.9rem;
+}
+
+.empty-state .empty-icon {
+    font-size: 1.4rem;
+    display: block;
+    margin-bottom: 0.35rem;
+    opacity: 0.7;
+}
+
+/* --- Cleaner table header, reused on dashboard + patient-record tables - */
+.table-clean thead th {
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+    color: #8b98a3;
+    font-weight: 700;
+    border-bottom: 2px solid #eef2f5;
+}
+
+.table-clean td { vertical-align: middle; }
+
+@media (max-width: 767px) {
+    .stat-tile { padding: 0.9rem; }
+    .stat-tile-num { font-size: 1.6rem; }
+}
