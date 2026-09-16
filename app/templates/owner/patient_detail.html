@@ -280,7 +280,12 @@
             }
 
             var recognition = new SpeechRecognitionCtor();
-            recognition.lang = '{{ "ar-SA" if lang == "ar" else "en-US" }}';
+            // Always listen in English here, even when the app's interface
+            // language is Arabic: antibiotic names in this system are only
+            // ever stored in English/Latin script (e.g. "Amoxicillin"), so
+            // recognizing speech as Arabic script would never be able to
+            // match them, no matter how clearly the name was spoken.
+            recognition.lang = 'en-US';
             recognition.interimResults = false;
             recognition.maxAlternatives = 1;
             var listening = false;
