@@ -1,6 +1,6 @@
 from datetime import date
 
-from flask import Response, current_app, flash, redirect, render_template, request, url_for
+from flask import Response, current_app, flash, jsonify, redirect, render_template, request, url_for
 
 from app import models
 from app.owner import bp
@@ -18,6 +18,7 @@ from app.utils import (
     antibiotic_add_required, current_actor_label, current_owner, current_owner_permissions, current_owner_role,
     full_owner_required, owner_required, pharmacy_report_required, quality_report_required,
 )
+from app.voice_match import resolve_spoken_antibiotic_name
 
 
 @bp.route("/")
@@ -307,6 +308,20 @@ def add_patient_antibiotic(public_id):
     # Redirect (rather than rendering the result directly) so the browser's
     # Back button doesn't try to resubmit this POST -- see antibiotic_result().
     return redirect(url_for("owner.antibiotic_result", public_id=public_id, record_id=record["id"]))
+
+
+@bp.route("/antibiotics/resolve-voice-name", methods=["POST"])
+@antibiotic_add_required
+def resolve_antibiotic_voice_name():
+    """Called by the microphone button on the "Add antibiotic" form (plain
+    fetch(), not a page navigation): given whatever text the browser's own
+    speech recognition heard, try to match it to a known antibiotic name
+    (generic or brand) using app/voice_match.py -- no AI call, no cost.
+    Returns JSON; never touches a patient record itself, the actual save
+    still goes through the normal add_patient_antibiotic form submit."""
+    heard = request.form.get("heard", "").strip()
+    result = resolve_spoken_antibiotic_name(heard, models.list_antibiotics())
+    return jsonify(result)
 
 
 def _prescription_scan_note(item):
