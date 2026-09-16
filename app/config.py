@@ -36,3 +36,15 @@ class Config:
 
     LANGUAGES = ["en", "ar"]
     DEFAULT_LANGUAGE = "ar"
+
+    # Prescription photo scan (see app/prescription_scan.py, README.md
+    # section "Prescription photo scan"): reads a photo of a written
+    # prescription with an AI vision model and pulls out just the
+    # antibiotics. Feature is silently unavailable (clear error shown to
+    # staff) until ANTHROPIC_API_KEY is set -- nothing else in the app
+    # depends on it.
+    ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+    ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5")
+    PRESCRIPTION_PHOTO_MAX_BYTES = int(os.environ.get("PRESCRIPTION_PHOTO_MAX_MB", "10")) * 1024 * 1024
+    # A little headroom over the photo limit itself for multipart overhead.
+    MAX_CONTENT_LENGTH = PRESCRIPTION_PHOTO_MAX_BYTES + 2 * 1024 * 1024
