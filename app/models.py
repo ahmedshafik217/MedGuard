@@ -704,3 +704,78 @@ def list_audit_logs(limit=500):
     db = get_db()
     rows = db.execute("SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT ?", (limit,)).fetchall()
     return [dict(r) for r in rows]
+
+
+# ------------------------------------------------- culture & sensitivity results --
+
+def add_culture(patient_id, specimen_type, collection_date, organism, sensitivities,
+                 specimen_type_other=None, lab_name=None, notes=None, recorded_by="owner"):
+    """sensitivities: list of {"antibiotic_name": str, "result": "sensitive"|
+    "intermediate"|"resistant"}. Each is resolved against this hospital's
+    antibiotics reference list by name where possible (antibiotic_id), but
+    the typed name is always kept too -- same fallback as a custom/free-text
+    antibiotic_records entry -- so a drug not on the reference list still
+    displays correctly. Rows with a blank name or result are skipped rather
+    than saved half-filled."""
+    db = get_db()
+    cur = db.execute(
+        """INSERT INTO patient_cultures
+           (patient_id, specimen_type, specimen_type_other, collection_date, organism,
+            lab_name, notes, recorded_by, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (patient_id, specimen_type, specimen_type_other, collection_date, organism,
+         lab_name, notes, recorded_by, _now()),
+    )
+    culture_id = cur.lastrowid
+    for item in sensitivities:
+        name = (item.get("antibiotic_name") or "").strip()
+        result = (item.get("result") or "").strip().lower()
+        if not name or result not in ("sensitive", "intermediate", "resistant"):
+            continue
+        antibiotic = get_antibiotic_by_name(name)
+        db.execute(
+            """INSERT INTO culture_sensitivities (culture_id, antibiotic_id, antibiotic_name, result)
+               VALUES (?, ?, ?, ?)""",
+            (culture_id, antibiotic["id"] if antibiotic else None, name, result),
+        )
+    db.commit()
+    return culture_id
+
+
+def list_cultures(patient_id):
+    """Newest collection date first. Each culture dict has its tested
+    antibiotics attached as a 'sensitivities' list."""
+    db = get_db()
+    cultures = [dict(r) for r in db.execute(
+        "SELECT * FROM patient_cultures WHERE patient_id = ? ORDER BY collection_date DESC, id DESC",
+        (patient_id,),
+    ).fetchall()]
+    for c in cultures:
+        c["sensitivities"] = [dict(r) for r in db.execute(
+            "SELECT * FROM culture_sensitivities WHERE culture_id = ? ORDER BY id", (c["id"],)
+        ).fetchall()]
+    return cultures
+
+
+def find_resistant_culture(patient_id, antibiotic, antibiotic_name, cutoff_date_str):
+    """Most recent culture collected on/after cutoff_date_str where THIS
+    patient's own result for this antibiotic was 'resistant'. Matched by
+    antibiotic_id when the sensitivity row has one (stays correct even if
+    the drug is later renamed), OR by a case-insensitive name match --
+    needed for a sensitivity entered before the drug existed on the
+    reference table, or for a name not on it at all (antibiotic may then be
+    None here, same as elsewhere in this module for a custom-named entry).
+    Returns a dict with the culture's own fields plus the matching
+    sensitivity's result/antibiotic_name, or None if nothing matches."""
+    db = get_db()
+    antibiotic_id = antibiotic["id"] if antibiotic else None
+    row = db.execute(
+        """SELECT pc.*, cs.result AS cs_result, cs.antibiotic_name AS cs_antibiotic_name
+           FROM culture_sensitivities cs
+           JOIN patient_cultures pc ON pc.id = cs.culture_id
+           WHERE pc.patient_id = ? AND pc.collection_date >= ? AND lower(cs.result) = 'resistant'
+             AND (cs.antibiotic_id = ? OR lower(cs.antibiotic_name) = lower(?))
+           ORDER BY pc.collection_date DESC LIMIT 1""",
+        (patient_id, cutoff_date_str, antibiotic_id, antibiotic_name or ""),
+    ).fetchone()
+    return dict(row) if row else None
