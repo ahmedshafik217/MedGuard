@@ -125,6 +125,43 @@ CREATE TABLE IF NOT EXISTS antibiotic_records (
     created_at TEXT NOT NULL
 );
 
+-- Culture & sensitivity lab results: what organism was found in a patient
+-- specimen, and which antibiotics it tested Sensitive/Intermediate/
+-- Resistant to. Brand new tables -- no ALTER-based migration needed (see
+-- the login_attempts comment above for why).
+CREATE TABLE IF NOT EXISTS patient_cultures (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    specimen_type TEXT NOT NULL,
+    specimen_type_other TEXT,
+    collection_date TEXT NOT NULL,
+    organism TEXT NOT NULL,
+    lab_name TEXT,
+    notes TEXT,
+    recorded_by TEXT NOT NULL DEFAULT 'owner',
+    created_at TEXT NOT NULL
+);
+
+-- One row per antibiotic actually tested against a given culture.
+-- antibiotic_id is filled in when the typed name matches this hospital's
+-- reference list (kept NULL otherwise, same fallback as antibiotic_records.
+-- custom_name) -- antibiotic_name is always kept either way so the result
+-- always displays correctly even for a drug not on the reference list.
+CREATE TABLE IF NOT EXISTS culture_sensitivities (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    culture_id INTEGER NOT NULL REFERENCES patient_cultures(id) ON DELETE CASCADE,
+    antibiotic_id INTEGER REFERENCES antibiotics(id),
+    antibiotic_name TEXT NOT NULL,
+    result TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_patient_cultures_patient
+    ON patient_cultures(patient_id, collection_date);
+CREATE INDEX IF NOT EXISTS idx_culture_sensitivities_culture
+    ON culture_sensitivities(culture_id);
+CREATE INDEX IF NOT EXISTS idx_culture_sensitivities_antibiotic
+    ON culture_sensitivities(antibiotic_id);
+
 CREATE TABLE IF NOT EXISTS audit_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     actor_type TEXT NOT NULL,
