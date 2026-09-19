@@ -20,6 +20,13 @@ class Config:
     # How many days count as "recent" antibiotic exposure for the safety engine.
     RECENT_EXPOSURE_DAYS = int(os.environ.get("RECENT_EXPOSURE_DAYS", "30"))
 
+    # How many days a culture & sensitivity result stays "current" for the
+    # safety engine's resistant-organism warning (see app/engine/
+    # safety_check.py) -- susceptibility can genuinely change over time, so
+    # an old culture shouldn't block a drug forever, only a reasonably
+    # recent one.
+    CULTURE_RESISTANCE_LOOKBACK_DAYS = int(os.environ.get("CULTURE_RESISTANCE_LOOKBACK_DAYS", "30"))
+
     # Login rate limiting (see app/rate_limit.py): after this many FAILED
     # attempts against the same username/patient ID, or this many failed
     # attempts from the same source IP (looser, since a hospital front
