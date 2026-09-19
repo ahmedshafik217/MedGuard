@@ -117,15 +117,18 @@ STRINGS = {
     "my_conditions": {"en": "My Medical Conditions", "ar": "الحالات المرضية"},
     "antibiotic_history": {"en": "Antibiotic History", "ar": "سجل المضادات الحيوية"},
     "add_antibiotic": {"en": "Add a new antibiotic", "ar": "إضافة مضاد حيوي جديد"},
-    "scan_prescription_photo": {"en": "Scan a prescription photo", "ar": "مسح صورة روشتة"},
+    "scan_prescription_photo": {"en": "Scan a prescription or medication photo", "ar": "مسح صورة روشتة أو دواء"},
     "scan_prescription_hint": {
-        "en": "Take or upload a photo of a written prescription. The system reads it (even handwriting), "
-              "pulls out only the antibiotics, and adds them automatically.",
-        "ar": "التقط أو ارفع صورة للروشتة المكتوبة. يقوم النظام بقراءتها (حتى لو بخط اليد)، ويستخرج "
-              "المضادات الحيوية فقط، ويضيفها تلقائياً.",
+        "en": "Take or upload a photo of a written prescription, OR a photo of the medicine box/bottle/strip "
+              "itself. The system reads it (even handwriting), pulls out only the antibiotics, and adds them "
+              "automatically. A medicine package usually only shows the drug's name — dose/frequency/duration "
+              "aren't printed on it, so add those by hand afterward if they're blank.",
+        "ar": "التقط أو ارفع صورة للروشتة المكتوبة، أو صورة لعلبة/عبوة/شريط الدواء نفسه. يقوم النظام بقراءتها "
+              "(حتى لو بخط اليد)، ويستخرج المضادات الحيوية فقط، ويضيفها تلقائياً. عادةً ما تُظهر علبة الدواء "
+              "اسم الدواء فقط — الجرعة والتكرار والمدة غير مطبوعة عليها، لذا أضفها يدوياً بعد ذلك إذا كانت فارغة.",
     },
     "scan_and_add": {"en": "Scan & add automatically", "ar": "مسح وإضافة تلقائياً"},
-    "scanning_in_progress": {"en": "Reading the prescription… this can take a few seconds.", "ar": "جاري قراءة الروشتة... قد يستغرق ثوانٍ."},
+    "scanning_in_progress": {"en": "Reading the photo… this can take a few seconds.", "ar": "جاري قراءة الصورة... قد يستغرق ثوانٍ."},
     "or_add_manually": {"en": "Or add manually", "ar": "أو أضف يدوياً"},
     "scanned_from_photo": {"en": "From photo scan", "ar": "من مسح صورة"},
     "speak_antibiotic_name": {"en": "Speak the antibiotic name (in English)", "ar": "قل اسم المضاد الحيوي (بالإنجليزية)"},
@@ -382,6 +385,43 @@ STRINGS = {
     },
     "medication_name": {"en": "Medication name", "ar": "اسم الدواء"},
     "add_medication": {"en": "Add medication", "ar": "إضافة دواء"},
+
+    # --- Culture & sensitivity lab results -- what organism was found and
+    # which antibiotics it tested Sensitive/Intermediate/Resistant to.
+    # Feeds the "Resistant on recent culture" safety alert (app/engine/
+    # safety_check.py) when adding an antibiotic this patient's own culture
+    # shows is resistant, within CULTURE_RESISTANCE_LOOKBACK_DAYS.
+    "cultures_title": {"en": "Culture & Sensitivity Results", "ar": "نتائج المزرعة والحساسية"},
+    "cultures_hint": {
+        "en": "Lab results showing which bacteria were found and which antibiotics they're sensitive or "
+              "resistant to. A recent result showing resistance will warn you if you try to add that "
+              "antibiotic for this patient.",
+        "ar": "نتائج المعمل التي توضح البكتيريا المكتشفة والمضادات الحيوية الحساسة أو المقاومة لها. النتيجة "
+              "الحديثة التي تُظهر مقاومة ستنبهك عند محاولة إضافة هذا المضاد الحيوي لهذا المريض.",
+    },
+    "specimen_type": {"en": "Specimen type", "ar": "نوع العينة"},
+    "specimen_blood": {"en": "Blood", "ar": "دم"},
+    "specimen_urine": {"en": "Urine", "ar": "بول"},
+    "specimen_wound": {"en": "Wound", "ar": "جرح"},
+    "specimen_sputum": {"en": "Sputum", "ar": "بلغم"},
+    "specimen_csf": {"en": "CSF (spinal fluid)", "ar": "سائل نخاعي"},
+    "specimen_stool": {"en": "Stool", "ar": "براز"},
+    "specimen_other": {"en": "Other", "ar": "أخرى"},
+    "specimen_type_other_placeholder": {"en": "Specimen type (if \"Other\")", "ar": "نوع العينة (إذا اخترت \"أخرى\")"},
+    "collection_date": {"en": "Collection date", "ar": "تاريخ جمع العينة"},
+    "organism": {"en": "Organism", "ar": "الكائن الحي (البكتيريا)"},
+    "organism_placeholder": {"en": "e.g. E. coli, MRSA, Klebsiella pneumoniae", "ar": "مثال: إي كولاي، ستافيلوكوكس مقاوم، كليبسيلا"},
+    "lab_name_optional": {"en": "Lab name (optional)", "ar": "اسم المعمل (اختياري)"},
+    "sensitivities": {"en": "Antibiotics tested", "ar": "المضادات الحيوية التي تم اختبارها"},
+    "sensitivity_antibiotic_placeholder": {"en": "Antibiotic name", "ar": "اسم المضاد الحيوي"},
+    "sensitivity_result": {"en": "Result", "ar": "النتيجة"},
+    "sensitive": {"en": "Sensitive (S)", "ar": "حساس (S)"},
+    "intermediate": {"en": "Intermediate (I)", "ar": "متوسط (I)"},
+    "resistant": {"en": "Resistant (R)", "ar": "مقاوم (R)"},
+    "add_another_antibiotic": {"en": "+ Add another antibiotic", "ar": "+ إضافة مضاد حيوي آخر"},
+    "remove": {"en": "Remove", "ar": "إزالة"},
+    "add_culture": {"en": "Add culture result", "ar": "إضافة نتيجة مزرعة"},
+    "no_cultures_yet": {"en": "No culture results yet.", "ar": "لا توجد نتائج مزرعة بعد."},
 
     "drug_interactions_reference": {"en": "Drug Interactions Reference", "ar": "قاعدة بيانات التداخلات الدوائية"},
     "drug_interactions_hint": {
