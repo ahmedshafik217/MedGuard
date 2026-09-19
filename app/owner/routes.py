@@ -375,8 +375,8 @@ def scan_patient_antibiotic_photo(public_id):
     try:
         result = scan_prescription_image(
             image_bytes,
-            api_key=current_app.config["ANTHROPIC_API_KEY"],
-            model=current_app.config["ANTHROPIC_MODEL"],
+            api_key=current_app.config["GEMINI_API_KEY"],
+            model=current_app.config["GEMINI_MODEL"],
             known_antibiotics=known_antibiotics,
         )
     except PrescriptionScanNotConfigured as e:
