@@ -344,4 +344,138 @@
         })();
     </script>
 </div>
+
+<div class="section-card mt-3">
+    <div class="section-card-head">
+        <span class="icon-badge theme-navy sm">🧫</span>
+        <h5>{{ t('cultures_title') }}</h5>
+    </div>
+    <p class="small text-muted">{{ t('cultures_hint') }}</p>
+    {% if patient.cultures %}
+    <div class="table-responsive">
+    <table class="table table-sm table-clean align-middle mb-0">
+        <thead><tr><th>{{ t('collection_date') }}</th><th>{{ t('specimen_type') }}</th><th>{{ t('organism') }}</th><th>{{ t('sensitivities') }}</th></tr></thead>
+        <tbody>
+        {% for c in patient.cultures %}
+            <tr>
+                <td>{{ c.collection_date }}</td>
+                <td>
+                    {{ t('specimen_' ~ c.specimen_type) if c.specimen_type in ['blood','urine','wound','sputum','csf','stool','other'] else c.specimen_type }}
+                    {% if c.specimen_type == 'other' and c.specimen_type_other %}({{ c.specimen_type_other }}){% endif %}
+                </td>
+                <td>
+                    {{ c.organism }}
+                    {% if c.lab_name %}<div class="small text-muted">{{ c.lab_name }}</div>{% endif %}
+                    {% if c.notes %}<div class="small text-muted">{{ c.notes }}</div>{% endif %}
+                </td>
+                <td>
+                    {% for s in c.sensitivities %}
+                    <span class="pill-badge {{ 'sev-severe' if s.result == 'resistant' else ('sev-moderate' if s.result == 'intermediate' else 'sev-mild') }}">{{ s.antibiotic_name }}: {{ t(s.result) if s.result in ['sensitive','intermediate','resistant'] else s.result }}</span>
+                    {% else %}
+                    —
+                    {% endfor %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><span class="empty-icon">🧫</span>{{ t('no_cultures_yet') }}</div>
+    {% endif %}
+
+    {% if owner_role == 'owner' %}
+    <hr class="my-3">
+    <div class="section-card-head">
+        <span class="icon-badge theme-blue sm">➕</span>
+        <h6 class="mb-0">{{ t('add_culture') }}</h6>
+    </div>
+    <form method="post" action="{{ url_for('owner.add_patient_culture', public_id=patient.public_id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <label class="form-label">{{ t('specimen_type') }}</label>
+                <select name="specimen_type" class="form-select">
+                    {% for s in ['blood', 'urine', 'wound', 'sputum', 'csf', 'stool', 'other'] %}
+                    <option value="{{ s }}">{{ t('specimen_' ~ s) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">&nbsp;</label>
+                <input type="text" name="specimen_type_other" class="form-control" placeholder="{{ t('specimen_type_other_placeholder') }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">{{ t('collection_date') }}</label>
+                <input type="date" name="collection_date" class="form-control" required>
+            </div>
+        </div>
+        <div class="row g-2 mt-1">
+            <div class="col-md-6">
+                <label class="form-label">{{ t('organism') }}</label>
+                <input type="text" name="organism" class="form-control" placeholder="{{ t('organism_placeholder') }}" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">{{ t('lab_name_optional') }}</label>
+                <input type="text" name="lab_name" class="form-control">
+            </div>
+        </div>
+
+        <div class="mt-3 mb-1"><label class="form-label mb-0">{{ t('sensitivities') }}</label></div>
+        <datalist id="culture-antibiotic-list">
+            {% for abx_name in available_antibiotics %}
+            <option value="{{ abx_name }}">
+            {% endfor %}
+        </datalist>
+        <div id="culture-sensitivity-rows">
+            <div class="row g-2 mb-2 culture-sensitivity-row">
+                <div class="col-md-6">
+                    <input type="text" name="sensitivity_antibiotic_name" class="form-control" list="culture-antibiotic-list" placeholder="{{ t('sensitivity_antibiotic_placeholder') }}">
+                </div>
+                <div class="col-md-4">
+                    <select name="sensitivity_result" class="form-select">
+                        <option value="">{{ t('choose_option') }}</option>
+                        <option value="sensitive">{{ t('sensitive') }}</option>
+                        <option value="intermediate">{{ t('intermediate') }}</option>
+                        <option value="resistant">{{ t('resistant') }}</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn-pill btn-pill-outline sm w-100 justify-content-center culture-remove-row">✕ {{ t('remove') }}</button>
+                </div>
+            </div>
+        </div>
+        <button type="button" class="btn-pill btn-pill-outline sm mb-3" id="culture-add-row-btn">{{ t('add_another_antibiotic') }}</button>
+
+        <input type="text" name="notes" class="form-control mb-2" placeholder="{{ t('notes_optional') }}">
+        <button class="btn-pill btn-pill-solid sm">➕ {{ t('add_culture') }}</button>
+    </form>
+    <script>
+        (function () {
+            var rowsContainer = document.getElementById('culture-sensitivity-rows');
+            var addBtn = document.getElementById('culture-add-row-btn');
+            if (!rowsContainer || !addBtn) return;
+
+            addBtn.addEventListener('click', function () {
+                var firstRow = rowsContainer.querySelector('.culture-sensitivity-row');
+                var clone = firstRow.cloneNode(true);
+                clone.querySelectorAll('input').forEach(function (el) { el.value = ''; });
+                clone.querySelectorAll('select').forEach(function (el) { el.selectedIndex = 0; });
+                rowsContainer.appendChild(clone);
+            });
+
+            rowsContainer.addEventListener('click', function (e) {
+                var removeBtn = e.target.closest('.culture-remove-row');
+                if (!removeBtn) return;
+                var rows = rowsContainer.querySelectorAll('.culture-sensitivity-row');
+                if (rows.length > 1) {
+                    removeBtn.closest('.culture-sensitivity-row').remove();
+                }
+            });
+        })();
+    </script>
+    {% else %}
+    <p class="small text-muted mb-0">{{ t('staff_view_only_note') }}</p>
+    {% endif %}
+</div>
 {% endblock %}
