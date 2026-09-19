@@ -31,7 +31,8 @@ def _class_matches(a, b):
 
 def check_antibiotic(patient, antibiotic, allergies, conditions, recent_record=None,
                       recent_exposure_days=30, recent_class_record=None,
-                      medications=None, interactions=None):
+                      medications=None, interactions=None,
+                      resistant_culture=None, culture_resistance_days=30):
     """
     patient: dict (Patient row) -- needs 'pregnancy_status'
     antibiotic: dict (Antibiotic row) or None if a free-text/custom name was
@@ -49,6 +50,13 @@ def check_antibiotic(patient, antibiotic, allergies, conditions, recent_record=N
     interactions: list[dict] or None -- DrugInteraction reference rows
                     already narrowed down (by app.models.list_interactions_
                     for_antibiotic) to ones relevant to THIS antibiotic
+    resistant_culture: dict or None -- this patient's own most recent
+                    culture & sensitivity result (app.models.
+                    find_resistant_culture), already narrowed down by the
+                    caller to one within culture_resistance_days that shows
+                    THIS antibiotic as resistant, if any
+    culture_resistance_days: int -- the lookback window used above, only
+                    used here for the alert's own message text
     Returns: list[dict] alerts (empty means the caller should show "no issues").
     """
     alerts = []
@@ -101,6 +109,30 @@ def check_antibiotic(patient, antibiotic, allergies, conditions, recent_record=N
             "message": (
                 f"{antibiotic['generic_name']} is recorded as contraindicated (or to be avoided) "
                 f"during pregnancy. {antibiotic.get('pregnancy_notes') or ''}".strip()
+            ),
+        })
+
+    # 2b. Culture & sensitivity: this patient's OWN organism tested
+    # RESISTANT to this exact antibiotic, on a culture collected recently
+    # enough to still be trusted (culture_resistance_days -- susceptibility
+    # can change over time, so an old result doesn't block a drug forever).
+    # Danger level: prescribing a drug an organism is already known
+    # resistant to is a real clinical error, not just a caution. Checked
+    # even when `antibiotic` is None (a custom/free-text name not on the
+    # reference list) -- a resistant match can still be found by name (see
+    # app.models.find_resistant_culture), and staying silent just because
+    # the drug isn't in the reference table would defeat the whole point.
+    if resistant_culture:
+        organism = resistant_culture.get("organism") or "the organism"
+        drug_label = antibiotic["generic_name"] if antibiotic else resistant_culture.get("cs_antibiotic_name")
+        alerts.append({
+            "level": "danger",
+            "code": "culture_resistant",
+            "title": "Resistant on recent culture",
+            "message": (
+                f"A culture collected {resistant_culture['collection_date']} shows {organism} is "
+                f"RESISTANT to {drug_label} in this patient, within the last "
+                f"{culture_resistance_days} days. Do not proceed without physician/pharmacist review."
             ),
         })
 
