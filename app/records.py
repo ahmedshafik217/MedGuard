@@ -36,6 +36,44 @@ def add_medication_from_form(patient, form):
     )
 
 
+def add_culture_from_form(patient, form, recorded_by="owner"):
+    specimen_type = form.get("specimen_type", "").strip() or "other"
+    specimen_type_other = form.get("specimen_type_other", "").strip() or None
+
+    collection_raw = form.get("collection_date", "").strip()
+    if collection_raw:
+        try:
+            collection_date = date.fromisoformat(collection_raw).isoformat()
+        except ValueError:
+            collection_date = date.today().isoformat()
+    else:
+        collection_date = date.today().isoformat()
+
+    # Repeatable antibiotic+result rows -- see the "Add another antibiotic"
+    # button on the culture form -- arrive as two same-length parallel
+    # lists (sensitivity_antibiotic_name[i] goes with sensitivity_result[i]).
+    # A row left blank on either side is skipped rather than saved
+    # half-filled (see models.add_culture).
+    names = form.getlist("sensitivity_antibiotic_name")
+    results = form.getlist("sensitivity_result")
+    sensitivities = [
+        {"antibiotic_name": n, "result": r}
+        for n, r in zip(names, results)
+    ]
+
+    return models.add_culture(
+        patient_id=patient["id"],
+        specimen_type=specimen_type,
+        specimen_type_other=specimen_type_other,
+        collection_date=collection_date,
+        organism=form.get("organism", "").strip(),
+        sensitivities=sensitivities,
+        lab_name=form.get("lab_name", "").strip() or None,
+        notes=form.get("notes", "").strip() or None,
+        recorded_by=recorded_by,
+    )
+
+
 def add_antibiotic_from_form(patient, form, added_by, source="manual", source_photo=None):
     name = form.get("antibiotic_name", "").strip()
     antibiotic = models.get_antibiotic_by_name(name) if name else None
@@ -61,6 +99,12 @@ def add_antibiotic_from_form(patient, form, added_by, source="manual", source_ph
                 exclude_antibiotic_id=antibiotic["id"],
             )
 
+    culture_days = current_app.config.get("CULTURE_RESISTANCE_LOOKBACK_DAYS", 30)
+    resistant_culture = None
+    if antibiotic or name:
+        culture_cutoff = recent_cutoff_date(culture_days)
+        resistant_culture = models.find_resistant_culture(patient["id"], antibiotic, name, culture_cutoff)
+
     allergies = models.list_allergies(patient["id"])
     conditions = models.list_conditions(patient["id"])
     medications = models.list_medications(patient["id"])
@@ -68,7 +112,8 @@ def add_antibiotic_from_form(patient, form, added_by, source="manual", source_ph
     alerts = check_antibiotic(patient, antibiotic, allergies, conditions,
                                recent_record=recent_record, recent_exposure_days=recent_days,
                                recent_class_record=recent_class_record,
-                               medications=medications, interactions=interactions)
+                               medications=medications, interactions=interactions,
+                               resistant_culture=resistant_culture, culture_resistance_days=culture_days)
 
     record = models.add_antibiotic_record(
         patient_id=patient["id"],
