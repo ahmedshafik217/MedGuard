@@ -11,7 +11,8 @@ from app.prescription_scan import (
     PrescriptionScanError, PrescriptionScanNotConfigured, scan_prescription_image,
 )
 from app.records import (
-    add_allergy_from_form, add_antibiotic_from_form, add_condition_from_form, add_medication_from_form,
+    add_allergy_from_form, add_antibiotic_from_form, add_condition_from_form, add_culture_from_form,
+    add_medication_from_form,
 )
 from app.roles import CREATABLE_ROLES, DEFAULT_SAFE_ROLE
 from app.utils import (
@@ -133,6 +134,7 @@ def patient_detail(public_id):
     patient["allergies"] = models.list_allergies(patient["id"])
     patient["conditions"] = models.list_conditions(patient["id"])
     patient["medications"] = models.list_medications(patient["id"])
+    patient["cultures"] = models.list_cultures(patient["id"])
     patient["antibiotic_records"] = models.list_antibiotic_records(patient["id"])
     models.log_action("owner", current_actor_label(), "view_patient", target=public_id)
 
@@ -241,6 +243,18 @@ def add_patient_medication(public_id):
     return redirect(url_for("owner.patient_detail", public_id=public_id))
 
 
+@bp.route("/patients/<public_id>/cultures/add", methods=["POST"])
+@full_owner_required
+def add_patient_culture(public_id):
+    patient = models.get_patient_by_public_id(public_id)
+    if not patient:
+        return ("Patient not found.", 404)
+    add_culture_from_form(patient, request.form, recorded_by=current_owner_role() or "owner")
+    models.log_action("owner", current_actor_label(), "add_culture", target=public_id)
+    flash("Culture result added.", "success")
+    return redirect(url_for("owner.patient_detail", public_id=public_id))
+
+
 @bp.route("/patients/<public_id>/pregnancy-status", methods=["POST"])
 @full_owner_required
 def update_patient_pregnancy_status(public_id):
@@ -345,7 +359,7 @@ def scan_patient_antibiotic_photo(public_id):
 
     photo = request.files.get("prescription_photo")
     if not photo or not photo.filename:
-        flash("Choose or take a photo of the prescription first.", "error")
+        flash("Choose or take a photo of the prescription or medication package first.", "error")
         return redirect(url_for("owner.patient_detail", public_id=public_id))
 
     image_bytes = photo.read()
@@ -371,7 +385,7 @@ def scan_patient_antibiotic_photo(public_id):
     except PrescriptionScanError as e:
         models.log_action("owner", current_actor_label(), "prescription_scan_failed",
                           target=public_id, details=str(e))
-        flash(f"Couldn't read that prescription photo: {e}", "error")
+        flash(f"Couldn't read that photo: {e}", "error")
         return redirect(url_for("owner.patient_detail", public_id=public_id))
 
     perms = current_owner_permissions()
@@ -414,7 +428,7 @@ def scan_patient_antibiotic_photo(public_id):
     ignored = [n for n in (result.get("other_medications_ignored") or []) if n and n.strip()]
 
     if added_names:
-        msg = f"Added from the prescription photo: {', '.join(added_names)}."
+        msg = f"Added from the photo: {', '.join(added_names)}."
         if ignored:
             msg += f" Ignored (not antibiotics): {', '.join(ignored)}."
         if result.get("read_issues"):
