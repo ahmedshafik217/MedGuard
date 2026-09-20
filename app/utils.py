@@ -87,6 +87,7 @@ def current_owner_permissions():
         return {
             "browse_all_patients": False, "view_patient": False, "add_antibiotic": False,
             "add_restricted_antibiotic": False, "quality_report": False, "pharmacy_report": False,
+            "culture_analysis": False,
         }
     return permissions_for(owner.get("role", "owner"), is_owner=models.is_full_owner(owner))
 
@@ -111,6 +112,20 @@ def full_owner_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
         if not models.is_full_owner(current_owner()):
+            abort(403)
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def culture_analysis_required(view):
+    """Only the full owner/controller, Infection Control, and Consultant
+    roles can reach the hospital-wide culture analysis page (see
+    app/roles.py's culture_analysis permission) -- deliberately narrower
+    than browse_all_patients: Head Nurse, Quality Control Manager and
+    Pharmacy Manager can browse the patient list but not this page."""
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not current_owner() or not current_owner_permissions()["culture_analysis"]:
             abort(403)
         return view(*args, **kwargs)
     return wrapped

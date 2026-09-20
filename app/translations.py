@@ -432,6 +432,20 @@ STRINGS = {
               "نوع العينة والكائن الحي ونتيجة كل مضاد حيوي (حساس/متوسط/مقاوم) -- ويضيفها. يرجى "
               "التحقق من النتيجة بعد ذلك، خصوصاً أي نتيجة تمت الإشارة إلى عدم وضوحها.",
     },
+    "culture_analysis": {"en": "Culture analysis", "ar": "تحليل المزارع"},
+    "culture_analysis_hint": {
+        "en": "Every culture/sensitivity result recorded across all patients, newest first, with its "
+              "collection date and patient. Filter by organism or a date range below.",
+        "ar": "كل نتائج المزارع والحساسية المسجلة لجميع المرضى، الأحدث أولاً، مع تاريخ جمع العينة "
+              "والمريض. يمكنك التصفية حسب الكائن الحي أو نطاق تاريخ أدناه.",
+    },
+    "filter_organism": {"en": "Organism contains", "ar": "الكائن الحي يحتوي على"},
+    "filter_from_date": {"en": "From date", "ar": "من تاريخ"},
+    "filter_to_date": {"en": "To date", "ar": "إلى تاريخ"},
+    "apply_filters": {"en": "Filter", "ar": "تصفية"},
+    "clear_filters": {"en": "Clear", "ar": "مسح"},
+    "patient": {"en": "Patient", "ar": "المريض"},
+    "no_cultures_found": {"en": "No culture results match these filters.", "ar": "لا توجد نتائج مزرعة مطابقة لهذه الفلاتر."},
 
     "drug_interactions_reference": {"en": "Drug Interactions Reference", "ar": "قاعدة بيانات التداخلات الدوائية"},
     "drug_interactions_hint": {

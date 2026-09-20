@@ -38,9 +38,13 @@ TIER_PERMISSIONS = {
         "add_restricted_antibiotic": False,
         "quality_report": False,
         "pharmacy_report": False,
+        "culture_analysis": False,
     },
-    # Senior Specialists / Consultants: same lookup style as above, but
-    # may add ANY antibiotic, including ones marked Restricted.
+    # Senior Specialists: same lookup style as above, but may add ANY
+    # antibiotic, including ones marked Restricted. (Consultants look
+    # identical day-to-day but get the culture analysis page too -- see
+    # "consultant_view" below -- so they're kept on their own tier rather
+    # than sharing this one.)
     "prescriber_full": {
         "browse_all_patients": False,
         "view_patient": True,
@@ -48,6 +52,20 @@ TIER_PERMISSIONS = {
         "add_restricted_antibiotic": True,
         "quality_report": False,
         "pharmacy_report": False,
+        "culture_analysis": False,
+    },
+    # Consultants: identical to prescriber_full above, plus access to the
+    # hospital-wide culture analysis page (owner.culture_analysis) -- one
+    # of only three roles (with the full owner and Infection Control) that
+    # gets it.
+    "consultant_view": {
+        "browse_all_patients": False,
+        "view_patient": True,
+        "add_antibiotic": True,
+        "add_restricted_antibiotic": True,
+        "quality_report": False,
+        "pharmacy_report": False,
+        "culture_analysis": True,
     },
     # Nurse: same exact-name/ID lookup, but view-only -- cannot add or
     # remove anything at all.
@@ -58,10 +76,14 @@ TIER_PERMISSIONS = {
         "add_restricted_antibiotic": False,
         "quality_report": False,
         "pharmacy_report": False,
+        "culture_analysis": False,
     },
-    # Infection Control Specialist / Head Nurse: can browse the FULL
-    # hospital-wide patient list (no need to already know a name/ID), but
-    # view-only -- cannot add or remove anything.
+    # Head Nurse: can browse the FULL hospital-wide patient list (no need
+    # to already know a name/ID), but view-only -- cannot add or remove
+    # anything, and does NOT get the culture analysis page. (Infection
+    # Control Specialist looks identical day-to-day but does get that page
+    # -- see "infection_control_view" below -- so they're kept on their
+    # own tier rather than sharing this one.)
     "hospital_view_all": {
         "browse_all_patients": True,
         "view_patient": True,
@@ -69,11 +91,24 @@ TIER_PERMISSIONS = {
         "add_restricted_antibiotic": False,
         "quality_report": False,
         "pharmacy_report": False,
+        "culture_analysis": False,
+    },
+    # Infection Control Specialist: identical to hospital_view_all above,
+    # plus access to the hospital-wide culture analysis page -- one of
+    # only three roles (with the full owner and Consultants) that gets it.
+    "infection_control_view": {
+        "browse_all_patients": True,
+        "view_patient": True,
+        "add_antibiotic": False,
+        "add_restricted_antibiotic": False,
+        "quality_report": False,
+        "pharmacy_report": False,
+        "culture_analysis": True,
     },
     # Quality Control Manager: same hospital-wide browse/view access as
-    # above, PLUS the analysis PDF report (repeated antibiotics,
-    # allergies, contraindications, interactions, etc. across all
-    # patients).
+    # hospital_view_all, PLUS the analysis PDF report (repeated
+    # antibiotics, allergies, contraindications, interactions, etc. across
+    # all patients). Does NOT get the culture analysis page.
     "quality_reports": {
         "browse_all_patients": True,
         "view_patient": True,
@@ -81,9 +116,11 @@ TIER_PERMISSIONS = {
         "add_restricted_antibiotic": False,
         "quality_report": True,
         "pharmacy_report": False,
+        "culture_analysis": False,
     },
     # Pharmacy Manager: same hospital-wide browse/view access, PLUS the
-    # monthly antibiotic-usage-count PDF report.
+    # monthly antibiotic-usage-count PDF report. Does NOT get the culture
+    # analysis page.
     "pharmacy_reports": {
         "browse_all_patients": True,
         "view_patient": True,
@@ -91,6 +128,7 @@ TIER_PERMISSIONS = {
         "add_restricted_antibiotic": False,
         "quality_report": False,
         "pharmacy_report": True,
+        "culture_analysis": False,
     },
 }
 
@@ -102,9 +140,9 @@ ROLE_TIER = {
     "specialist": "prescriber_basic",
     "pharmacist": "prescriber_basic",
     "senior_specialist": "prescriber_full",
-    "consultant": "prescriber_full",
+    "consultant": "consultant_view",
     "nurse": "read_only_search",
-    "infection_control": "hospital_view_all",
+    "infection_control": "infection_control_view",
     "head_nurse": "hospital_view_all",
     "quality_control_manager": "quality_reports",
     "pharmacy_manager": "pharmacy_reports",
@@ -166,5 +204,6 @@ def permissions_for(role, is_owner=False):
             "add_restricted_antibiotic": True,
             "quality_report": True,
             "pharmacy_report": True,
+            "culture_analysis": True,
         }
     return dict(TIER_PERMISSIONS[role_tier(role)])

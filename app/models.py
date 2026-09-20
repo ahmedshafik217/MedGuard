@@ -757,6 +757,46 @@ def list_cultures(patient_id):
     return cultures
 
 
+def list_all_cultures(organism=None, date_from=None, date_to=None, limit=500):
+    """Every culture result across EVERY patient, newest collection date
+    first, each with its patient's identifying info and tested antibiotics
+    attached -- backs the hospital-wide culture analysis page
+    (owner.culture_analysis). For one patient's own history, use
+    list_cultures(patient_id) above instead. organism is an optional
+    case-insensitive substring filter; date_from/date_to are optional
+    inclusive ISO-date (YYYY-MM-DD) bounds on collection_date. limit caps
+    how many culture rows come back (each with its own sensitivities
+    attached below), same safety-valve purpose as list_audit_logs' limit."""
+    db = get_db()
+    where = []
+    params = []
+    if organism:
+        where.append("pc.organism LIKE ?")
+        params.append(f"%{organism}%")
+    if date_from:
+        where.append("pc.collection_date >= ?")
+        params.append(date_from)
+    if date_to:
+        where.append("pc.collection_date <= ?")
+        params.append(date_to)
+    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+    params.append(limit)
+    cultures = [dict(r) for r in db.execute(
+        f"""SELECT pc.*, p.public_id AS patient_public_id, p.full_name AS patient_full_name
+            FROM patient_cultures pc
+            JOIN patients p ON p.id = pc.patient_id
+            {where_sql}
+            ORDER BY pc.collection_date DESC, pc.id DESC
+            LIMIT ?""",
+        params,
+    ).fetchall()]
+    for c in cultures:
+        c["sensitivities"] = [dict(r) for r in db.execute(
+            "SELECT * FROM culture_sensitivities WHERE culture_id = ? ORDER BY id", (c["id"],)
+        ).fetchall()]
+    return cultures
+
+
 def find_resistant_culture(patient_id, antibiotic, antibiotic_name, cutoff_date_str):
     """Most recent culture collected on/after cutoff_date_str where THIS
     patient's own result for this antibiotic was 'resistant'. Matched by
