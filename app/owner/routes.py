@@ -16,8 +16,9 @@ from app.records import (
 )
 from app.roles import CREATABLE_ROLES, DEFAULT_SAFE_ROLE
 from app.utils import (
-    antibiotic_add_required, current_actor_label, current_owner, current_owner_permissions, current_owner_role,
-    full_owner_required, owner_required, pharmacy_report_required, quality_report_required,
+    antibiotic_add_required, culture_analysis_required, current_actor_label, current_owner,
+    current_owner_permissions, current_owner_role, full_owner_required, owner_required, pharmacy_report_required,
+    quality_report_required,
 )
 from app.voice_match import resolve_spoken_antibiotic_name
 from app.voice_resolve import resolve_antibiotic_from_audio
@@ -710,6 +711,29 @@ def delete_drug_interaction(item_id):
 def audit_log():
     entries = models.list_audit_logs()
     return render_template("owner/audit_log.html", entries=entries)
+
+
+@bp.route("/cultures")
+@culture_analysis_required
+def culture_analysis():
+    """Hospital-wide, read-only view of every culture/sensitivity result
+    ever recorded (manually or via the photo scanner), across every
+    patient, each with its collection date -- for infection-control-style
+    review rather than one patient's own chart. See
+    models.list_all_cultures for the plain filters (organism text search,
+    a date range) this supports."""
+    organism = request.args.get("organism", "").strip()
+    date_from = request.args.get("date_from", "").strip()
+    date_to = request.args.get("date_to", "").strip()
+    cultures = models.list_all_cultures(
+        organism=organism or None,
+        date_from=date_from or None,
+        date_to=date_to or None,
+    )
+    return render_template(
+        "owner/culture_analysis.html",
+        cultures=cultures, organism=organism, date_from=date_from, date_to=date_to,
+    )
 
 
 @bp.route("/settings", methods=["GET", "POST"])
