@@ -132,7 +132,7 @@ STRINGS = {
     "or_add_manually": {"en": "Or add manually", "ar": "أو أضف يدوياً"},
     "scanned_from_photo": {"en": "From photo scan", "ar": "من مسح صورة"},
     "speak_antibiotic_name": {"en": "Speak the antibiotic name (in English)", "ar": "قل اسم المضاد الحيوي (بالإنجليزية)"},
-    "voice_listening": {"en": "Listening… say the antibiotic name in English now", "ar": "جاري الاستماع... قل اسم المضاد الحيوي بالإنجليزية الآن"},
+    "voice_listening": {"en": "Recording… say the antibiotic name, then tap 🎤 again to stop", "ar": "جاري التسجيل... قل اسم المضاد الحيوي ثم اضغط 🎤 مرة أخرى للإيقاف"},
     "resolving_antibiotic_name": {"en": "Matching…", "ar": "جاري المطابقة..."},
     "voice_matched": {"en": "Matched", "ar": "تمت المطابقة"},
     "voice_not_matched": {"en": "Heard (not matched to a known name — please check)", "ar": "تم سماع (لم تتم المطابقة مع اسم معروف - يرجى التحقق)"},
