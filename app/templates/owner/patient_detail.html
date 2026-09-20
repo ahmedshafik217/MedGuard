@@ -420,6 +420,31 @@
     {% if owner_role == 'owner' %}
     <hr class="my-3">
     <div class="section-card-head">
+        <span class="icon-badge theme-teal sm">📷</span>
+        <h6 class="mb-0">{{ t('scan_culture_photo') }}</h6>
+    </div>
+    <p class="small text-muted">{{ t('scan_culture_hint') }}</p>
+    <form method="post" action="{{ url_for('owner.scan_patient_culture_photo', public_id=patient.public_id) }}"
+          enctype="multipart/form-data" id="culture-scan-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="file" name="culture_photo" accept="image/*" capture="environment" class="form-control mb-2" required>
+        <button type="submit" class="btn-pill btn-pill-solid w-100 justify-content-center" id="culture-scan-submit">📷 {{ t('scan_and_add') }}</button>
+        <div id="culture-scan-status" class="small text-muted mt-2" style="display:none">⏳ {{ t('scanning_in_progress') }}</div>
+    </form>
+    <script>
+        (function () {
+            var form = document.getElementById('culture-scan-form');
+            if (!form) return;
+            form.addEventListener('submit', function () {
+                document.getElementById('culture-scan-submit').setAttribute('disabled', 'disabled');
+                document.getElementById('culture-scan-status').style.display = '';
+            });
+        })();
+    </script>
+
+    <hr class="my-3">
+    <div class="small text-muted mb-2">{{ t('or_add_manually') }}</div>
+    <div class="section-card-head">
         <span class="icon-badge theme-blue sm">➕</span>
         <h6 class="mb-0">{{ t('add_culture') }}</h6>
     </div>
