@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block body_class %}page-immersive{% endblock %}
+{% block content %}
+<div class="page-hero-band my-3">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <span class="icon-badge lg theme-hero">🪪</span>
+            <div>
+                <h2 class="mb-0">{{ t('patient_dashboard') }}</h2>
+                <span class="patient-id-badge">{{ patient.public_id }}</span>
+            </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('patient.my_qr') }}" class="btn-pill btn-pill-outline">🔳 {{ t('view_qr') }}</a>
+            <a href="{{ url_for('patient.export_pdf') }}" class="btn-pill btn-pill-solid">📄 {{ t('export_pdf_en') }}</a>
+            <a href="{{ url_for('patient.export_pdf_ar') }}" class="btn-pill btn-pill-solid">📄 {{ t('export_pdf_ar') }}</a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-3">
+        <div class="section-card tint-blue">
+            <div class="section-card-head">
+                <span class="icon-badge theme-blue sm">👤</span>
+                <h5>{{ t('my_profile') }}</h5>
+            </div>
+            <p class="mb-1">{{ t('full_name_optional') }}: {{ patient.full_name or '—' }}</p>
+            <p class="mb-1">{{ t('gender') }}: {{ t(patient.gender) if patient.gender in ['male','female'] else patient.gender }}</p>
+            <p class="mb-1">
+                {{ t('date_of_birth') }}: {{ patient.date_of_birth or '—' }}
+                {% if patient.age_years is not none %} ({{ patient.age_years }} {{ t('years_old') }}){% endif %}
+            </p>
+            <hr>
+            <form method="post" action="{{ url_for('patient.update_phone') }}" class="mb-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="form-label">{{ t('phone_number') }}</label>
+                <input type="tel" name="phone_number" class="form-control mb-2" placeholder="05XXXXXXXX" value="{{ patient.phone_number or '' }}">
+                <div class="form-text mb-2">{{ t('phone_number_hint') }}</div>
+                <button class="btn-pill btn-pill-solid sm">{{ t('save') }}</button>
+            </form>
+            <hr>
+            <form method="post" action="{{ url_for('patient.update_pregnancy_status') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="form-label">{{ t('pregnancy_status') }}</label>
+                <select name="pregnancy_status" id="patient-pregnancy-select" class="form-select mb-2">
+                    <option value="pregnant" {{ 'selected' if patient.pregnancy_status=='pregnant' }}>{{ t('pregnant') }}</option>
+                    <option value="not_pregnant" {{ 'selected' if patient.pregnancy_status=='not_pregnant' }}>{{ t('not_pregnant') }}</option>
+                    <option value="not_applicable" {{ 'selected' if patient.pregnancy_status=='not_applicable' }}>{{ t('not_applicable') }}</option>
+                    <option value="unknown" {{ 'selected' if patient.pregnancy_status=='unknown' }}>{{ t('unknown') }}</option>
+                </select>
+                <div id="patient-pregnancy-dates">
+                    <label class="form-label">{{ t('pregnancy_start_date') }}</label>
+                    <input type="date" name="pregnancy_start_date" class="form-control mb-1" value="{{ patient.pregnancy_start_date or '' }}">
+                    <div class="form-text mb-2">{{ t('pregnancy_start_date_hint') }}</div>
+                    <label class="form-label">{{ t('expected_delivery_date') }}</label>
+                    <input type="date" name="expected_delivery_date" class="form-control mb-1" value="{{ patient.expected_delivery_date or '' }}">
+                    <div class="form-text mb-2">{{ t('expected_delivery_date_hint') }}</div>
+                    {% if patient.pregnancy_weeks is not none %}
+                    <div class="small text-muted mb-2">{{ patient.pregnancy_weeks }} {{ t('weeks_pregnant') }}</div>
+                    {% endif %}
+                </div>
+                <button class="btn-pill btn-pill-solid sm">{{ t('save') }}</button>
+            </form>
+            <script>
+                (function () {
+                    var sel = document.getElementById('patient-pregnancy-select');
+                    var dates = document.getElementById('patient-pregnancy-dates');
+                    function toggle() { dates.style.display = sel.value === 'pregnant' ? '' : 'none'; }
+                    sel.addEventListener('change', toggle);
+                    toggle();
+                })();
+            </script>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="section-card tint-red">
+            <div class="section-card-head">
+                <span class="icon-badge theme-red sm">🤧</span>
+                <h5>{{ t('my_allergies') }}</h5>
+            </div>
+            <ul class="list-group mb-3">
+                {% for a in patient.allergies %}
+                <li class="list-group-item">
+                    <strong>{{ a.allergen }}</strong> {% if a.drug_class %}({{ a.drug_class }}){% endif %}
+                    <span class="pill-badge {{ 'sev-' ~ a.severity if a.severity in ['mild','moderate','severe'] else 'sev-unknown' }}">{{ t(a.severity) if a.severity in ['mild','moderate','severe','unknown'] else a.severity }}</span>
+                    {% if a.reaction %}<div class="small text-muted">{{ a.reaction }}</div>{% endif %}
+                </li>
+                {% else %}
+                <li class="list-group-item"><div class="empty-state mb-0 py-1">{{ t('no_records_yet') }}</div></li>
+                {% endfor %}
+            </ul>
+            <form method="post" action="{{ url_for('patient.add_allergy') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="text" name="allergen" class="form-control mb-2" placeholder="{{ t('allergen') }}" required>
+                <input type="text" name="drug_class" class="form-control mb-2" placeholder="{{ t('drug_class') }}">
+                <input type="text" name="reaction" class="form-control mb-2" placeholder="{{ t('reaction_optional') }}">
+                <select name="severity" class="form-select mb-2">
+                    <option value="mild">{{ t('mild') }}</option>
+                    <option value="moderate">{{ t('moderate') }}</option>
+                    <option value="severe">{{ t('severe') }}</option>
+                    <option value="unknown" selected>{{ t('unknown') }}</option>
+                </select>
+                <button class="btn-pill btn-pill-solid sm w-100 justify-content-center">➕ {{ t('add_allergy') }}</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="section-card tint-warn">
+            <div class="section-card-head">
+                <span class="icon-badge theme-warn sm">🩹</span>
+                <h5>{{ t('my_conditions') }}</h5>
+            </div>
+            <ul class="list-group mb-3">
+                {% for c in patient.conditions %}
+                <li class="list-group-item">
+                    <strong>{{ c.condition_name }}</strong>
+                    {% if c.notes %}<div class="small text-muted">{{ c.notes }}</div>{% endif %}
+                </li>
+                {% else %}
+                <li class="list-group-item"><div class="empty-state mb-0 py-1">{{ t('no_records_yet') }}</div></li>
+                {% endfor %}
+            </ul>
+            <form method="post" action="{{ url_for('patient.add_condition') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="text" name="condition_name" class="form-control mb-2" placeholder="{{ t('condition_name') }}" required>
+                <input type="text" name="notes" class="form-control mb-2" placeholder="{{ t('notes_optional') }}">
+                <button class="btn-pill btn-pill-solid sm w-100 justify-content-center">➕ {{ t('add_condition') }}</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="section-card tint-teal">
+            <div class="section-card-head">
+                <span class="icon-badge theme-teal sm">💊</span>
+                <h5>{{ t('my_medications') }}</h5>
+            </div>
+            <p class="small text-muted">{{ t('my_medications_hint') }}</p>
+            <ul class="list-group mb-3">
+                {% for m in patient.medications %}
+                <li class="list-group-item">
+                    <strong>{{ m.medication_name }}</strong>
+                    {% if m.notes %}<div class="small text-muted">{{ m.notes }}</div>{% endif %}
+                </li>
+                {% else %}
+                <li class="list-group-item"><div class="empty-state mb-0 py-1">{{ t('no_records_yet') }}</div></li>
+                {% endfor %}
+            </ul>
+            <form method="post" action="{{ url_for('patient.add_medication') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="text" name="medication_name" class="form-control mb-2" placeholder="{{ t('medication_name') }}" required>
+                <input type="text" name="notes" class="form-control mb-2" placeholder="{{ t('notes_optional') }}">
+                <button class="btn-pill btn-pill-solid sm w-100 justify-content-center">➕ {{ t('add_medication') }}</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="section-card mt-3">
+    <div class="section-card-head">
+        <span class="icon-badge theme-navy sm">📋</span>
+        <h5>{{ t('antibiotic_history') }}</h5>
+    </div>
+    {% if patient.antibiotic_records %}
+    <div class="table-responsive">
+    <table class="table table-sm table-clean align-middle mb-0">
+        <thead><tr><th>{{ t('antibiotic_name') }}</th><th>{{ t('dose') }}</th><th>{{ t('duration') }}</th><th>{{ t('prescribed_date') }}</th></tr></thead>
+        <tbody>
+        {% for r in patient.antibiotic_records %}
+            <tr>
+                <td>{{ r.display_name }}</td>
+                <td>{{ format_dose(r) or '—' }}</td>
+                <td>{{ format_duration(r) or '—' }}</td>
+                <td>{{ r.prescribed_date }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><span class="empty-icon">🗒️</span>{{ t('no_records_yet') }}</div>
+    {% endif %}
+
+    <hr class="my-3">
+    <a href="{{ url_for('patient.add_antibiotic') }}" class="btn-pill btn-pill-solid">➕ {{ t('add_antibiotic') }}</a>
+</div>
+{% endblock %}
