@@ -21,58 +21,15 @@ culture-resistance safety checks used for a hand-typed entry (see
 app/engine/safety_check.py). This module never bypasses that -- it only
 fills in the form faster.
 
-Calls Google's Gemini API directly over HTTPS with the standard library
-(urllib) rather than a Google SDK, to keep this dependency-light app's
-only new requirement an API key -- see README.md section "Prescription
-photo scan" for setup. Uses Gemini's "controlled generation" feature
-(responseSchema + responseMimeType: application/json) to force a reply
-that matches our schema exactly, the same role Anthropic's forced
-tool-use served before this module switched providers.
+The actual HTTP call to Gemini and its shared error handling live in
+app/ai_gemini.py, alongside app/culture_scan.py (culture/sensitivity
+report photos) and app/voice_resolve.py (spoken antibiotic names) -- this
+file owns only the prescription-specific prompt and schema.
 """
 import base64
-import io
-import json
-import urllib.error
-import urllib.parse
-import urllib.request
 
+from app.ai_gemini import AIScanNotConfigured, call_gemini, downscale_image, reference_list_block
 from app.dose_format import DOSE_UNITS, DURATION_UNITS, FREQUENCIES
-
-GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
-MAX_IMAGE_DIMENSION = 1600
-REQUEST_TIMEOUT_SECONDS = 55
-
-
-class PrescriptionScanError(Exception):
-    """Any failure reading or interpreting the prescription photo. Callers
-    should catch this and show the plain-language message to staff rather
-    than letting the request fail with a 500."""
-
-
-class PrescriptionScanNotConfigured(PrescriptionScanError):
-    """The feature is installed but GEMINI_API_KEY isn't set yet."""
-
-
-def _downscale_image(image_bytes):
-    """Best-effort downscale/re-encode to keep the request small and cheap.
-    If Pillow isn't installed or can't open this file, fall back to sending
-    the original bytes unchanged rather than failing the whole scan over a
-    resize step that's a nice-to-have, not a requirement."""
-    try:
-        from PIL import Image
-    except ImportError:
-        return image_bytes, "image/jpeg"
-
-    try:
-        img = Image.open(io.BytesIO(image_bytes))
-        img = img.convert("RGB")
-        img.thumbnail((MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION))
-        out = io.BytesIO()
-        img.save(out, format="JPEG", quality=85)
-        return out.getvalue(), "image/jpeg"
-    except Exception:
-        return image_bytes, "image/jpeg"
-
 
 # Gemini's "responseSchema" is a restricted subset of OpenAPI's schema
 # format -- notably no "additionalProperties", but otherwise close enough
@@ -135,19 +92,8 @@ _RESPONSE_SCHEMA = {
 }
 
 
-def _reference_list_block(known_antibiotics):
-    """Formats this hospital's antibiotics table into the plain-text block
-    both the photo-scan and voice-resolve prompts hand the model, so brand
-    names can be resolved to this hospital's own generic-name spelling."""
-    ref_lines = []
-    for a in known_antibiotics:
-        brands = f" (brand names: {a['brand_names']})" if a.get("brand_names") else ""
-        ref_lines.append(f"- {a['generic_name']}{brands} [{a['drug_class']}]")
-    return "\n".join(ref_lines) if ref_lines else "(reference list unavailable)"
-
-
 def _build_prompt(known_antibiotics):
-    ref_block = _reference_list_block(known_antibiotics)
+    ref_block = reference_list_block(known_antibiotics)
 
     return (
         "You are reading a photo for a hospital antibiotic safety system. The photo is EITHER:\n"
@@ -182,16 +128,17 @@ def _build_prompt(known_antibiotics):
 
 def scan_prescription_image(image_bytes, api_key, model, known_antibiotics):
     """Returns {"antibiotics": [...], "other_medications_ignored": [...], "read_issues": "..."}.
-    Raises PrescriptionScanError (or the PrescriptionScanNotConfigured subclass) on any failure."""
+    Raises an app.ai_gemini.AIScanError (or the AIScanNotConfigured
+    subclass) on any failure."""
     if not api_key:
-        raise PrescriptionScanNotConfigured(
+        raise AIScanNotConfigured(
             "Prescription photo scanning isn't turned on for this site yet -- GEMINI_API_KEY isn't set."
         )
 
-    processed_bytes, media_type = _downscale_image(image_bytes)
+    processed_bytes, media_type = downscale_image(image_bytes)
     b64_image = base64.b64encode(processed_bytes).decode("ascii")
 
-    result = _call_gemini(
+    result = call_gemini(
         b64_data=b64_image,
         media_type=media_type,
         prompt=_build_prompt(known_antibiotics),
@@ -204,154 +151,4 @@ def scan_prescription_image(image_bytes, api_key, model, known_antibiotics):
     result.setdefault("antibiotics", [])
     result.setdefault("other_medications_ignored", [])
     result.setdefault("read_issues", "")
-    return result
-
-
-def _call_gemini(b64_data, media_type, prompt, response_schema, api_key, model,
-                  not_readable_message, declined_message_template):
-    """Shared HTTP/parsing plumbing for both the photo-scan and voice-resolve
-    calls below: send one inline media part (image or audio) plus a text
-    prompt to Gemini's generateContent endpoint, using "controlled
-    generation" (responseSchema + responseMimeType: application/json) to
-    force a reply matching the given schema, and return the parsed JSON
-    dict. Raises PrescriptionScanError on any failure."""
-    payload = {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [
-                    {"inline_data": {"mime_type": media_type, "data": b64_data}},
-                    {"text": prompt},
-                ],
-            }
-        ],
-        "generationConfig": {
-            "responseMimeType": "application/json",
-            "responseSchema": response_schema,
-        },
-    }
-
-    url = f"{GEMINI_API_BASE}/{urllib.parse.quote(model)}:generateContent?key={urllib.parse.quote(api_key)}"
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"content-type": "application/json"},
-        method="POST",
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT_SECONDS) as resp:
-            body = json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        detail = ""
-        try:
-            detail = json.loads(e.read().decode("utf-8")).get("error", {}).get("message", "")
-        except Exception:
-            pass
-        raise PrescriptionScanError(f"The AI service rejected the request ({e.code}). {detail}".strip())
-    except urllib.error.URLError as e:
-        raise PrescriptionScanError(f"Couldn't reach the AI service: {e.reason}")
-    except TimeoutError:
-        raise PrescriptionScanError("The AI service took too long to respond. Please try again.")
-    except (ValueError, json.JSONDecodeError):
-        raise PrescriptionScanError("The AI service sent back something unreadable. Please try again.")
-
-    try:
-        candidates = body.get("candidates") or []
-        if not candidates:
-            block_reason = (body.get("promptFeedback") or {}).get("blockReason")
-            if block_reason:
-                raise PrescriptionScanError(declined_message_template.format(reason=block_reason))
-            raise PrescriptionScanError(not_readable_message)
-
-        parts = candidates[0].get("content", {}).get("parts", [])
-        text = "".join(p.get("text", "") for p in parts)
-        return json.loads(text)
-    except PrescriptionScanError:
-        raise
-    except Exception:
-        raise PrescriptionScanError("The AI service sent back something unreadable. Please try again.")
-
-
-_VOICE_RESPONSE_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "heard": {
-            "type": "string",
-            "description": "Your best-effort plain transcription of what was said, even if it doesn't form a real word -- this is shown to the pharmacist so they can see what the system picked up.",
-        },
-        "resolved_name": {
-            "type": "string",
-            "description": (
-                "The correctly-spelled GENERIC antibiotic name you believe was spoken, resolved to "
-                "this hospital's own spelling using the reference list when it's a brand name or an "
-                "alternate spelling. If you cannot confidently identify a real antibiotic drug name "
-                "from the audio, put your best-effort transcription here instead (same as 'heard') "
-                "rather than inventing one."
-            ),
-        },
-        "matched": {
-            "type": "boolean",
-            "description": "true only if you are reasonably confident a specific real antibiotic drug name was said -- false for silence, noise, an unrelated word, or genuine uncertainty.",
-        },
-    },
-    "required": ["heard", "resolved_name", "matched"],
-}
-
-
-def _build_voice_prompt(known_antibiotics):
-    ref_block = _reference_list_block(known_antibiotics)
-    return (
-        "You are listening to a short audio clip of a hospital pharmacist speaking the name of ONE "
-        "antibiotic drug out loud, so it can be typed into a patient's record -- often with a short "
-        "filler phrase attached ('give me...', 'add...', 'it's...'), sometimes in a non-native English "
-        "accent, and sometimes a brand name rather than the generic drug name.\n\n"
-        "Your job: figure out which real antibiotic drug they most likely meant, using both what you "
-        "hear AND your own pharmacology knowledge of how antibiotic names actually sound -- a generic "
-        "browser speech-to-text engine often mishears drug names as unrelated ordinary English words "
-        "(e.g. 'Cefuroxime' misheard as 'Seafood', 'Ceftriaxone' as 'Safe try zone'); you should do "
-        "meaningfully better than that by reasoning about which real drug name the sounds actually "
-        "match, not just transcribing literally.\n\n"
-        "Resolve brand names to this hospital's own generic-name spelling using its reference list "
-        "where the drug appears on it:\n"
-        f"{ref_block}\n\n"
-        "If the drug isn't on that list, still identify it using your own general pharmacology "
-        "knowledge rather than giving up. Only set matched to false if you genuinely cannot identify "
-        "any specific real antibiotic from the audio (silence, unrelated speech, background noise, "
-        "or a word that doesn't correspond to any real drug name) -- in that case put your best plain "
-        "transcription in both 'heard' and 'resolved_name' rather than guessing a random drug."
-    )
-
-
-def resolve_antibiotic_from_audio(audio_bytes, media_type, api_key, model, known_antibiotics):
-    """AI-powered replacement for app/voice_match.py's plain fuzzy-text
-    matching: takes the actual recorded audio clip from the microphone
-    button (rather than trusting the browser's own free, generic speech
-    recognizer to have transcribed it correctly first) and asks Gemini to
-    identify which antibiotic was said directly from the sound, with this
-    hospital's antibiotic list as context. Returns
-    {"heard": str, "resolved_name": str, "matched": bool}. Raises
-    PrescriptionScanError (or the PrescriptionScanNotConfigured subclass)
-    on any failure -- callers should treat that the same as "didn't match"
-    and let the pharmacist type the name instead."""
-    if not api_key:
-        raise PrescriptionScanNotConfigured(
-            "Voice-powered antibiotic name matching isn't turned on for this site yet -- GEMINI_API_KEY isn't set."
-        )
-
-    b64_audio = base64.b64encode(audio_bytes).decode("ascii")
-
-    result = _call_gemini(
-        b64_data=b64_audio,
-        media_type=media_type or "audio/webm",
-        prompt=_build_voice_prompt(known_antibiotics),
-        response_schema=_VOICE_RESPONSE_SCHEMA,
-        api_key=api_key,
-        model=model,
-        not_readable_message="The AI service didn't return a readable result. Please try again.",
-        declined_message_template="The AI service declined to process this recording ({reason}).",
-    )
-    result.setdefault("heard", "")
-    result.setdefault("resolved_name", result.get("heard", ""))
-    result.setdefault("matched", False)
     return result
