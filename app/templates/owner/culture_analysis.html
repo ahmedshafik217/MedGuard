@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+<a href="{{ url_for('owner.dashboard') }}">&laquo; {{ t('back') }}</a>
+<h2 class="my-3">🧫 {{ t('culture_analysis') }}</h2>
+<p class="small text-muted">{{ t('culture_analysis_hint') }}</p>
+
+<div class="section-card mb-3">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-sm-4 col-md-3">
+            <label class="form-label mb-1 small">{{ t('filter_organism') }}</label>
+            <input type="text" name="organism" value="{{ organism }}" class="form-control">
+        </div>
+        <div class="col-sm-4 col-md-3">
+            <label class="form-label mb-1 small">{{ t('filter_from_date') }}</label>
+            <input type="date" name="date_from" value="{{ date_from }}" class="form-control">
+        </div>
+        <div class="col-sm-4 col-md-3">
+            <label class="form-label mb-1 small">{{ t('filter_to_date') }}</label>
+            <input type="date" name="date_to" value="{{ date_to }}" class="form-control">
+        </div>
+        <div class="col-sm-12 col-md-3 d-flex gap-2">
+            <button class="btn-pill btn-pill-solid">🔍 {{ t('apply_filters') }}</button>
+            {% if organism or date_from or date_to %}
+            <a href="{{ url_for('owner.culture_analysis') }}" class="btn-pill btn-pill-outline">{{ t('clear_filters') }}</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<div class="section-card">
+    {% if cultures %}
+    <div class="table-responsive">
+    <table class="table table-sm table-clean align-middle mb-0">
+        <thead>
+            <tr>
+                <th>{{ t('collection_date') }}</th>
+                <th>{{ t('patient') }}</th>
+                <th>{{ t('specimen_type') }}</th>
+                <th>{{ t('organism') }}</th>
+                <th>{{ t('sensitivities') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for c in cultures %}
+            <tr>
+                <td>{{ c.collection_date }}</td>
+                <td>
+                    <a href="{{ url_for('owner.patient_detail', public_id=c.patient_public_id) }}" class="patient-id-badge">{{ c.patient_public_id }}</a>
+                    {% if c.patient_full_name %}<div class="small text-muted">{{ c.patient_full_name }}</div>{% endif %}
+                </td>
+                <td>
+                    {{ t('specimen_' ~ c.specimen_type) if c.specimen_type in ['blood','urine','wound','sputum','csf','stool','other'] else c.specimen_type }}
+                    {% if c.specimen_type == 'other' and c.specimen_type_other %}({{ c.specimen_type_other }}){% endif %}
+                </td>
+                <td>
+                    {{ c.organism }}
+                    {% if c.lab_name %}<div class="small text-muted">{{ c.lab_name }}</div>{% endif %}
+                </td>
+                <td>
+                    {% for s in c.sensitivities %}
+                    <span class="pill-badge {{ 'sev-severe' if s.result == 'resistant' else ('sev-moderate' if s.result == 'intermediate' else 'sev-mild') }}">{{ s.antibiotic_name }}: {{ t(s.result) if s.result in ['sensitive','intermediate','resistant'] else s.result }}</span>
+                    {% else %}
+                    —
+                    {% endfor %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><span class="empty-icon">🧫</span>{{ t('no_cultures_found') if (organism or date_from or date_to) else t('no_cultures_yet') }}</div>
+    {% endif %}
+</div>
+{% endblock %}
