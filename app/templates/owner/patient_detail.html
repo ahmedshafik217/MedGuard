@@ -268,77 +268,110 @@
     </form>
     <script>
         (function () {
+            // AI-powered voice input: records the actual audio clip and sends
+            // it to the server (which forwards it to Gemini with this
+            // hospital's antibiotic list as context -- see
+            // app/prescription_scan.py's resolve_antibiotic_from_audio and
+            // the /antibiotics/resolve-voice-audio route) rather than relying
+            // on the browser's own free, generic speech-to-text, which
+            // frequently mishears drug names as unrelated real English words
+            // (e.g. "Cefuroxime" heard as "Seafood"). A short recording still
+            // costs a small amount of Gemini usage each time, same order of
+            // magnitude as one prescription-photo scan.
             var btn = document.getElementById('voice-name-btn');
             var input = document.getElementById('antibiotic-name-input');
             var status = document.getElementById('voice-name-status');
             if (!btn || !input || !status) return;
 
-            var SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognitionCtor) {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+                setStatus('{{ t("voice_not_supported") }}');
                 btn.style.display = 'none';
                 return;
             }
 
-            var recognition = new SpeechRecognitionCtor();
-            // Always listen in English here, even when the app's interface
-            // language is Arabic: antibiotic names in this system are only
-            // ever stored in English/Latin script (e.g. "Amoxicillin"), so
-            // recognizing speech as Arabic script would never be able to
-            // match them, no matter how clearly the name was spoken.
-            recognition.lang = 'en-US';
-            recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
-            var listening = false;
+            var recording = false;
+            var mediaRecorder = null;
+            var chunks = [];
+            var autoStopTimer = null;
+            // Safety cap so a forgotten recording doesn't run indefinitely --
+            // an antibiotic name is a couple of seconds of speech at most.
+            var MAX_RECORDING_MS = 8000;
 
             function setStatus(text) {
                 status.textContent = text;
                 status.style.display = text ? '' : 'none';
             }
 
-            function resolveAndFill(heard) {
+            function sendRecording(blob) {
                 setStatus('{{ t("resolving_antibiotic_name") }}');
-                var body = new URLSearchParams();
+                var body = new FormData();
                 var csrfInput = document.querySelector('input[name="csrf_token"]');
                 body.set('csrf_token', csrfInput ? csrfInput.value : '');
-                body.set('heard', heard);
-                fetch('{{ url_for("owner.resolve_antibiotic_voice_name") }}', { method: 'POST', body: body })
+                body.set('audio', blob, 'antibiotic-name.webm');
+                fetch('{{ url_for("owner.resolve_antibiotic_voice_audio") }}', { method: 'POST', body: body })
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
+                        if (data.error) {
+                            setStatus('{{ t("voice_error") }}');
+                            return;
+                        }
+                        var heard = data.heard || '';
                         input.value = data.resolved_name || heard;
                         setStatus(data.matched
                             ? '{{ t("voice_matched") }}: "' + heard + '" → ' + data.resolved_name
                             : '{{ t("voice_not_matched") }}: "' + heard + '"');
                     })
                     .catch(function () {
-                        input.value = heard;
-                        setStatus('');
+                        setStatus('{{ t("voice_error") }}');
                     });
             }
 
-            recognition.onresult = function (event) {
-                var transcript = event.results[0][0].transcript;
-                resolveAndFill(transcript);
-            };
-            recognition.onerror = function () {
-                listening = false;
-                btn.classList.remove('listening');
-                setStatus('{{ t("voice_error") }}');
-            };
-            recognition.onend = function () {
-                listening = false;
-                btn.classList.remove('listening');
-            };
+            function stopRecording() {
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                }
+            }
+
+            function startRecording() {
+                navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+                    chunks = [];
+                    try {
+                        mediaRecorder = new MediaRecorder(stream);
+                    } catch (e) {
+                        setStatus('{{ t("voice_not_supported") }}');
+                        stream.getTracks().forEach(function (t) { t.stop(); });
+                        return;
+                    }
+                    mediaRecorder.ondataavailable = function (e) {
+                        if (e.data && e.data.size > 0) chunks.push(e.data);
+                    };
+                    mediaRecorder.onstop = function () {
+                        clearTimeout(autoStopTimer);
+                        stream.getTracks().forEach(function (t) { t.stop(); });
+                        recording = false;
+                        btn.classList.remove('listening');
+                        var blob = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                        if (blob.size > 0) {
+                            sendRecording(blob);
+                        } else {
+                            setStatus('');
+                        }
+                    };
+                    mediaRecorder.start();
+                    recording = true;
+                    btn.classList.add('listening');
+                    setStatus('{{ t("voice_listening") }}');
+                    autoStopTimer = setTimeout(stopRecording, MAX_RECORDING_MS);
+                }).catch(function () {
+                    setStatus('{{ t("voice_error") }}');
+                });
+            }
 
             btn.addEventListener('click', function () {
-                if (listening) return;
-                listening = true;
-                btn.classList.add('listening');
-                setStatus('{{ t("voice_listening") }}');
-                try {
-                    recognition.start();
-                } catch (e) {
-                    listening = false;
-                    btn.classList.remove('listening');
+                if (recording) {
+                    stopRecording();
+                } else {
+                    startRecording();
                 }
             });
         })();
