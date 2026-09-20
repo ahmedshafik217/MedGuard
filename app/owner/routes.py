@@ -3,16 +3,16 @@ from datetime import date
 from flask import Response, current_app, flash, jsonify, redirect, render_template, request, url_for
 
 from app import models
+from app.ai_gemini import AIScanError, AIScanNotConfigured
+from app.culture_scan import scan_culture_image
 from app.owner import bp
 from app.pdf_export import generate_patient_history_pdf
 from app.pdf_export_ar import WkhtmltopdfNotFound, generate_patient_history_pdf_arabic
 from app.pdf_reports import generate_pharmacy_report_pdf, generate_quality_report_pdf
-from app.prescription_scan import (
-    PrescriptionScanError, PrescriptionScanNotConfigured, resolve_antibiotic_from_audio, scan_prescription_image,
-)
+from app.prescription_scan import scan_prescription_image
 from app.records import (
-    add_allergy_from_form, add_antibiotic_from_form, add_condition_from_form, add_culture_from_form,
-    add_medication_from_form,
+    add_allergy_from_form, add_antibiotic_from_form, add_condition_from_form, add_culture_from_ai_scan,
+    add_culture_from_form, add_medication_from_form,
 )
 from app.roles import CREATABLE_ROLES, DEFAULT_SAFE_ROLE
 from app.utils import (
@@ -20,6 +20,7 @@ from app.utils import (
     full_owner_required, owner_required, pharmacy_report_required, quality_report_required,
 )
 from app.voice_match import resolve_spoken_antibiotic_name
+from app.voice_resolve import resolve_antibiotic_from_audio
 
 
 @bp.route("/")
@@ -255,6 +256,64 @@ def add_patient_culture(public_id):
     return redirect(url_for("owner.patient_detail", public_id=public_id))
 
 
+@bp.route("/patients/<public_id>/cultures/scan-photo", methods=["POST"])
+@full_owner_required
+def scan_patient_culture_photo(public_id):
+    """Same idea as scan_patient_antibiotic_photo above, for a culture &
+    sensitivity (antibiogram) lab report photo instead of a prescription --
+    see app/prescription_scan.py's scan_culture_image. Whatever it reads
+    still goes through add_culture_from_ai_scan -> add_culture_from_form in
+    app/records.py, the exact same code path a hand-typed culture result
+    uses."""
+    patient = models.get_patient_by_public_id(public_id)
+    if not patient:
+        return ("Patient not found.", 404)
+
+    photo = request.files.get("culture_photo")
+    if not photo or not photo.filename:
+        flash("Choose or take a photo of the culture/sensitivity report first.", "error")
+        return redirect(url_for("owner.patient_detail", public_id=public_id))
+
+    image_bytes = photo.read()
+    if not image_bytes:
+        flash("That photo looks empty — please try again.", "error")
+        return redirect(url_for("owner.patient_detail", public_id=public_id))
+    if len(image_bytes) > current_app.config["PRESCRIPTION_PHOTO_MAX_BYTES"]:
+        max_mb = current_app.config["PRESCRIPTION_PHOTO_MAX_BYTES"] // (1024 * 1024)
+        flash(f"That photo is too large (max {max_mb} MB). Please retake it or choose a smaller file.", "error")
+        return redirect(url_for("owner.patient_detail", public_id=public_id))
+
+    try:
+        result = scan_culture_image(
+            image_bytes,
+            api_key=current_app.config["GEMINI_API_KEY"],
+            model=current_app.config["GEMINI_MODEL"],
+            known_antibiotics=models.list_antibiotics(),
+        )
+    except AIScanNotConfigured as e:
+        flash(str(e), "error")
+        return redirect(url_for("owner.patient_detail", public_id=public_id))
+    except AIScanError as e:
+        models.log_action("owner", current_actor_label(), "culture_scan_failed",
+                          target=public_id, details=str(e))
+        flash(f"Couldn't read that photo: {e}", "error")
+        return redirect(url_for("owner.patient_detail", public_id=public_id))
+
+    add_culture_from_ai_scan(patient, result, recorded_by=current_owner_role() or "owner")
+    models.log_action("owner", current_actor_label(), "culture_scan_added", target=public_id,
+                      details=result.get("organism") or "")
+
+    sensitivity_count = len(result.get("sensitivities") or [])
+    organism = (result.get("organism") or "").strip()
+    msg = f"Added from the photo: {organism}" if organism else "Culture result added from the photo."
+    if sensitivity_count:
+        msg += f" ({sensitivity_count} antibiotic result{'s' if sensitivity_count != 1 else ''})."
+    if result.get("read_issues"):
+        msg += f" Note: {result['read_issues']}"
+    flash(msg, "success")
+    return redirect(url_for("owner.patient_detail", public_id=public_id))
+
+
 @bp.route("/patients/<public_id>/pregnancy-status", methods=["POST"])
 @full_owner_required
 def update_patient_pregnancy_status(public_id):
@@ -368,9 +427,9 @@ def resolve_antibiotic_voice_audio():
             model=current_app.config["GEMINI_MODEL"],
             known_antibiotics=models.list_antibiotics(),
         )
-    except PrescriptionScanNotConfigured as e:
+    except AIScanNotConfigured as e:
         return jsonify({"heard": "", "resolved_name": "", "matched": False, "error": str(e)})
-    except PrescriptionScanError as e:
+    except AIScanError as e:
         models.log_action("owner", current_actor_label(), "voice_resolve_failed", details=str(e))
         return jsonify({"heard": "", "resolved_name": "", "matched": False, "error": str(e)})
 
@@ -418,10 +477,10 @@ def scan_patient_antibiotic_photo(public_id):
             model=current_app.config["GEMINI_MODEL"],
             known_antibiotics=known_antibiotics,
         )
-    except PrescriptionScanNotConfigured as e:
+    except AIScanNotConfigured as e:
         flash(str(e), "error")
         return redirect(url_for("owner.patient_detail", public_id=public_id))
-    except PrescriptionScanError as e:
+    except AIScanError as e:
         models.log_action("owner", current_actor_label(), "prescription_scan_failed",
                           target=public_id, details=str(e))
         flash(f"Couldn't read that photo: {e}", "error")
