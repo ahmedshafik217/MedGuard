@@ -65,6 +65,12 @@ def create_app(config_class=Config):
             "owner_can_add_restricted_antibiotic": perms["add_restricted_antibiotic"],
             "owner_can_quality_report": perms["quality_report"],
             "owner_can_pharmacy_report": perms["pharmacy_report"],
+            # Full permission dict too (not just the flattened owner_can_*
+            # booleans above) -- so a template can check any permission,
+            # including ones added after this list (e.g. perms.culture_analysis
+            # for the culture analysis page), without a route having to pass
+            # it through render_template() by hand every time.
+            "perms": perms,
         }
 
     @app.errorhandler(403)
