@@ -8,7 +8,7 @@ from app.pdf_export import generate_patient_history_pdf
 from app.pdf_export_ar import WkhtmltopdfNotFound, generate_patient_history_pdf_arabic
 from app.pdf_reports import generate_pharmacy_report_pdf, generate_quality_report_pdf
 from app.prescription_scan import (
-    PrescriptionScanError, PrescriptionScanNotConfigured, scan_prescription_image,
+    PrescriptionScanError, PrescriptionScanNotConfigured, resolve_antibiotic_from_audio, scan_prescription_image,
 )
 from app.records import (
     add_allergy_from_form, add_antibiotic_from_form, add_condition_from_form, add_culture_from_form,
@@ -335,6 +335,45 @@ def resolve_antibiotic_voice_name():
     still goes through the normal add_patient_antibiotic form submit."""
     heard = request.form.get("heard", "").strip()
     result = resolve_spoken_antibiotic_name(heard, models.list_antibiotics())
+    return jsonify(result)
+
+
+@bp.route("/antibiotics/resolve-voice-audio", methods=["POST"])
+@antibiotic_add_required
+def resolve_antibiotic_voice_audio():
+    """AI-powered upgrade to resolve_antibiotic_voice_name above: instead of
+    trusting the browser's own free, generic speech-to-text to have
+    transcribed the drug name correctly before we ever see it (see
+    app/voice_match.py's docstring for why that so often mishears drug
+    names as unrelated real words), this takes the actual recorded audio
+    clip from the microphone button and sends it to Gemini directly (see
+    app/prescription_scan.py, which also backs the prescription-photo-scan
+    feature) with this hospital's antibiotic list as context. Called by
+    plain fetch(), not a page navigation -- never touches a patient record
+    itself, the actual save still goes through the normal
+    add_patient_antibiotic form submit."""
+    audio = request.files.get("audio")
+    if not audio or not audio.filename:
+        return jsonify({"heard": "", "resolved_name": "", "matched": False, "error": "No recording received."})
+
+    audio_bytes = audio.read()
+    if not audio_bytes:
+        return jsonify({"heard": "", "resolved_name": "", "matched": False, "error": "That recording came out empty."})
+
+    try:
+        result = resolve_antibiotic_from_audio(
+            audio_bytes,
+            media_type=audio.mimetype,
+            api_key=current_app.config["GEMINI_API_KEY"],
+            model=current_app.config["GEMINI_MODEL"],
+            known_antibiotics=models.list_antibiotics(),
+        )
+    except PrescriptionScanNotConfigured as e:
+        return jsonify({"heard": "", "resolved_name": "", "matched": False, "error": str(e)})
+    except PrescriptionScanError as e:
+        models.log_action("owner", current_actor_label(), "voice_resolve_failed", details=str(e))
+        return jsonify({"heard": "", "resolved_name": "", "matched": False, "error": str(e)})
+
     return jsonify(result)
 
 
