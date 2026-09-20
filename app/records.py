@@ -36,6 +36,60 @@ def add_medication_from_form(patient, form):
     )
 
 
+class _ScanFormAdapter:
+    """Makes a plain dict (as produced by an AI photo-scan extraction, see
+    app/prescription_scan.py) look enough like a Flask form (.get/.getlist)
+    for add_culture_from_form below to run completely unchanged -- so a
+    scanned culture report goes through the exact same
+    date-parsing/defaulting logic as one a pharmacist typed in by hand, in
+    the one place that logic lives. List-valued dict entries answer
+    .getlist(); everything else answers .get()."""
+
+    def __init__(self, data):
+        self._data = data
+
+    def get(self, key, default=""):
+        value = self._data.get(key, default)
+        return default if value is None else value
+
+    def getlist(self, key):
+        value = self._data.get(key)
+        return value if isinstance(value, list) else []
+
+
+def add_culture_from_ai_scan(patient, extracted, recorded_by="owner"):
+    """Turns app/prescription_scan.py's scan_culture_image() output into the
+    same plain dict shape the manual "Add culture" form produces, then
+    calls add_culture_from_form() below completely unchanged -- see that
+    function's own comments for the date-parsing/defaulting this reuses.
+    extracted's "notes" and "read_issues" are combined into one notes
+    string so a pharmacist reviewing history later can see exactly what
+    the AI read, same as _prescription_scan_note() does for antibiotics."""
+    notes_parts = [
+        'Read from a culture report photo.',
+    ]
+    if extracted.get("notes"):
+        notes_parts.append(extracted["notes"].strip())
+    if extracted.get("read_issues"):
+        notes_parts.append(extracted["read_issues"].strip())
+
+    form_data = {
+        "specimen_type": extracted.get("specimen_type", ""),
+        "specimen_type_other": extracted.get("specimen_type_other", ""),
+        "collection_date": extracted.get("collection_date", ""),
+        "organism": extracted.get("organism", ""),
+        "lab_name": extracted.get("lab_name", ""),
+        "notes": " ".join(notes_parts),
+        "sensitivity_antibiotic_name": [
+            (s.get("antibiotic_name") or "").strip() for s in extracted.get("sensitivities", [])
+        ],
+        "sensitivity_result": [
+            (s.get("result") or "").strip() for s in extracted.get("sensitivities", [])
+        ],
+    }
+    return add_culture_from_form(patient, _ScanFormAdapter(form_data), recorded_by=recorded_by)
+
+
 def add_culture_from_form(patient, form, recorded_by="owner"):
     specimen_type = form.get("specimen_type", "").strip() or "other"
     specimen_type_other = form.get("specimen_type_other", "").strip() or None

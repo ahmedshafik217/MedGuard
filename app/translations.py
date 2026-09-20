@@ -422,6 +422,16 @@ STRINGS = {
     "remove": {"en": "Remove", "ar": "إزالة"},
     "add_culture": {"en": "Add culture result", "ar": "إضافة نتيجة مزرعة"},
     "no_cultures_yet": {"en": "No culture results yet.", "ar": "لا توجد نتائج مزرعة بعد."},
+    "scan_culture_photo": {"en": "Scan a culture/sensitivity report photo", "ar": "مسح صورة تقرير المزرعة والحساسية"},
+    "scan_culture_hint": {
+        "en": "Take or upload a photo of the lab's culture & sensitivity (antibiogram) report. The "
+              "system reads it automatically -- specimen type, organism, and every antibiotic's "
+              "Sensitive/Intermediate/Resistant result -- and adds it. Double-check the result "
+              "afterward, especially any result flagged as unclear.",
+        "ar": "التقط أو ارفع صورة تقرير المزرعة والحساسية من المعمل. يقوم النظام بقراءتها تلقائياً -- "
+              "نوع العينة والكائن الحي ونتيجة كل مضاد حيوي (حساس/متوسط/مقاوم) -- ويضيفها. يرجى "
+              "التحقق من النتيجة بعد ذلك، خصوصاً أي نتيجة تمت الإشارة إلى عدم وضوحها.",
+    },
 
     "drug_interactions_reference": {"en": "Drug Interactions Reference", "ar": "قاعدة بيانات التداخلات الدوائية"},
     "drug_interactions_hint": {
