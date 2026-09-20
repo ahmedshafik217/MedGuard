@@ -36,6 +36,14 @@ class AIScanNotConfigured(AIScanError):
     """The feature is installed but GEMINI_API_KEY isn't set yet."""
 
 
+class AIScanRateLimited(AIScanError):
+    """Gemini returned HTTP 429 -- the API key's quota (its per-minute or
+    per-day request/token allowance) is used up for right now. This is
+    never a problem with the specific photo/recording, so callers can show
+    a calmer, more specific message than the generic AIScanError catch-all
+    and suggest trying again shortly or entering it by hand meanwhile."""
+
+
 def downscale_image(image_bytes):
     """Best-effort downscale/re-encode to keep the request small and cheap.
     If Pillow isn't installed or can't open this file, fall back to sending
@@ -114,6 +122,12 @@ def call_gemini(b64_data, media_type, prompt, response_schema, api_key, model,
             detail = json.loads(e.read().decode("utf-8")).get("error", {}).get("message", "")
         except Exception:
             pass
+        if e.code == 429:
+            raise AIScanRateLimited(
+                "The AI scanning service has reached its usage limit for right now (this is a shared "
+                "daily/per-minute allowance for the whole app, not an issue with this specific photo or "
+                "recording). Please wait a few minutes and try again, or enter this one by hand for now."
+            )
         raise AIScanError(f"The AI service rejected the request ({e.code}). {detail}".strip())
     except urllib.error.URLError as e:
         raise AIScanError(f"Couldn't reach the AI service: {e.reason}")
