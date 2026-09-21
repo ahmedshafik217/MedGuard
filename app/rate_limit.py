@@ -68,6 +68,50 @@ def _recent_failure_count(where_clause, params, window_minutes):
     return row["c"]
 
 
+def check_registration_rate(ip_address):
+    """Returns None if a new self-service patient registration from this IP
+    may proceed, or an int number of minutes to report to the visitor if
+    too many registrations have already come from this IP recently.
+
+    Unlike check_lockout() above, this isn't about failed login guesses --
+    a registration basically always "succeeds" (there's no password to get
+    wrong), so counting only failures would never catch anything. Instead
+    every registration attempt from an IP counts against this limit,
+    success or not, which is what actually stops someone from scripting
+    hundreds of throwaway patient records in a row. A shared front-desk/
+    kiosk IP registering a handful of real patients in a row is expected
+    and stays well under the default limit."""
+    cfg = current_app.config
+    window = cfg.get("REGISTRATION_WINDOW_MINUTES", 60)
+    limit = cfg.get("REGISTRATION_IP_LIMIT", 8)
+
+    db = get_db()
+    cutoff = _iso(_now() - timedelta(minutes=window))
+    row = db.execute(
+        "SELECT COUNT(*) AS c FROM login_attempts "
+        "WHERE scope = 'patient_register' AND ip_address = ? AND attempted_at >= ?",
+        (ip_address or "unknown", cutoff),
+    ).fetchone()
+    if row["c"] >= limit:
+        return window
+    return None
+
+
+def record_registration(ip_address):
+    """Log one self-service patient registration for check_registration_rate()
+    above. Reuses the same login_attempts table/cleanup as record_attempt()
+    rather than a separate table -- it's the same shape of data (an IP, a
+    timestamp, a scope to filter by) and keeps the rate-limiting logic in
+    one place. 'success' is always recorded True here since there's no
+    pass/fail outcome to a registration, only a count."""
+    db = get_db()
+    db.execute(
+        "INSERT INTO login_attempts (scope, identifier, ip_address, success, attempted_at) VALUES (?, ?, ?, ?, ?)",
+        ("patient_register", ip_address or "unknown", ip_address or "unknown", 1, _iso(_now())),
+    )
+    db.commit()
+
+
 def check_lockout(scope, identifier, ip_address):
     """Returns None if this login attempt may proceed, or an int number of
     minutes to report to the user if either limit is currently exceeded

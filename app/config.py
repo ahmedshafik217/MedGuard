@@ -37,6 +37,16 @@ class Config:
     LOGIN_ATTEMPT_WINDOW_MINUTES = int(os.environ.get("LOGIN_ATTEMPT_WINDOW_MINUTES", "15"))
     LOGIN_IP_ATTEMPT_LIMIT = int(os.environ.get("LOGIN_IP_ATTEMPT_LIMIT", "20"))
 
+    # Self-service patient registration (see app/rate_limit.py's
+    # check_registration_rate): after this many registrations from the
+    # same source IP within the window, further registrations are blocked
+    # until it passes -- stops the open registration form from being used
+    # to flood the patient list with throwaway records. Looser than the
+    # login limits since a real front-desk/kiosk IP may legitimately
+    # register several new patients in a row.
+    REGISTRATION_IP_LIMIT = int(os.environ.get("REGISTRATION_IP_LIMIT", "8"))
+    REGISTRATION_WINDOW_MINUTES = int(os.environ.get("REGISTRATION_WINDOW_MINUTES", "60"))
+
     # First-run owner account (used only by seed.py).
     OWNER_USERNAME = os.environ.get("OWNER_USERNAME", "admin")
     OWNER_PASSWORD = os.environ.get("OWNER_PASSWORD", "change-this-password")

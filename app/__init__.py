@@ -77,4 +77,19 @@ def create_app(config_class=Config):
     def forbidden(e):
         return ("Access denied for your account type.", 403)
 
+    @app.after_request
+    def set_security_headers(response):
+        # A few standard, low-risk response headers -- none of these change
+        # how the app behaves, they only tell the BROWSER to lock down
+        # things it wouldn't otherwise. Deliberately not adding a
+        # Content-Security-Policy here: this app's templates weren't
+        # written with one in mind (inline styles/scripts, QR images,
+        # etc.), so a strict CSP would risk silently breaking a page
+        # rather than actually improving security without careful,
+        # separate testing.
+        response.headers.setdefault("X-Frame-Options", "DENY")  # blocks this site being iframed (clickjacking)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")  # stops MIME-type sniffing
+        response.headers.setdefault("Referrer-Policy", "same-origin")  # don't leak full URLs to other sites
+        return response
+
     return app
