@@ -193,6 +193,14 @@ STRINGS = {
     "current_password": {"en": "Current password", "ar": "كلمة المرور الحالية"},
     "confirm_new_password": {"en": "Confirm new password", "ar": "تأكيد كلمة المرور الجديدة"},
     "site_settings": {"en": "Site settings", "ar": "إعدادات الموقع"},
+    "download_database_backup": {"en": "⬇️ Download database backup", "ar": "⬇️ تنزيل نسخة احتياطية من قاعدة البيانات"},
+    "download_database_backup_hint": {
+        "en": "Saves a complete copy of every patient record as a single file. This hosting plan does not "
+              "back this up automatically -- download and store a copy somewhere safe (your computer, cloud "
+              "storage) on a regular schedule, e.g. weekly.",
+        "ar": "يحفظ نسخة كاملة من جميع سجلات المرضى كملف واحد. لا تقوم خطة الاستضافة هذه بعمل نسخة احتياطية "
+              "تلقائيًا -- قم بتنزيل نسخة وحفظها في مكان آمن (جهازك أو التخزين السحابي) بشكل دوري، مثلاً أسبوعيًا.",
+    },
     "add_owner_account": {"en": "Add another owner/admin account", "ar": "إضافة حساب مسؤول آخر"},
     "delete": {"en": "Delete", "ar": "حذف"},
     "confirm_delete": {"en": "Are you sure?", "ar": "هل أنت متأكد؟"},
