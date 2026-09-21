@@ -4,7 +4,7 @@ from flask import flash, redirect, render_template, request, session, url_for
 
 from app import models
 from app.auth import bp
-from app.rate_limit import check_lockout, record_attempt
+from app.rate_limit import check_lockout, check_registration_rate, record_attempt, record_registration
 from app.utils import current_actor_label, current_owner, current_patient, login_owner, login_patient, logout
 
 
@@ -63,18 +63,28 @@ def patient_login():
             flash(_too_many_attempts_message(wait_minutes), "error")
             return render_template("auth/patient_login.html", prefill_id=public_id)
 
+        # Checked as a single combined condition, with one shared error
+        # message for both "that ID doesn't exist" and "wrong password" --
+        # kept deliberately indistinguishable from the outside (unlike an
+        # earlier version of this route, which flashed a different message
+        # for each case) so a stranger trying IDs at this form can't use
+        # the response to tell which patient IDs are real and which
+        # aren't. A patient with no password on file still logs in on ID
+        # alone, same as before.
         patient = models.get_patient_by_public_id(public_id)
-        if not patient:
-            record_attempt("patient", public_id, ip_address, success=False)
-            flash(_t("No record found with that ID.", "لا يوجد سجل بهذا الرقم."), "error")
-        elif models.patient_has_password(patient) and not models.check_patient_password(patient, password):
-            record_attempt("patient", public_id, ip_address, success=False)
-            flash(_t("Incorrect password.", "كلمة المرور غير صحيحة."), "error")
-        else:
-            record_attempt("patient", public_id, ip_address, success=True)
+        ok = bool(patient) and (not models.patient_has_password(patient) or models.check_patient_password(patient, password))
+        record_attempt("patient", public_id, ip_address, success=ok)
+        if ok:
             login_patient(patient)
             models.log_action("patient", patient["public_id"], "login", target=patient["public_id"])
             return redirect(url_for("patient.dashboard"))
+        flash(
+            _t(
+                "We couldn't find that patient ID and password combination. Please check both and try again.",
+                "تعذر العثور على رقم المريض وكلمة المرور المطابقين. يرجى التحقق من كليهما والمحاولة مرة أخرى.",
+            ),
+            "error",
+        )
     prefill_id = request.args.get("prefill", "").strip().upper()
     return render_template("auth/patient_login.html", prefill_id=prefill_id)
 
@@ -175,6 +185,20 @@ def register_patient():
     would typically happen once, at a hospital/pharmacy desk, or by the
     patient themselves on their own phone."""
     if request.method == "POST":
+        ip_address = _client_ip()
+        wait_minutes = check_registration_rate(ip_address)
+        if wait_minutes:
+            flash(
+                _t(
+                    f"Too many new patient records created from this connection recently. "
+                    f"Please wait about {wait_minutes} minutes and try again.",
+                    f"تم إنشاء عدد كبير جدًا من سجلات المرضى الجدد من هذا الاتصال مؤخرًا. "
+                    f"يرجى الانتظار حوالي {wait_minutes} دقيقة والمحاولة مرة أخرى.",
+                ),
+                "error",
+            )
+            return render_template("auth/register_patient.html")
+
         gender = request.form.get("gender", "unspecified")
         password = request.form.get("password", "").strip() or None
         full_name = request.form.get("full_name", "").strip() or None
@@ -192,6 +216,7 @@ def register_patient():
             gender=gender, full_name=full_name, date_of_birth=date_of_birth, password=password,
             phone_number=phone_number,
         )
+        record_registration(ip_address)
         models.log_action("patient", patient["public_id"], "record_created", target=patient["public_id"])
 
         login_patient(patient)
