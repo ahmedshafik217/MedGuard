@@ -1,10 +1,14 @@
-from datetime import date
+import sqlite3
+import tempfile
+from datetime import date, datetime, timezone
+from pathlib import Path
 
 from flask import Response, current_app, flash, jsonify, redirect, render_template, request, url_for
 
 from app import models
 from app.ai_gemini import AIScanError, AIScanNotConfigured
 from app.culture_scan import scan_culture_image
+from app.db import get_db
 from app.owner import bp
 from app.pdf_export import generate_patient_history_pdf
 from app.pdf_export_ar import WkhtmltopdfNotFound, generate_patient_history_pdf_arabic
@@ -733,6 +737,43 @@ def culture_analysis():
     return render_template(
         "owner/culture_analysis.html",
         cultures=cultures, organism=organism, date_from=date_from, date_to=date_to,
+    )
+
+
+@bp.route("/settings/backup-database")
+@full_owner_required
+def download_database_backup():
+    """Downloads a complete, self-consistent snapshot of the patient
+    database as one .db file, for the full owner/controller to save
+    somewhere safe on whatever schedule they choose. This app's only
+    persistent store is a single SQLite file on the hosting disk --
+    Render's free/starter plans don't include automatic backups of it, so
+    without this button, the only copy of every patient record has no
+    safety net at all.
+
+    Uses sqlite3's own online backup API rather than just reading the raw
+    .db file bytes, so the snapshot can't come out corrupted if a write
+    happens to land at the exact same moment -- a plain file copy of a
+    live SQLite database can occasionally capture a half-written page."""
+    source_db = get_db()
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
+        tmp_path = tmp.name
+    try:
+        snapshot = sqlite3.connect(tmp_path)
+        with snapshot:
+            source_db.backup(snapshot)
+        snapshot.close()
+        backup_bytes = Path(tmp_path).read_bytes()
+    finally:
+        Path(tmp_path).unlink(missing_ok=True)
+
+    models.log_action("owner", current_actor_label(), "download_database_backup")
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M")
+    filename = f"alshefa-backup-{stamp}.db"
+    return Response(
+        backup_bytes,
+        mimetype="application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
