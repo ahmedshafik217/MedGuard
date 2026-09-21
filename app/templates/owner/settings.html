@@ -3,6 +3,11 @@
 <a href="{{ url_for('owner.dashboard') }}">&laquo; {{ t('back') }}</a>
 <h2 class="my-3">{{ t('site_settings') }}</h2>
 
+<div class="section-card mb-3">
+    <a href="{{ url_for('owner.download_database_backup') }}" class="btn-pill btn-pill-outline">{{ t('download_database_backup') }}</a>
+    <p class="small text-muted mt-2 mb-0">{{ t('download_database_backup_hint') }}</p>
+</div>
+
 <div class="row g-3">
     <div class="col-md-6">
         <div class="card p-3">
