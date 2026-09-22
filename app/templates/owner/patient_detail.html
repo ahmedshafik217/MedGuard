@@ -31,6 +31,7 @@
                 {% if patient.age_years is not none %} ({{ patient.age_years }} {{ t('years_old') }}){% endif %}
             </p>
             <p class="mb-1">{{ t('phone_number') }}: {{ patient.phone_number or '—' }}</p>
+            <p class="mb-1">{{ t('email_address') }}: {{ patient.email or '—' }}</p>
             {% if owner_role == 'owner' %}
             <hr>
             <form method="post" action="{{ url_for('owner.update_patient_phone', public_id=patient.public_id) }}" class="mb-3">
@@ -38,6 +39,14 @@
                 <label class="form-label">{{ t('phone_number') }}</label>
                 <input type="tel" name="phone_number" class="form-control mb-2" placeholder="05XXXXXXXX" value="{{ patient.phone_number or '' }}">
                 <div class="form-text mb-2">{{ t('phone_number_hint') }}</div>
+                <button class="btn-pill btn-pill-solid sm">{{ t('save') }}</button>
+            </form>
+            <hr>
+            <form method="post" action="{{ url_for('owner.update_patient_email', public_id=patient.public_id) }}" class="mb-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="form-label">{{ t('email_address') }}</label>
+                <input type="email" name="email" class="form-control mb-2" placeholder="you@example.com" value="{{ patient.email or '' }}">
+                <div class="form-text mb-2">{{ t('email_hint') }}</div>
                 <button class="btn-pill btn-pill-solid sm">{{ t('save') }}</button>
             </form>
             <hr>
