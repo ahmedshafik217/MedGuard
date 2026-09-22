@@ -40,6 +40,14 @@
                 <button class="btn-pill btn-pill-solid sm">{{ t('save') }}</button>
             </form>
             <hr>
+            <form method="post" action="{{ url_for('patient.update_email') }}" class="mb-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="form-label">{{ t('email_address') }}</label>
+                <input type="email" name="email" class="form-control mb-2" placeholder="you@example.com" value="{{ patient.email or '' }}">
+                <div class="form-text mb-2">{{ t('email_hint') }}</div>
+                <button class="btn-pill btn-pill-solid sm">{{ t('save') }}</button>
+            </form>
+            <hr>
             <form method="post" action="{{ url_for('patient.update_pregnancy_status') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <label class="form-label">{{ t('pregnancy_status') }}</label>
