@@ -112,6 +112,59 @@ def record_registration(ip_address):
     db.commit()
 
 
+def check_email_code_request_rate(email, ip_address):
+    """Returns None if requesting a new email sign-in code (see
+    app/notify.py's send_patient_login_code) may proceed, or an int number
+    of minutes to wait if too many codes have already been requested
+    recently.
+
+    Same "count every attempt, not just failures" reasoning as
+    check_registration_rate() above -- requesting a code basically always
+    "succeeds" (an email either exists or it doesn't; either way a request
+    was made), so this has to cap the RATE of requests, not a failure
+    count, or someone could otherwise flood a patient's inbox with codes,
+    or hammer the SMTP account's own sending limits. Checked both per-email
+    (stops one inbox being spammed) and per-IP (looser, stops one machine
+    spamming many different emails) -- same two-limit shape as
+    check_lockout(), just against a request count instead of failures."""
+    cfg = current_app.config
+    window = cfg.get("EMAIL_CODE_REQUEST_WINDOW_MINUTES", 15)
+    limit = cfg.get("EMAIL_CODE_REQUEST_LIMIT", 5)
+    db = get_db()
+    cutoff = _iso(_now() - timedelta(minutes=window))
+
+    email_count = db.execute(
+        "SELECT COUNT(*) AS c FROM login_attempts "
+        "WHERE scope = 'patient_email_code_request' AND identifier = ? AND attempted_at >= ?",
+        ((email or "").strip().lower(), cutoff),
+    ).fetchone()["c"]
+    if email_count >= limit:
+        return window
+
+    ip_count = db.execute(
+        "SELECT COUNT(*) AS c FROM login_attempts "
+        "WHERE scope = 'patient_email_code_request' AND ip_address = ? AND attempted_at >= ?",
+        (ip_address or "unknown", cutoff),
+    ).fetchone()["c"]
+    if ip_count >= limit * 4:  # looser than the per-email limit, same ratio idea as check_lockout
+        return window
+
+    return None
+
+
+def record_email_code_request(email, ip_address):
+    """Log one email-sign-in-code request for check_email_code_request_rate()
+    above. Reuses login_attempts the same way record_registration() does --
+    'success' is always True here, this table row only exists to be
+    counted, not to record a pass/fail outcome."""
+    db = get_db()
+    db.execute(
+        "INSERT INTO login_attempts (scope, identifier, ip_address, success, attempted_at) VALUES (?, ?, ?, ?, ?)",
+        ("patient_email_code_request", (email or "").strip().lower(), ip_address or "unknown", 1, _iso(_now())),
+    )
+    db.commit()
+
+
 def check_lockout(scope, identifier, ip_address):
     """Returns None if this login attempt may proceed, or an int number of
     minutes to report to the user if either limit is currently exceeded

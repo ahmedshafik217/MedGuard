@@ -65,3 +65,32 @@ class Config:
     PRESCRIPTION_PHOTO_MAX_BYTES = int(os.environ.get("PRESCRIPTION_PHOTO_MAX_MB", "10")) * 1024 * 1024
     # A little headroom over the photo limit itself for multipart overhead.
     MAX_CONTENT_LENGTH = PRESCRIPTION_PHOTO_MAX_BYTES + 2 * 1024 * 1024
+
+    # Outbound email (see app/mailer.py): a patient's one-time email
+    # sign-in code, password-reset notices, a "new antibiotic added" copy,
+    # and the full-owner "danger alert" notice all go out this way.
+    # Silently unavailable (the email sign-in option just doesn't appear,
+    # and the notification emails are simply skipped) until SMTP_USERNAME
+    # and SMTP_PASSWORD are both set -- nothing else in the app depends on
+    # it. Defaults target Gmail's own SMTP relay (587, STARTTLS): the
+    # simplest setup is a Gmail account plus an "app password"
+    # (https://myaccount.google.com/apppasswords) -- SMTP_USERNAME is the
+    # full Gmail address, SMTP_PASSWORD is the 16-character app password
+    # (NOT the normal Gmail login password). Any other SMTP-compatible
+    # provider works the same way by overriding SMTP_HOST/SMTP_PORT too.
+    SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+    SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+    SMTP_USERNAME = os.environ.get("SMTP_USERNAME")
+    SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
+    SMTP_FROM_NAME = os.environ.get("SMTP_FROM_NAME", "AmanBio - Al Shefa")
+
+    # Email sign-in code (see app/notify.py, app/models.py's
+    # create_patient_login_code/verify_patient_login_code): how long a
+    # requested code stays valid, and how many codes a given email/IP may
+    # request in a window -- separate from LOGIN_ATTEMPT_LIMIT above (that
+    # one is about WRONG-code guesses; this one is about how often a code
+    # can be requested at all, so the sign-in form can't be used to spam
+    # someone's inbox).
+    EMAIL_CODE_TTL_MINUTES = int(os.environ.get("EMAIL_CODE_TTL_MINUTES", "10"))
+    EMAIL_CODE_REQUEST_LIMIT = int(os.environ.get("EMAIL_CODE_REQUEST_LIMIT", "5"))
+    EMAIL_CODE_REQUEST_WINDOW_MINUTES = int(os.environ.get("EMAIL_CODE_REQUEST_WINDOW_MINUTES", "15"))

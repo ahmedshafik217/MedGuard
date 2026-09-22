@@ -34,6 +34,7 @@ def create_app(config_class=Config):
 
     @app.context_processor
     def inject_i18n():
+        from app.mailer import email_configured
         lang = session.get("lang", app.config["DEFAULT_LANGUAGE"])
         return {
             "t": lambda key: translate(key, lang),
@@ -43,6 +44,11 @@ def create_app(config_class=Config):
             # language the current page is in -- see app/dose_format.py.
             "format_dose": lambda record: format_dose(record, lang),
             "format_duration": lambda record: format_duration(record, lang),
+            # Whether this site has SMTP set up at all (see app/mailer.py) --
+            # injected globally so any template can conditionally show the
+            # "sign in with email" link / email-address fields / etc.
+            # without every route having to pass it through by hand.
+            "email_login_available": email_configured(),
         }
 
     @app.context_processor

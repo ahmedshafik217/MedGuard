@@ -476,6 +476,40 @@ STRINGS = {
     "category_label": {"en": "Category (e.g. Category X)", "ar": "الفئة (مثال: Category X)"},
     "mechanism_optional": {"en": "Mechanism (optional)", "ar": "آلية التداخل (اختياري)"},
     "management_optional": {"en": "Patient management (optional)", "ar": "التوصية العلاجية (اختياري)"},
+
+    # --- Email address (optional, self-service) + sign-in with a one-time
+    # emailed code as an alternative to the ASH-XXXXXX ID + password,
+    # available once SMTP is configured (see app/mailer.py / app/config.py).
+    "email_address": {"en": "Email address", "ar": "البريد الإلكتروني"},
+    "email_hint": {
+        "en": "Optional. Lets you sign in with an emailed code instead of a password, and get notified of "
+              "changes to your record.",
+        "ar": "اختياري. يتيح لك تسجيل الدخول برمز يُرسل إلى بريدك بدلاً من كلمة المرور، ويصلك إشعار عند حدوث "
+              "أي تغيير في سجلك.",
+    },
+    "optional": {"en": "optional", "ar": "اختياري"},
+    "no_email_on_file": {"en": "No email on file", "ar": "لا يوجد بريد إلكتروني مسجل"},
+    "sign_in_with_email_btn": {"en": "Sign in with email", "ar": "تسجيل الدخول بالبريد الإلكتروني"},
+    "sign_in_with_id_btn": {"en": "Sign in with patient ID", "ar": "تسجيل الدخول برقم المريض"},
+    "email_login_hint": {
+        "en": "Enter the email on your patient record and we'll send you a one-time sign-in code.",
+        "ar": "أدخل البريد الإلكتروني المسجل في سجلك وسنرسل لك رمز دخول لمرة واحدة.",
+    },
+    "send_code_btn": {"en": "Send code", "ar": "إرسال الرمز"},
+    "enter_code_title": {"en": "Enter your code", "ar": "أدخل الرمز"},
+    "enter_code_hint": {"en": "We sent a 6-digit code to", "ar": "أرسلنا رمزاً مكوناً من 6 أرقام إلى"},
+    "sign_in_code": {"en": "Sign-in code", "ar": "رمز الدخول"},
+    "request_new_code_btn": {"en": "Request a new code", "ar": "طلب رمز جديد"},
+    "or_divider": {"en": "or", "ar": "أو"},
+    "email_code_sent_notice": {
+        "en": "If that email is on a patient record, a sign-in code has been sent to it.",
+        "ar": "إذا كان هذا البريد مسجلاً في سجل مريض، فقد تم إرسال رمز الدخول إليه.",
+    },
+    "email_code_invalid": {"en": "That code is incorrect or has expired.", "ar": "هذا الرمز غير صحيح أو منتهي الصلاحية."},
+    "email_code_too_many_requests": {
+        "en": "Too many requests. Please try again in a few minutes.",
+        "ar": "عدد كبير جداً من المحاولات. يرجى المحاولة مرة أخرى بعد بضع دقائق.",
+    },
 }
 
 

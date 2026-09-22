@@ -4,9 +4,9 @@ editing any record on a patient's behalf). Keeping this in one place means
 the safety-check logic is only ever called from one code path."""
 from datetime import date
 
-from flask import current_app
+from flask import current_app, session
 
-from app import models
+from app import models, notify
 from app.engine.safety_check import check_antibiotic, recent_cutoff_date
 
 
@@ -194,4 +194,15 @@ def add_antibiotic_from_form(patient, form, added_by, source="manual", source_ph
         source=source,
         source_photo=source_photo,
     )
+
+    # Best-effort notification emails -- never block or fail the add
+    # itself (see app/notify.py's own docstring). Every "add antibiotic"
+    # entry point (manual form, photo scan, patient self-entry, staff
+    # entry) goes through this one function, so this one hook covers all
+    # of them.
+    lang = session.get("lang", "ar")
+    notify.send_new_antibiotic_notice(patient, record, lang=lang)
+    if any(a.get("level") == "danger" for a in alerts):
+        notify.send_danger_alert_to_owners(models.list_full_owner_emails(), patient, record, alerts, lang=lang)
+
     return record, alerts

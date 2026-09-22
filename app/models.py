@@ -52,7 +52,7 @@ def age_years(date_of_birth_str):
 OWNER_ROLES = ALL_ROLES
 
 
-def create_owner(username, password, role="owner"):
+def create_owner(username, password, role="owner", email=None):
     if role not in OWNER_ROLES:
         # Never silently upgrade an unrecognized role to full access --
         # fall back to the most restrictive role instead (see
@@ -60,8 +60,8 @@ def create_owner(username, password, role="owner"):
         role = DEFAULT_SAFE_ROLE
     db = get_db()
     db.execute(
-        "INSERT INTO owner_users (username, password_hash, role, created_at) VALUES (?, ?, ?, ?)",
-        (username, generate_password_hash(password), role, _now()),
+        "INSERT INTO owner_users (username, password_hash, role, email, created_at) VALUES (?, ?, ?, ?, ?)",
+        (username, generate_password_hash(password), role, email or None, _now()),
     )
     db.commit()
 
@@ -105,6 +105,28 @@ def set_owner_password(owner_id, new_password):
 def list_owners():
     db = get_db()
     return [dict(r) for r in db.execute("SELECT * FROM owner_users ORDER BY created_at").fetchall()]
+
+
+def set_owner_email(owner_id, email):
+    db = get_db()
+    db.execute("UPDATE owner_users SET email = ? WHERE id = ?", (email or None, owner_id))
+    db.commit()
+
+
+def list_full_owner_emails():
+    """Email addresses (only the ones actually set) of every full
+    owner/controller account -- used to notify them by email when a newly
+    added antibiotic record triggers a 'danger'-level safety alert (see
+    app/records.py). Deliberately just the full-owner role, not every
+    owner-side account: a danger alert is exactly the kind of thing the
+    controller needs to see regardless of who added the record, while
+    emailing every single staff account on every danger alert hospital-wide
+    would quickly become noise nobody reads."""
+    db = get_db()
+    rows = db.execute(
+        "SELECT email FROM owner_users WHERE role = 'owner' AND email IS NOT NULL AND email != ''"
+    ).fetchall()
+    return [r["email"] for r in rows]
 
 
 # --------------------------------------------------------------- patients --
@@ -235,6 +257,85 @@ def update_phone_number(patient_id, phone_number):
         (phone_number or None, _now(), patient_id),
     )
     db.commit()
+
+
+def get_patient_by_email(email):
+    db = get_db()
+    return _row_to_dict(db.execute(
+        "SELECT * FROM patients WHERE lower(email) = lower(?)", ((email or "").strip(),)
+    ).fetchone())
+
+
+class EmailAlreadyUsed(Exception):
+    """Raised by update_email() when another patient already has this email
+    on file -- caught by the calling route, which shows a plain error
+    instead of letting a UNIQUE-constraint IntegrityError turn into a 500.
+    Checked explicitly (SELECT first) rather than just catching
+    sqlite3.IntegrityError from the UPDATE, so the caller doesn't have to
+    guess whether an IntegrityError meant THIS or some other constraint."""
+
+
+def update_email(patient_id, email):
+    email = (email or "").strip() or None
+    if email:
+        existing = get_patient_by_email(email)
+        if existing and existing["id"] != patient_id:
+            raise EmailAlreadyUsed(email)
+    db = get_db()
+    db.execute(
+        "UPDATE patients SET email = ?, updated_at = ? WHERE id = ?",
+        (email, _now(), patient_id),
+    )
+    db.commit()
+
+
+# ------------------------------------------- email one-time sign-in codes --
+
+def create_patient_login_code(patient_id, code, ttl_minutes=10):
+    """Stores a HASH of the code (never the code itself), the same way a
+    password is stored -- see app/db.py's patient_login_codes table. The
+    plain code is only ever held in memory for the few seconds between
+    being generated and being emailed (see auth.patient_login_email)."""
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    expires_at = (now + timedelta(minutes=ttl_minutes)).isoformat(timespec="seconds")
+    db.execute(
+        """INSERT INTO patient_login_codes (patient_id, code_hash, created_at, expires_at, attempts, consumed)
+           VALUES (?, ?, ?, ?, 0, 0)""",
+        (patient_id, generate_password_hash(code), _now(), expires_at),
+    )
+    db.commit()
+
+
+def verify_patient_login_code(patient_id, code, max_attempts=5):
+    """Checks `code` against the most recently requested code for this
+    patient. Only ever looks at the SINGLE newest row -- requesting a fresh
+    code makes any earlier one moot without needing a separate step to
+    explicitly invalidate it. Returns False (never raises) for: no code
+    ever requested, the newest one expired, its attempt budget is already
+    used up (brute-force guard on top of the route-level rate limiting --
+    a 6-digit code is only ~1 in a million, so this cap matters), or a
+    wrong code -- and counts THIS attempt either way before checking it, so
+    a wrong guess always costs one try even on a network retry."""
+    db = get_db()
+    row = db.execute(
+        """SELECT * FROM patient_login_codes WHERE patient_id = ? AND consumed = 0
+           ORDER BY created_at DESC LIMIT 1""",
+        (patient_id,),
+    ).fetchone()
+    if not row:
+        return False
+    if row["expires_at"] < _now():
+        return False
+    if row["attempts"] >= max_attempts:
+        return False
+    db.execute("UPDATE patient_login_codes SET attempts = attempts + 1 WHERE id = ?", (row["id"],))
+    db.commit()
+    if check_password_hash(row["code_hash"], code):
+        db.execute("UPDATE patient_login_codes SET consumed = 1 WHERE id = ?", (row["id"],))
+        db.commit()
+        return True
+    return False
 
 
 def _normalize_phone(raw):

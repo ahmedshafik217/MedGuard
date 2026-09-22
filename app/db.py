@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS owner_users (
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'owner',
+    email TEXT,
     created_at TEXT NOT NULL
 );
 
@@ -22,6 +23,7 @@ CREATE TABLE IF NOT EXISTS patients (
     password_hash TEXT,
     full_name TEXT,
     phone_number TEXT,
+    email TEXT,
     gender TEXT NOT NULL DEFAULT 'unspecified',
     date_of_birth TEXT,
     pregnancy_status TEXT NOT NULL DEFAULT 'unknown',
@@ -31,6 +33,14 @@ CREATE TABLE IF NOT EXISTS patients (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
+
+-- NOTE: no "CREATE ... INDEX ON patients(email)" here even though the
+-- column is declared above -- on an already-running install (most real
+-- deployments), this script runs against a patients table that predates
+-- the email column, and creating an index on a column that doesn't exist
+-- yet would fail this whole executescript() before _migrate() below ever
+-- gets a chance to ADD COLUMN it in. The unique index is created in
+-- _migrate() instead, strictly after the column is guaranteed to exist.
 
 CREATE TABLE IF NOT EXISTS patient_allergies (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -190,6 +200,28 @@ CREATE INDEX IF NOT EXISTS idx_login_attempts_identifier
     ON login_attempts(scope, identifier, attempted_at);
 CREATE INDEX IF NOT EXISTS idx_login_attempts_ip
     ON login_attempts(ip_address, attempted_at);
+
+-- One-time sign-in codes emailed to a patient (see app/mailer.py,
+-- app/notify.py, and auth.patient_login_email / auth.patient_login_email_verify
+-- below) -- an easier alternative to remembering an ASH-XXXXXX patient ID,
+-- for a patient who'd rather sign in with their email. code_hash (never the
+-- plain code) is checked the same way a password is (werkzeug's
+-- generate_password_hash/check_password_hash). Only the newest, unconsumed,
+-- unexpired row for a given patient is ever valid (see
+-- models.verify_patient_login_code) -- requesting a fresh code makes any
+-- earlier one moot without needing to explicitly invalidate it.
+CREATE TABLE IF NOT EXISTS patient_login_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    code_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    consumed INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_patient_login_codes_patient
+    ON patient_login_codes(patient_id, created_at);
 """
 
 
@@ -262,6 +294,29 @@ def _migrate(db):
         # ships; the owner/controller has to deliberately tick "Restricted"
         # on the drugs that need it.
         db.execute("ALTER TABLE antibiotics ADD COLUMN restricted INTEGER NOT NULL DEFAULT 0")
+        db.commit()
+
+    # Optional email address -- lets a patient sign in with a one-time
+    # emailed code instead of remembering their ASH-XXXXXX ID (see
+    # app/mailer.py, app/notify.py), and backs the "new antibiotic added"
+    # notification email. The ADD COLUMN has to happen before the unique
+    # index below can be created on an already-running install.
+    patient_cols = {row["name"] for row in db.execute("PRAGMA table_info(patients)")}
+    if "email" not in patient_cols:
+        db.execute("ALTER TABLE patients ADD COLUMN email TEXT")
+        db.commit()
+    # One email can only ever resolve to one patient -- see the comment in
+    # SCHEMA above for why this is safe to add even with existing NULLs.
+    db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_patients_email ON patients(email)")
+    db.commit()
+
+    # Optional email for an owner-side account -- currently only used to
+    # send the "danger"-level safety-alert notification (see
+    # app/records.py) to the full owner/controller. Not unique: nothing
+    # looks an owner account up BY email the way patient sign-in does.
+    owner_cols = {row["name"] for row in db.execute("PRAGMA table_info(owner_users)")}
+    if "email" not in owner_cols:
+        db.execute("ALTER TABLE owner_users ADD COLUMN email TEXT")
         db.commit()
 
 
