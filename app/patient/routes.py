@@ -1,6 +1,6 @@
 from datetime import date
 
-from flask import Response, redirect, render_template, request, url_for
+from flask import Response, flash, redirect, render_template, request, url_for
 
 from app import models
 from app.patient import bp
@@ -131,6 +131,26 @@ def update_phone():
     patient = current_patient()
     models.update_phone_number(patient["id"], request.form.get("phone_number", "").strip() or None)
     models.log_action("patient", patient["public_id"], "update_phone_number", target=patient["public_id"])
+    return redirect(url_for("patient.dashboard"))
+
+
+@bp.route("/email", methods=["POST"])
+@patient_required
+def update_email():
+    """Optional, self-service -- adding an email here is what makes the
+    email+one-time-code sign-in option (auth.patient_login_email) and the
+    email notifications (new antibiotic added, password changed) available
+    for this patient; leaving it blank keeps everything working exactly as
+    before on the ASH-XXXXXX ID alone (see app/models.py's update_email)."""
+    patient = current_patient()
+    email = request.form.get("email", "").strip()
+    try:
+        models.update_email(patient["id"], email)
+    except models.EmailAlreadyUsed:
+        flash("That email is already in use on another record.", "error")
+        return redirect(url_for("patient.dashboard"))
+    models.log_action("patient", patient["public_id"], "update_email", target=patient["public_id"])
+    flash("Email updated.", "success")
     return redirect(url_for("patient.dashboard"))
 
 
