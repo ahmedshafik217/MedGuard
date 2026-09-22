@@ -3,9 +3,9 @@ import tempfile
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-from flask import Response, current_app, flash, jsonify, redirect, render_template, request, url_for
+from flask import Response, current_app, flash, jsonify, redirect, render_template, request, session, url_for
 
-from app import models
+from app import models, notify
 from app.ai_gemini import AIScanError, AIScanNotConfigured
 from app.culture_scan import scan_culture_image
 from app.db import get_db
@@ -212,6 +212,7 @@ def reset_patient_password(public_id):
     new_password = request.form.get("new_password", "").strip()
     models.set_patient_password(patient["id"], new_password or None)
     models.log_action("owner", current_actor_label(), "reset_patient_password", target=public_id)
+    notify.send_patient_password_reset_notice(patient, lang=session.get("lang", "ar"))
     flash("Password updated." if new_password else "Password removed — patient can log in with ID only.", "success")
     return redirect(url_for("owner.patient_detail", public_id=public_id))
 
@@ -352,6 +353,26 @@ def update_patient_phone(public_id):
     models.update_phone_number(patient["id"], request.form.get("phone_number", "").strip() or None)
     models.log_action("owner", current_actor_label(), "update_phone_number", target=public_id)
     flash("Phone number updated.", "success")
+    return redirect(url_for("owner.patient_detail", public_id=public_id))
+
+
+@bp.route("/patients/<public_id>/email", methods=["POST"])
+@full_owner_required
+def update_patient_email(public_id):
+    """Staff-assisted version of patient.update_email below -- e.g. when
+    registering a patient at the front desk, or adding an email for one who
+    didn't set one themselves. Same optional-and-must-be-unique rules."""
+    patient = models.get_patient_by_public_id(public_id)
+    if not patient:
+        return ("Patient not found.", 404)
+    email = request.form.get("email", "").strip()
+    try:
+        models.update_email(patient["id"], email)
+    except models.EmailAlreadyUsed:
+        flash("That email is already on another patient's record.", "error")
+        return redirect(url_for("owner.patient_detail", public_id=public_id))
+    models.log_action("owner", current_actor_label(), "update_patient_email", target=public_id)
+    flash("Email updated.", "success")
     return redirect(url_for("owner.patient_detail", public_id=public_id))
 
 
@@ -783,6 +804,7 @@ def settings():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
+        email = request.form.get("email", "").strip() or None
         role = request.form.get("role", DEFAULT_SAFE_ROLE).strip()
         if role not in CREATABLE_ROLES:
             # Never silently fall back to a broad role on a bad/tampered
@@ -794,11 +816,27 @@ def settings():
         elif models.get_owner_by_username(username):
             flash("That username already exists.", "error")
         else:
-            models.create_owner(username, password, role=role)
+            models.create_owner(username, password, role=role, email=email)
             models.log_action("owner", current_actor_label(), "add_owner_account", details=f"{username} ({role})")
             flash("New account created.", "success")
     owners = models.list_owners()
     return render_template("owner/settings.html", owners=owners, creatable_roles=CREATABLE_ROLES)
+
+
+@bp.route("/settings/my-email", methods=["POST"])
+@owner_required
+def update_my_owner_email():
+    """Self-service email for the CURRENTLY LOGGED IN owner-side account --
+    any role may set their own (open the same way change_password is), but
+    in practice only a full owner/controller's email actually gets used for
+    anything right now: see models.list_full_owner_emails() and
+    app/records.py's danger-alert notification."""
+    owner = current_owner()
+    email = request.form.get("email", "").strip() or None
+    models.set_owner_email(owner["id"], email)
+    models.log_action("owner", current_actor_label(), "update_own_email")
+    flash("Email updated.", "success")
+    return redirect(url_for("owner.change_password"))
 
 
 @bp.route("/settings/owners/<int:owner_id>/reset-password", methods=["POST"])
@@ -818,6 +856,7 @@ def reset_owner_password(owner_id):
         return redirect(url_for("owner.settings"))
     models.set_owner_password(owner_id, new_password)
     models.log_action("owner", current_actor_label(), "reset_owner_password", details=f"target={target['username']}")
+    notify.send_owner_password_reset_notice(target, lang=session.get("lang", "ar"))
     flash(f"Password updated for {target['username']}.", "success")
     return redirect(url_for("owner.settings"))
 
@@ -844,9 +883,10 @@ def change_password():
         else:
             models.set_owner_password(owner["id"], new_password)
             models.log_action("owner", current_actor_label(), "change_own_password")
+            notify.send_owner_password_reset_notice(owner, lang=session.get("lang", "ar"))
             flash("Your password has been changed.", "success")
             return redirect(url_for("owner.dashboard"))
-    return render_template("owner/change_password.html")
+    return render_template("owner/change_password.html", owner=current_owner())
 
 
 @bp.route("/reports/quality")
