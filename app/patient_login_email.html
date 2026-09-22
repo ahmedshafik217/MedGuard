@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="auth-form-wrap">
+    <div class="auth-form-card theme-teal">
+        <span class="auth-form-icon">
+            <svg viewBox="0 0 24 24" width="34" height="34"><rect x="2.5" y="5" width="19" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="3,6.5 12,13 21,6.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <h3 class="auth-form-title">{{ t('sign_in_with_email_btn') }}</h3>
+        <p class="small text-muted">{{ t('email_login_hint') }}</p>
+        <form method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+                <label class="form-label">{{ t('email_address') }}</label>
+                <input type="email" name="email" class="form-control" placeholder="you@example.com" required autofocus>
+            </div>
+            <button type="submit" class="btn-theme">{{ t('send_code_btn') }}</button>
+        </form>
+        <div class="auth-form-links">
+            <a href="{{ url_for('auth.patient_login') }}">&laquo; {{ t('sign_in_with_id_btn') }}</a>
+            <a href="{{ url_for('auth.choose_login') }}">{{ t('back') }}</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
