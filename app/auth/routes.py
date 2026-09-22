@@ -1,10 +1,15 @@
+import secrets
 from datetime import date
 
-from flask import flash, redirect, render_template, request, session, url_for
+from flask import abort, current_app, flash, redirect, render_template, request, session, url_for
 
-from app import models
+from app import models, notify
 from app.auth import bp
-from app.rate_limit import check_lockout, check_registration_rate, record_attempt, record_registration
+from app.mailer import email_configured
+from app.rate_limit import (
+    check_email_code_request_rate, check_lockout, check_registration_rate, record_attempt,
+    record_email_code_request, record_registration,
+)
 from app.utils import current_actor_label, current_owner, current_patient, login_owner, login_patient, logout
 
 
@@ -89,6 +94,95 @@ def patient_login():
     return render_template("auth/patient_login.html", prefill_id=prefill_id)
 
 
+@bp.route("/patient-login-email", methods=["GET", "POST"])
+def patient_login_email():
+    """Step 1 of the email+one-time-code alternative to remembering an
+    ASH-XXXXXX patient ID: enter an email, get a short code sent to it,
+    enter the code on the next page to sign in. Kept as an OPTION alongside
+    the ID-based patient_login() above, never a replacement for it -- a
+    patient with no email on file (or who just prefers the ID) keeps using
+    that exact same form. 404s outright if this site has no email sending
+    configured (see app/mailer.py) rather than showing a form that could
+    never actually work."""
+    if not email_configured():
+        abort(404)
+    if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        ip_address = _client_ip()
+
+        wait_minutes = check_email_code_request_rate(email, ip_address)
+        if wait_minutes:
+            flash(_too_many_attempts_message(wait_minutes), "error")
+            return render_template("auth/patient_login_email.html")
+
+        record_email_code_request(email, ip_address)
+        # Only look up / send / log anything if a patient actually has this
+        # email -- but flash the SAME message either way (see
+        # patient_login()'s own comment on this pattern above) so this form
+        # can't be used to check which email addresses belong to a patient
+        # here.
+        patient = models.get_patient_by_email(email) if email else None
+        if patient:
+            code = f"{secrets.randbelow(1_000_000):06d}"
+            ttl = current_app.config.get("EMAIL_CODE_TTL_MINUTES", 10)
+            models.create_patient_login_code(patient["id"], code, ttl_minutes=ttl)
+            notify.send_patient_login_code(patient, code, lang=session.get("lang", "ar"))
+            models.log_action("patient", patient["public_id"], "login_code_requested",
+                              target=patient["public_id"], details=f"ip={ip_address}")
+
+        session["pending_email_login"] = email.lower()
+        flash(
+            _t(
+                "If that email is on a patient record, a sign-in code has been sent to it. Check your inbox.",
+                "إذا كان هذا البريد الإلكتروني مسجلاً في سجل مريض، فقد تم إرسال رمز الدخول إليه. "
+                "تحقق من بريدك الوارد.",
+            ),
+            "success",
+        )
+        return redirect(url_for("auth.patient_login_email_verify"))
+    return render_template("auth/patient_login_email.html")
+
+
+@bp.route("/patient-login-email/verify", methods=["GET", "POST"])
+def patient_login_email_verify():
+    """Step 2: enter the code just emailed. Rate-limited the same way a
+    password guess is (check_lockout/record_attempt, scope
+    'patient_email_code_verify', keyed by the email itself) ON TOP OF the
+    code's own short attempt budget in models.verify_patient_login_code --
+    two independent layers, since one is per-code and the other is
+    per-account-over-time."""
+    if not email_configured():
+        abort(404)
+    email = session.get("pending_email_login", "")
+    if not email:
+        return redirect(url_for("auth.patient_login_email"))
+    if request.method == "POST":
+        code = request.form.get("code", "").strip()
+        ip_address = _client_ip()
+
+        wait_minutes = check_lockout("patient_email_code_verify", email, ip_address)
+        if wait_minutes:
+            flash(_too_many_attempts_message(wait_minutes), "error")
+            return render_template("auth/patient_login_email_verify.html", email=email)
+
+        patient = models.get_patient_by_email(email)
+        ok = bool(patient) and bool(code) and models.verify_patient_login_code(patient["id"], code)
+        record_attempt("patient_email_code_verify", email, ip_address, success=ok)
+        if ok:
+            session.pop("pending_email_login", None)
+            login_patient(patient)
+            models.log_action("patient", patient["public_id"], "login_via_email_code", target=patient["public_id"])
+            return redirect(url_for("patient.dashboard"))
+        flash(
+            _t(
+                "That code is incorrect or has expired. Please try again, or request a new one.",
+                "هذا الرمز غير صحيح أو انتهت صلاحيته. يرجى المحاولة مرة أخرى أو طلب رمز جديد.",
+            ),
+            "error",
+        )
+    return render_template("auth/patient_login_email_verify.html", email=email)
+
+
 @bp.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     """Self-service password reset: no email/SMS involved (this deployment
@@ -137,6 +231,7 @@ def forgot_password():
 
         models.set_patient_password(patient["id"], new_password)
         models.log_action("patient", patient["public_id"], "password_reset_self", target=patient["public_id"])
+        notify.send_patient_password_reset_notice(patient, lang=session.get("lang", "ar"))
         flash(_t("Password updated — you can log in now.", "تم تحديث كلمة المرور — يمكنك تسجيل الدخول الآن."),
               "success")
         return redirect(url_for("auth.patient_login", prefill=patient["public_id"]))
