@@ -481,6 +481,7 @@ STRINGS = {
     # emailed code as an alternative to the ASH-XXXXXX ID + password,
     # available once SMTP is configured (see app/mailer.py / app/config.py).
     "email_address": {"en": "Email address", "ar": "البريد الإلكتروني"},
+    "email_address_optional": {"en": "Email address (optional)", "ar": "البريد الإلكتروني (اختياري)"},
     "email_hint": {
         "en": "Optional. Lets you sign in with an emailed code instead of a password, and get notified of "
               "changes to your record.",

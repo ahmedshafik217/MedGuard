@@ -131,7 +131,18 @@ def list_full_owner_emails():
 
 # --------------------------------------------------------------- patients --
 
-def create_patient(gender="unspecified", full_name=None, date_of_birth=None, password=None, phone_number=None):
+def create_patient(gender="unspecified", full_name=None, date_of_birth=None, password=None, phone_number=None,
+                    email=None):
+    """email is optional, same as phone_number -- but unlike phone_number it
+    must be unique across patients (see EmailAlreadyUsed further down),
+    since it can be used to sign in. Checked explicitly before the INSERT
+    (same pattern as update_email) so a duplicate entered at registration
+    time fails with a clear, catchable error instead of a raw sqlite3
+    IntegrityError from the idx_patients_email unique index."""
+    email = (email or "").strip() or None
+    if email and get_patient_by_email(email):
+        raise EmailAlreadyUsed(email)
+
     db = get_db()
     public_id = new_public_id()
     while get_patient_by_public_id(public_id):  # astronomically unlikely, but be safe
@@ -143,10 +154,10 @@ def create_patient(gender="unspecified", full_name=None, date_of_birth=None, pas
 
     cur = db.execute(
         """INSERT INTO patients
-           (public_id, password_hash, full_name, phone_number, gender, date_of_birth,
+           (public_id, password_hash, full_name, phone_number, email, gender, date_of_birth,
             pregnancy_status, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        (public_id, password_hash, full_name, phone_number or None, gender, date_of_birth,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (public_id, password_hash, full_name, phone_number or None, email, gender, date_of_birth,
          pregnancy_status, now, now),
     )
     db.commit()
