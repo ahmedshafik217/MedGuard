@@ -77,6 +77,7 @@ def create_patient():
         full_name = request.form.get("full_name", "").strip() or None
         password = request.form.get("password", "").strip() or None
         phone_number = request.form.get("phone_number", "").strip() or None
+        email = request.form.get("email", "").strip() or None
         dob_raw = request.form.get("date_of_birth", "").strip()
 
         date_of_birth = None
@@ -86,10 +87,14 @@ def create_patient():
             except ValueError:
                 date_of_birth = None
 
-        patient = models.create_patient(
-            gender=gender, full_name=full_name, date_of_birth=date_of_birth, password=password,
-            phone_number=phone_number,
-        )
+        try:
+            patient = models.create_patient(
+                gender=gender, full_name=full_name, date_of_birth=date_of_birth, password=password,
+                phone_number=phone_number, email=email,
+            )
+        except models.EmailAlreadyUsed:
+            flash("That email is already in use on another patient's record.", "error")
+            return render_template("owner/create_patient.html")
 
         if gender == "female":
             pregnancy_status = request.form.get("pregnancy_status", "unknown")
