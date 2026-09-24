@@ -298,6 +298,7 @@ def register_patient():
         password = request.form.get("password", "").strip() or None
         full_name = request.form.get("full_name", "").strip() or None
         phone_number = request.form.get("phone_number", "").strip() or None
+        email = request.form.get("email", "").strip() or None
         dob_raw = request.form.get("date_of_birth", "").strip()
 
         date_of_birth = None
@@ -307,10 +308,25 @@ def register_patient():
             except ValueError:
                 date_of_birth = None
 
-        patient = models.create_patient(
-            gender=gender, full_name=full_name, date_of_birth=date_of_birth, password=password,
-            phone_number=phone_number,
-        )
+        try:
+            patient = models.create_patient(
+                gender=gender, full_name=full_name, date_of_birth=date_of_birth, password=password,
+                phone_number=phone_number, email=email,
+            )
+        except models.EmailAlreadyUsed:
+            # Don't burn a registration-rate-limit slot or create a half-set
+            # record on a duplicate email -- just send them back to the
+            # form with everything else they typed still worth re-entering.
+            flash(
+                _t(
+                    "That email is already in use on another patient record. "
+                    "You can leave the email field blank and add it later, or use a different one.",
+                    "هذا البريد الإلكتروني مستخدم بالفعل في سجل مريض آخر. يمكنك ترك حقل البريد "
+                    "فارغاً وإضافته لاحقاً، أو استخدام بريد إلكتروني مختلف.",
+                ),
+                "error",
+            )
+            return render_template("auth/register_patient.html")
         record_registration(ip_address)
         models.log_action("patient", patient["public_id"], "record_created", target=patient["public_id"])
 
