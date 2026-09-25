@@ -7,9 +7,10 @@ from app import models, notify
 from app.auth import bp
 from app.mailer import email_configured
 from app.rate_limit import (
-    check_email_code_request_rate, check_lockout, check_registration_rate, record_attempt,
-    record_email_code_request, record_registration,
+    check_email_code_request_rate, check_lockout, check_registration_rate, check_sms_code_request_rate,
+    record_attempt, record_email_code_request, record_registration, record_sms_code_request,
 )
+from app.sms import sms_configured
 from app.utils import current_actor_label, current_owner, current_patient, login_owner, login_patient, logout
 
 
@@ -183,6 +184,101 @@ def patient_login_email_verify():
     return render_template("auth/patient_login_email_verify.html", email=email)
 
 
+@bp.route("/patient-login-phone", methods=["GET", "POST"])
+def patient_login_phone():
+    """Step 1 of the phone+one-time-code alternative to remembering an
+    ASH-XXXXXX patient ID -- the SMS counterpart of patient_login_email()
+    above. Needs phone number AND date of birth (not phone alone), because
+    unlike email a phone number isn't guaranteed unique here -- e.g. a
+    parent registering more than one child on their own phone -- so
+    models.get_patient_by_phone_and_dob() below fails closed (returns
+    nobody) if that pair doesn't resolve to exactly one patient. 404s
+    outright if this site has no SMS sending configured (see app/sms.py)."""
+    if not sms_configured():
+        abort(404)
+    if request.method == "POST":
+        phone_number = request.form.get("phone_number", "").strip()
+        dob_raw = request.form.get("date_of_birth", "").strip()
+        ip_address = _client_ip()
+
+        try:
+            date_of_birth = date.fromisoformat(dob_raw).isoformat() if dob_raw else None
+        except ValueError:
+            date_of_birth = None
+
+        wait_minutes = check_sms_code_request_rate(phone_number, ip_address)
+        if wait_minutes:
+            flash(_too_many_attempts_message(wait_minutes), "error")
+            return render_template("auth/patient_login_phone.html")
+
+        record_sms_code_request(phone_number, ip_address)
+        # Same no-enumeration pattern as patient_login_email() above --
+        # only look up / send / log anything if the phone+DOB pair
+        # actually resolves to one patient, but flash the SAME message
+        # either way.
+        patient = models.get_patient_by_phone_and_dob(phone_number, date_of_birth) if date_of_birth else None
+        if patient:
+            code = f"{secrets.randbelow(1_000_000):06d}"
+            ttl = current_app.config.get("SMS_CODE_TTL_MINUTES", 10)
+            models.create_patient_login_code(patient["id"], code, ttl_minutes=ttl)
+            notify.send_patient_login_code_sms(patient, code, lang=session.get("lang", "ar"))
+            models.log_action("patient", patient["public_id"], "login_code_requested_sms",
+                              target=patient["public_id"], details=f"ip={ip_address}")
+
+        session["pending_phone_login"] = phone_number
+        session["pending_phone_login_dob"] = date_of_birth or ""
+        flash(
+            _t(
+                "If those details match a patient record, a sign-in code has been texted to that number.",
+                "إذا كانت هذه البيانات مطابقة لسجل مريض، فقد تم إرسال رمز الدخول برسالة نصية إلى ذلك الرقم.",
+            ),
+            "success",
+        )
+        return redirect(url_for("auth.patient_login_phone_verify"))
+    return render_template("auth/patient_login_phone.html")
+
+
+@bp.route("/patient-login-phone/verify", methods=["GET", "POST"])
+def patient_login_phone_verify():
+    """Step 2: enter the code just texted. Rate-limited the same way a
+    password guess is (check_lockout/record_attempt, scope
+    'patient_sms_code_verify', keyed by the phone number itself) ON TOP OF
+    the code's own short attempt budget in models.verify_patient_login_code
+    -- same two-layer shape as patient_login_email_verify() above."""
+    if not sms_configured():
+        abort(404)
+    phone_number = session.get("pending_phone_login", "")
+    date_of_birth = session.get("pending_phone_login_dob", "")
+    if not phone_number or not date_of_birth:
+        return redirect(url_for("auth.patient_login_phone"))
+    if request.method == "POST":
+        code = request.form.get("code", "").strip()
+        ip_address = _client_ip()
+
+        wait_minutes = check_lockout("patient_sms_code_verify", phone_number, ip_address)
+        if wait_minutes:
+            flash(_too_many_attempts_message(wait_minutes), "error")
+            return render_template("auth/patient_login_phone_verify.html", phone_number=phone_number)
+
+        patient = models.get_patient_by_phone_and_dob(phone_number, date_of_birth)
+        ok = bool(patient) and bool(code) and models.verify_patient_login_code(patient["id"], code)
+        record_attempt("patient_sms_code_verify", phone_number, ip_address, success=ok)
+        if ok:
+            session.pop("pending_phone_login", None)
+            session.pop("pending_phone_login_dob", None)
+            login_patient(patient)
+            models.log_action("patient", patient["public_id"], "login_via_sms_code", target=patient["public_id"])
+            return redirect(url_for("patient.dashboard"))
+        flash(
+            _t(
+                "That code is incorrect or has expired. Please try again, or request a new one.",
+                "هذا الرمز غير صحيح أو انتهت صلاحيته. يرجى المحاولة مرة أخرى أو طلب رمز جديد.",
+            ),
+            "error",
+        )
+    return render_template("auth/patient_login_phone_verify.html", phone_number=phone_number)
+
+
 @bp.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     """Self-service password reset: no email/SMS involved (this deployment
@@ -300,6 +396,22 @@ def register_patient():
         phone_number = request.form.get("phone_number", "").strip() or None
         email = request.form.get("email", "").strip() or None
         dob_raw = request.form.get("date_of_birth", "").strip()
+
+        # Phone number is now required for every NEW patient record (plain
+        # required-field check, same pattern as owner.settings()'s
+        # username/password check below). Existing patients registered
+        # before this change keep working with no phone on file -- this
+        # only gates the create path, never blocks an existing patient
+        # from signing in.
+        if not phone_number:
+            flash(
+                _t(
+                    "Phone number is required to create a new patient record.",
+                    "رقم الهاتف مطلوب لإنشاء سجل مريض جديد.",
+                ),
+                "error",
+            )
+            return render_template("auth/register_patient.html")
 
         date_of_birth = None
         if dob_raw:
