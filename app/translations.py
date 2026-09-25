@@ -491,10 +491,16 @@ STRINGS = {
     "optional": {"en": "optional", "ar": "اختياري"},
     "no_email_on_file": {"en": "No email on file", "ar": "لا يوجد بريد إلكتروني مسجل"},
     "sign_in_with_email_btn": {"en": "Sign in with email", "ar": "تسجيل الدخول بالبريد الإلكتروني"},
+    "sign_in_with_phone_btn": {"en": "Sign in with phone", "ar": "تسجيل الدخول برقم الهاتف"},
     "sign_in_with_id_btn": {"en": "Sign in with patient ID", "ar": "تسجيل الدخول برقم المريض"},
     "email_login_hint": {
         "en": "Enter the email on your patient record and we'll send you a one-time sign-in code.",
         "ar": "أدخل البريد الإلكتروني المسجل في سجلك وسنرسل لك رمز دخول لمرة واحدة.",
+    },
+    "phone_login_hint": {
+        "en": "Enter the phone number and date of birth on your patient record and we'll text you a "
+              "one-time sign-in code.",
+        "ar": "أدخل رقم الهاتف وتاريخ الميلاد المسجلين في سجلك وسنرسل لك رمز دخول لمرة واحدة برسالة نصية.",
     },
     "send_code_btn": {"en": "Send code", "ar": "إرسال الرمز"},
     "enter_code_title": {"en": "Enter your code", "ar": "أدخل الرمز"},
