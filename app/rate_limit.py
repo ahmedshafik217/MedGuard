@@ -165,6 +165,59 @@ def record_email_code_request(email, ip_address):
     db.commit()
 
 
+def _normalize_phone_for_rate_limit(raw):
+    """Digits only, last 9 -- a local duplicate of app/models.py's own
+    _normalize_phone rather than importing it, same as this module already
+    keeps its own private _now()/_iso() instead of importing app/models.py's.
+    Only needs to be consistent with itself (same input -> same identifier
+    every time), not cryptographically exact."""
+    digits = "".join(ch for ch in (raw or "") if ch.isdigit())
+    return digits[-9:] if len(digits) >= 9 else digits
+
+
+def check_sms_code_request_rate(phone_number, ip_address):
+    """Phone equivalent of check_email_code_request_rate() above -- same
+    reasoning (requesting a code basically always "succeeds", so this caps
+    the RATE of requests, not a failure count) and same two-limit shape
+    (per-phone, looser per-IP)."""
+    cfg = current_app.config
+    window = cfg.get("SMS_CODE_REQUEST_WINDOW_MINUTES", 15)
+    limit = cfg.get("SMS_CODE_REQUEST_LIMIT", 5)
+    db = get_db()
+    cutoff = _iso(_now() - timedelta(minutes=window))
+    identifier = _normalize_phone_for_rate_limit(phone_number)
+
+    phone_count = db.execute(
+        "SELECT COUNT(*) AS c FROM login_attempts "
+        "WHERE scope = 'patient_sms_code_request' AND identifier = ? AND attempted_at >= ?",
+        (identifier, cutoff),
+    ).fetchone()["c"]
+    if phone_count >= limit:
+        return window
+
+    ip_count = db.execute(
+        "SELECT COUNT(*) AS c FROM login_attempts "
+        "WHERE scope = 'patient_sms_code_request' AND ip_address = ? AND attempted_at >= ?",
+        (ip_address or "unknown", cutoff),
+    ).fetchone()["c"]
+    if ip_count >= limit * 4:
+        return window
+
+    return None
+
+
+def record_sms_code_request(phone_number, ip_address):
+    """Log one SMS-sign-in-code request for check_sms_code_request_rate()
+    above -- same pattern as record_email_code_request()."""
+    db = get_db()
+    db.execute(
+        "INSERT INTO login_attempts (scope, identifier, ip_address, success, attempted_at) VALUES (?, ?, ?, ?, ?)",
+        ("patient_sms_code_request", _normalize_phone_for_rate_limit(phone_number), ip_address or "unknown", 1,
+         _iso(_now())),
+    )
+    db.commit()
+
+
 def check_lockout(scope, identifier, ip_address):
     """Returns None if this login attempt may proceed, or an int number of
     minutes to report to the user if either limit is currently exceeded

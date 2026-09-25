@@ -377,6 +377,33 @@ def find_patient_for_reset(public_id, phone_number, date_of_birth):
     return patient
 
 
+def get_patient_by_phone_and_dob(phone_number, date_of_birth):
+    """Looks up a patient by phone number + date of birth ONLY, no ID
+    needed -- the phone equivalent of get_patient_by_email, used by the
+    SMS one-time-code sign-in (auth.patient_login_phone) for a patient who
+    doesn't remember their ASH-XXXXXX ID. Unlike email, a phone number is
+    NOT guaranteed unique across patients here (e.g. a parent registering
+    more than one child on their own phone) -- so if phone+DOB together
+    match more than one patient, this returns None rather than guessing
+    which one. A login that doesn't resolve to exactly one account should
+    always fail closed, never fall back to picking one -- same principle
+    as find_patient_for_reset above, just without the ID to disambiguate."""
+    if not phone_number or not date_of_birth:
+        return None
+    target_phone = _normalize_phone(phone_number)
+    if not target_phone:
+        return None
+    db = get_db()
+    rows = db.execute(
+        "SELECT * FROM patients WHERE date_of_birth = ? AND phone_number IS NOT NULL",
+        (date_of_birth,),
+    ).fetchall()
+    matches = [dict(r) for r in rows if _normalize_phone(r["phone_number"]) == target_phone]
+    if len(matches) != 1:
+        return None
+    return matches[0]
+
+
 def list_patients(search=None, limit=200):
     db = get_db()
     if search:

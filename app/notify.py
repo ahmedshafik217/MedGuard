@@ -1,10 +1,19 @@
-"""Builds and sends every notification email this app sends, in one place
-(mirrors app/auth/routes.py's own small `_t()` bilingual-flash-message
-pattern, just for emails instead of flashes). Every function here is
-best-effort and NEVER raises or blocks its caller -- see app/mailer.py's
-own docstring. A call site fires one of these and moves on; it never
-branches on whether the email actually went out."""
+"""Builds and sends every notification email AND SMS this app sends, in one
+place (mirrors app/auth/routes.py's own small `_t()` bilingual-flash-message
+pattern, just for emails/texts instead of flashes). Every function here is
+best-effort and NEVER raises or blocks its caller -- see app/mailer.py's and
+app/sms.py's own docstrings. A call site fires one of these and moves on; it
+never branches on whether the email or text actually went out.
+
+Only patient-facing notices go out by SMS (login code, password-reset
+notice, new-antibiotic notice) -- owner/staff accounts don't have a phone
+number field in this app, so send_owner_password_reset_notice and
+send_danger_alert_to_owners below stay email-only. A patient without a
+phone on file (any patient registered before phone became mandatory) just
+doesn't get the SMS copy -- send_sms() itself is a no-op for a missing
+number, same as send_email() is for a missing address."""
 from app.mailer import send_email
+from app.sms import send_sms
 
 
 def _t(en, ar, lang):
@@ -29,12 +38,31 @@ def send_patient_login_code(patient, code, lang="ar"):
     return send_email(patient.get("email"), subject, body)
 
 
+def send_patient_login_code_sms(patient, code, lang="ar"):
+    """The SMS equivalent of send_patient_login_code() above, for
+    app/auth/routes.py's patient_login_phone flow -- a separate function
+    (rather than folding this into the email one) because a sign-in code
+    always goes to exactly the ONE channel the patient chose to sign in
+    with, never both at once, unlike the plain notices below which go to
+    every channel the patient has on file."""
+    body = _t(
+        f"AmanBio sign-in code: {code}. Valid a few minutes, use once. "
+        f"Didn't request this? Your account is still safe -- ignore this text.",
+        f"رمز الدخول في أمان بايو: {code}. صالح لبضع دقائق ويُستخدم مرة واحدة. "
+        f"لم تطلب هذا الرمز؟ حسابك ما زال آمناً -- تجاهل هذه الرسالة.",
+        lang,
+    )
+    return send_sms(patient.get("phone_number"), body)
+
+
 def send_patient_password_reset_notice(patient, lang="ar"):
     """Sent after a patient's password is reset or removed, whether they
     did it themselves (auth.forgot_password) or hospital/pharmacy staff did
     it for them (owner.reset_patient_password) -- a plain security notice,
     not a code: if the patient didn't do this themselves, seeing it happen
-    is the useful signal, not something to click or act on."""
+    is the useful signal, not something to click or act on. Goes out on
+    EVERY channel the patient has on file (email AND SMS), unlike a
+    sign-in code which only ever goes to the one channel just used."""
     subject = _t("Your AmanBio password was changed", "تم تغيير كلمة مرور حسابك - أمان بايو", lang)
     body = _t(
         f"This is a notice that the password for your patient record ({patient.get('public_id', '')}) "
@@ -45,14 +73,24 @@ def send_patient_password_reset_notice(patient, lang="ar"):
         f"تتعرف على هذا التغيير، يرجى التواصل مع المستشفى فوراً.",
         lang,
     )
-    return send_email(patient.get("email"), subject, body)
+    sms_body = _t(
+        f"AmanBio: the password for your patient record ({patient.get('public_id', '')}) was just changed. "
+        f"Not you? Contact the hospital right away.",
+        f"أمان بايو: تم تغيير كلمة مرور سجلك ({patient.get('public_id', '')}) للتو. لم يكن أنت؟ تواصل مع "
+        f"المستشفى فوراً.",
+        lang,
+    )
+    email_ok = send_email(patient.get("email"), subject, body)
+    sms_ok = send_sms(patient.get("phone_number"), sms_body)
+    return email_ok or sms_ok
 
 
 def send_owner_password_reset_notice(owner, lang="ar"):
     """Same idea as send_patient_password_reset_notice above, for a
     staff/owner-side account -- sent whether they changed their own
     password (owner.change_password) or the full owner/controller reset it
-    for them (owner.reset_owner_password)."""
+    for them (owner.reset_owner_password). Email-only: owner_users has no
+    phone number field in this app (only patients do)."""
     subject = _t("Your AmanBio account password was changed", "تم تغيير كلمة مرور حسابك - أمان بايو", lang)
     body = _t(
         f"This is a notice that the password for your staff account ({owner.get('username', '')}) "
@@ -67,13 +105,13 @@ def send_owner_password_reset_notice(owner, lang="ar"):
 
 
 def send_new_antibiotic_notice(patient, record, lang="ar"):
-    """Sent to the patient (if they have an email on file) whenever a new
-    antibiotic entry is added to their record -- by themselves, or by
-    hospital/pharmacy staff -- so they have a copy even without opening the
-    app. Fires from app/records.py's add_antibiotic_from_form(), which
-    every "add antibiotic" entry point (manual form, photo scan, patient
-    self-entry, staff entry) already goes through, so this one hook covers
-    all of them."""
+    """Sent to the patient (on every channel they have on file -- email
+    and/or SMS) whenever a new antibiotic entry is added to their record --
+    by themselves, or by hospital/pharmacy staff -- so they have a copy
+    even without opening the app. Fires from app/records.py's
+    add_antibiotic_from_form(), which every "add antibiotic" entry point
+    (manual form, photo scan, patient self-entry, staff entry) already
+    goes through, so this one hook covers all of them."""
     name = record.get("display_name") or "an antibiotic"
     date_str = record.get("prescribed_date") or ""
     subject = _t(f"New antibiotic added to your record: {name}",
@@ -90,7 +128,16 @@ def send_new_antibiotic_notice(patient, record, lang="ar"):
         f"الدخول إلى سجلك.",
         lang,
     )
-    return send_email(patient.get("email"), subject, body)
+    sms_body = _t(
+        f"AmanBio: a new antibiotic ({name}) was added to your record ({patient.get('public_id', '')}) "
+        f"on {date_str}. Sign in for full details.",
+        f"أمان بايو: تمت إضافة مضاد حيوي جديد ({name}) لسجلك ({patient.get('public_id', '')}) بتاريخ "
+        f"{date_str}. سجّل الدخول لمزيد من التفاصيل.",
+        lang,
+    )
+    sms_ok = send_sms(patient.get("phone_number"), sms_body)
+    email_ok = send_email(patient.get("email"), subject, body)
+    return email_ok or sms_ok
 
 
 def send_danger_alert_to_owners(owner_emails, patient, record, alerts, lang="ar"):
@@ -101,7 +148,8 @@ def send_danger_alert_to_owners(owner_emails, patient, record, alerts, lang="ar"
     saw the on-screen warning. owner_emails: list of addresses (see
     models.list_full_owner_emails()) -- sent as one message per recipient
     rather than one message with everyone in To/Cc, so staff addresses
-    aren't exposed to each other."""
+    aren't exposed to each other. Email-only: owner_users has no phone
+    number field in this app (only patients do)."""
     if not owner_emails:
         return False
     name = record.get("display_name") or "an antibiotic"

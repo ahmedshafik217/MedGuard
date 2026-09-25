@@ -94,3 +94,21 @@ class Config:
     EMAIL_CODE_TTL_MINUTES = int(os.environ.get("EMAIL_CODE_TTL_MINUTES", "10"))
     EMAIL_CODE_REQUEST_LIMIT = int(os.environ.get("EMAIL_CODE_REQUEST_LIMIT", "5"))
     EMAIL_CODE_REQUEST_WINDOW_MINUTES = int(os.environ.get("EMAIL_CODE_REQUEST_WINDOW_MINUTES", "15"))
+
+    # Outbound SMS (see app/sms.py): a patient's one-time phone sign-in
+    # code, plus SMS copies of the password-reset and new-antibiotic
+    # notices (the "critical safety alert" notice still only goes to full
+    # owners by email -- owner accounts don't have a phone number field).
+    # Silently unavailable until all three TWILIO_* vars are set --
+    # nothing else in the app depends on it. Currently configured for a
+    # PLAIN Twilio phone number (no Saudi alphanumeric sender-ID
+    # registration yet -- see app/sms.py's docstring for what that means
+    # for cost and how to switch providers later once the hospital/
+    # pharmacy's business registration (CR) is in hand).
+    TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
+    TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
+    TWILIO_FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER")
+
+    SMS_CODE_TTL_MINUTES = int(os.environ.get("SMS_CODE_TTL_MINUTES", "10"))
+    SMS_CODE_REQUEST_LIMIT = int(os.environ.get("SMS_CODE_REQUEST_LIMIT", "5"))
+    SMS_CODE_REQUEST_WINDOW_MINUTES = int(os.environ.get("SMS_CODE_REQUEST_WINDOW_MINUTES", "15"))
