@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="auth-form-wrap">
+    <div class="auth-form-card theme-teal">
+        <span class="auth-form-icon">
+            <svg viewBox="0 0 24 24" width="34" height="34"><rect x="7" y="2" width="10" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="10" y1="18.3" x2="14" y2="18.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+        <h3 class="auth-form-title">{{ t('sign_in_with_phone_btn') }}</h3>
+        <p class="small text-muted">{{ t('phone_login_hint') }}</p>
+        <form method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+                <label class="form-label">{{ t('phone_number') }}</label>
+                <input type="tel" name="phone_number" class="form-control" placeholder="05XXXXXXXX" required autofocus>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">{{ t('date_of_birth') }}</label>
+                <input type="date" name="date_of_birth" class="form-control" required>
+            </div>
+            <button type="submit" class="btn-theme">{{ t('send_code_btn') }}</button>
+        </form>
+        <div class="auth-form-links">
+            <a href="{{ url_for('auth.patient_login') }}">&laquo; {{ t('sign_in_with_id_btn') }}</a>
+            <a href="{{ url_for('auth.choose_login') }}">{{ t('back') }}</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

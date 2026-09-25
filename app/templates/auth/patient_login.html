@@ -22,10 +22,17 @@
             </div>
             <button type="submit" class="btn-theme">{{ t('login') }}</button>
         </form>
-        {% if email_login_available %}
+        {% if email_login_available or sms_login_available %}
         <div class="text-center my-2 small text-muted">{{ t('or_divider') }}</div>
+        {% endif %}
+        {% if email_login_available %}
         <a href="{{ url_for('auth.patient_login_email') }}" class="btn-pill btn-pill-outline w-100 justify-content-center">
             {{ t('sign_in_with_email_btn') }}
+        </a>
+        {% endif %}
+        {% if sms_login_available %}
+        <a href="{{ url_for('auth.patient_login_phone') }}" class="btn-pill btn-pill-outline w-100 justify-content-center mt-2">
+            {{ t('sign_in_with_phone_btn') }}
         </a>
         {% endif %}
         <div class="auth-form-links">
