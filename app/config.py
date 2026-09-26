@@ -120,3 +120,12 @@ class Config:
     # features) is reachable without signing in at all.
     HELP_CHAT_IP_LIMIT = int(os.environ.get("HELP_CHAT_IP_LIMIT", "20"))
     HELP_CHAT_WINDOW_MINUTES = int(os.environ.get("HELP_CHAT_WINDOW_MINUTES", "15"))
+
+    # Patient self-service AI photo-scan / voice-resolve when adding their
+    # own antibiotic (see app/patient/routes.py, app/rate_limit.py's
+    # check_patient_ai_scan_rate) -- the owner/staff side of the same
+    # features has no limit (see app/owner/routes.py) since staff are a
+    # small, trusted population; patients are not, and each tap can
+    # trigger a real Gemini API cost.
+    PATIENT_AI_SCAN_LIMIT = int(os.environ.get("PATIENT_AI_SCAN_LIMIT", "10"))
+    PATIENT_AI_SCAN_WINDOW_MINUTES = int(os.environ.get("PATIENT_AI_SCAN_WINDOW_MINUTES", "15"))
