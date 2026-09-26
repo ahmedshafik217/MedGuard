@@ -16,7 +16,7 @@ from app.pdf_reports import generate_pharmacy_report_pdf, generate_quality_repor
 from app.prescription_scan import build_scan_note, scan_prescription_image
 from app.records import (
     add_allergy_from_form, add_antibiotic_from_form, add_condition_from_form, add_culture_from_ai_scan,
-    add_culture_from_form, add_medication_from_form,
+    add_culture_from_form, add_hospitalization_from_form, add_medication_from_form, attach_infection_origin,
 )
 from app.roles import CREATABLE_ROLES, DEFAULT_SAFE_ROLE
 from app.utils import (
@@ -146,7 +146,10 @@ def patient_detail(public_id):
     patient["conditions"] = models.list_conditions(patient["id"])
     patient["medications"] = models.list_medications(patient["id"])
     patient["cultures"] = models.list_cultures(patient["id"])
-    patient["antibiotic_records"] = models.list_antibiotic_records(patient["id"])
+    patient["hospitalizations"] = models.list_hospitalizations(patient["id"])
+    patient["antibiotic_records"] = attach_infection_origin(
+        models.list_antibiotic_records(patient["id"]), patient["hospitalizations"],
+    )
     models.log_action("owner", current_actor_label(), "view_patient", target=public_id)
 
     # Autocomplete list for the "Add antibiotic" field below -- only shown
@@ -252,6 +255,17 @@ def add_patient_medication(public_id):
         return ("Patient not found.", 404)
     add_medication_from_form(patient, request.form)
     models.log_action("owner", current_actor_label(), "add_medication", target=public_id)
+    return redirect(url_for("owner.patient_detail", public_id=public_id))
+
+
+@bp.route("/patients/<public_id>/hospitalizations/add", methods=["POST"])
+@full_owner_required
+def add_patient_hospitalization(public_id):
+    patient = models.get_patient_by_public_id(public_id)
+    if not patient:
+        return ("Patient not found.", 404)
+    add_hospitalization_from_form(patient, request.form, recorded_by=current_actor_label())
+    models.log_action("owner", current_actor_label(), "add_hospitalization", target=public_id)
     return redirect(url_for("owner.patient_detail", public_id=public_id))
 
 
