@@ -19,15 +19,71 @@
     --card-teal-bg: #e9f7f6;
     --card-red-bg: #fdecef;
     --page-wash: #eaf6fd;
+
+    /* --- Visual-refresh tokens: shared shadow/timing values so hover and
+       elevation effects stay consistent across every card/button/tile
+       instead of each rule inventing its own numbers. Purely additive --
+       nothing above this line changed. */
+    --shadow-soft: 0 3px 12px rgba(15, 34, 51, 0.07);
+    --shadow-elevated: 0 10px 26px rgba(15, 34, 51, 0.14);
+    --ease-standard: 0.18s ease;
 }
 
 body {
     background: linear-gradient(180deg, var(--page-wash) 0%, #ffffff 460px);
     background-attachment: fixed;
+    /* Cairo reads noticeably better for Arabic than the browser's default
+       system font (proper contextual shaping at normal body-text sizes)
+       and is already used for the brand wordmark elsewhere on the page --
+       using it site-wide makes the whole app feel like one designed
+       product instead of branded headers sitting on top of default
+       Bootstrap type. Falls back to the same system-font stack Bootstrap
+       already used for anything Cairo doesn't cover. */
+    font-family: "Cairo", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+/* A visible, brand-colored focus ring for keyboard navigation -- Bootstrap's
+   own default outline still works, this just makes it match the palette
+   instead of the browser's default blue on every focusable element. */
+a:focus-visible,
+button:focus-visible,
+.btn:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    outline: 2px solid var(--brand-cyan);
+    outline-offset: 2px;
 }
 
 .card {
     border-radius: 0.75rem;
+}
+
+/* Smoother, more app-like interactive feel across the board -- a small
+   change with an outsized effect on how "finished" the UI feels. */
+.btn,
+.btn-theme,
+.btn-brand,
+.btn-pill,
+.login-card,
+.section-card,
+.stat-tile,
+.form-control,
+.form-select {
+    transition: transform var(--ease-standard), box-shadow var(--ease-standard),
+                background-color var(--ease-standard), border-color var(--ease-standard), opacity var(--ease-standard);
+}
+
+.btn:active,
+.btn-theme:active,
+.btn-pill:active {
+    transform: translateY(1px);
 }
 
 .alert-card {
@@ -749,6 +805,16 @@ html[dir="rtl"] .footer-cursive {
     height: 100%;
 }
 
+/* Subtle lift on hover -- only on devices with a real pointer, so it
+   doesn't leave a "stuck" hover state on touch screens. */
+@media (hover: hover) and (pointer: fine) {
+    .section-card:hover,
+    .stat-tile:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-elevated);
+    }
+}
+
 .section-card-head {
     display: flex;
     align-items: center;
@@ -857,14 +923,24 @@ html[dir="rtl"] .footer-cursive {
     opacity: 0.7;
 }
 
-/* --- Cleaner table header, reused on dashboard + patient-record tables - */
+/* --- Cleaner table header, reused on dashboard + patient-record tables -
+   NOTE: letter-spacing is intentionally NOT applied here directly. These
+   headers render translated text (see {{ t(...) }} in the table markup),
+   and a nonzero letter-spacing breaks the browser's Arabic text shaping --
+   letters that should join into cursive script instead render isolated
+   and disconnected. It's still applied for English (a nice bit of
+   uppercase-label polish there) via the :not([dir="rtl"]) rule below,
+   just never on the Arabic side. */
 .table-clean thead th {
     text-transform: uppercase;
     font-size: 0.72rem;
-    letter-spacing: 0.03em;
     color: #8b98a3;
     font-weight: 700;
     border-bottom: 2px solid #eef2f5;
+}
+
+html:not([dir="rtl"]) .table-clean thead th {
+    letter-spacing: 0.03em;
 }
 
 .table-clean td { vertical-align: middle; }
@@ -872,6 +948,34 @@ html[dir="rtl"] .footer-cursive {
 @media (max-width: 767px) {
     .stat-tile { padding: 0.9rem; }
     .stat-tile-num { font-size: 1.6rem; }
+
+    /* Bigger touch targets on phones -- the primary device for a patient
+       using this app -- without changing anything on desktop. */
+    .btn-theme,
+    .btn-pill,
+    .form-control,
+    .form-select {
+        min-height: 2.75rem;
+    }
+}
+
+/* A gentle fade-and-rise on first paint of the main content area, so page
+   navigation feels a little less like an abrupt flash of a new page.
+   Doesn't touch the header/footer (kept static as visual anchors), and is
+   a single one-off animation, not a persistent effect. */
+@keyframes content-fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.container.py-4 {
+    animation: content-fade-in 0.28s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .container.py-4 { animation: none; }
+    html { scroll-behavior: auto; }
+    .section-card:hover, .stat-tile:hover { transform: none; }
 }
 
 /* ==========================================================================
@@ -962,4 +1066,263 @@ body.page-immersive {
 @keyframes voice-pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.55; }
+}
+
+/* ==========================================================================
+   AI help/support chat widget -- floating icon + panel, shown on every
+   page once GEMINI_API_KEY is configured (see app/help_chat.py,
+   base.html). Positioned bottom-right in LTR, mirrored to bottom-left in
+   RTL (same html[dir="rtl"] override technique already used above for the
+   header/hero), so it never sits over content that itself starts from
+   that same corner.
+   ========================================================================== */
+.help-chat-widget {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 1050;
+}
+
+html[dir="rtl"] .help-chat-widget {
+    right: auto;
+    left: 20px;
+}
+
+.help-chat-fab {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: linear-gradient(135deg, var(--brand-teal) 0%, var(--brand-blue) 100%);
+    box-shadow: 0 8px 22px rgba(3, 77, 156, 0.35);
+    cursor: pointer;
+    transition: transform var(--ease-standard), box-shadow var(--ease-standard);
+}
+
+.help-chat-fab:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(3, 77, 156, 0.42);
+}
+
+.help-chat-fab .icon-close { display: none; }
+.help-chat-fab.is-open .icon-chat { display: none; }
+.help-chat-fab.is-open .icon-close { display: block; }
+
+.help-chat-panel {
+    position: absolute;
+    bottom: 72px;
+    right: 0;
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    max-height: min(560px, 75vh);
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-radius: 1.1rem;
+    box-shadow: 0 16px 40px rgba(15, 34, 51, 0.22);
+    overflow: hidden;
+    border: 1px solid #eef2f5;
+}
+
+html[dir="rtl"] .help-chat-panel {
+    right: auto;
+    left: 0;
+}
+
+.help-chat-panel:not([hidden]) {
+    animation: help-chat-pop-in 0.18s ease-out;
+}
+
+@keyframes help-chat-pop-in {
+    from { opacity: 0; transform: translateY(10px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.help-chat-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.85rem 1rem;
+    background: linear-gradient(135deg, var(--brand-teal) 0%, var(--brand-blue) 100%);
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.help-chat-header-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.help-chat-header-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.help-chat-header-text strong {
+    font-size: 0.95rem;
+}
+
+.help-chat-header-text small {
+    font-size: 0.72rem;
+    opacity: 0.9;
+}
+
+.help-chat-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.4rem;
+    line-height: 1;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.4rem;
+    flex-shrink: 0;
+}
+
+.help-chat-close:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.help-chat-messages {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    background: #fbfeff;
+    min-height: 180px;
+}
+
+.help-chat-msg {
+    max-width: 82%;
+    padding: 0.55rem 0.8rem;
+    border-radius: 0.9rem;
+    font-size: 0.87rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.help-chat-msg-bot {
+    background: var(--card-teal-bg);
+    color: #234;
+    border-bottom-left-radius: 0.25rem;
+    margin-inline-end: auto;
+}
+
+.help-chat-msg-user {
+    background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-blue-dark) 100%);
+    color: #fff;
+    border-bottom-right-radius: 0.25rem;
+    margin-inline-start: auto;
+}
+
+html[dir="rtl"] .help-chat-msg-bot { border-bottom-left-radius: 0.9rem; border-bottom-right-radius: 0.25rem; }
+html[dir="rtl"] .help-chat-msg-user { border-bottom-right-radius: 0.9rem; border-bottom-left-radius: 0.25rem; }
+
+.help-chat-typing {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0 0.9rem 0.5rem;
+    font-size: 0.78rem;
+    color: #8b98a3;
+    flex-shrink: 0;
+}
+
+.help-chat-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #8b98a3;
+    animation: help-chat-dot-bounce 1s infinite ease-in-out;
+}
+
+.help-chat-dot:nth-child(2) { animation-delay: 0.15s; }
+.help-chat-dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes help-chat-dot-bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+    40% { transform: translateY(-3px); opacity: 1; }
+}
+
+.help-chat-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    padding: 0.7rem 0.9rem;
+    border-top: 1px solid #eef2f5;
+    flex-shrink: 0;
+}
+
+.help-chat-input {
+    flex: 1 1 auto;
+    resize: none;
+    border: 1px solid #d7e6ef;
+    border-radius: 0.9rem;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.87rem;
+    font-family: inherit;
+    max-height: 110px;
+    min-height: 2.4rem;
+}
+
+.help-chat-input:focus {
+    outline: none;
+    border-color: var(--brand-blue);
+    box-shadow: 0 0 0 0.15rem rgba(3, 77, 156, 0.15);
+}
+
+.help-chat-send-btn {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
+    border: none;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: linear-gradient(135deg, var(--brand-teal) 0%, var(--brand-teal-dark) 100%);
+}
+
+.help-chat-send-btn:hover { opacity: 0.9; }
+.help-chat-send-btn:disabled { opacity: 0.5; }
+
+html[dir="rtl"] .help-chat-send-btn svg { transform: scaleX(-1); }
+
+.help-chat-disclaimer {
+    font-size: 0.68rem;
+    color: #8b98a3;
+    text-align: center;
+    padding: 0 0.9rem 0.75rem;
+    flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+    .help-chat-widget { right: 12px; bottom: 12px; }
+    html[dir="rtl"] .help-chat-widget { left: 12px; }
+    .help-chat-panel {
+        width: calc(100vw - 24px);
+        bottom: 68px;
+        max-height: 70vh;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .help-chat-panel:not([hidden]) { animation: none; }
+    .help-chat-dot { animation: none; }
 }
