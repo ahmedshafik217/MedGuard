@@ -59,6 +59,13 @@
                 <input type="text" name="prescribed_by" class="form-control">
             </div>
         </div>
+        <div class="row g-2">
+            <div class="col-md-4 mb-3">
+                <label class="form-label">{{ t('symptom_onset_date') }}</label>
+                <input type="date" name="symptom_onset_date" class="form-control">
+                <div class="form-text">{{ t('symptom_onset_date_hint') }}</div>
+            </div>
+        </div>
         {{ macros.dose_duration_fields() }}
         <div class="mb-3">
             <label class="form-label">{{ t('notes_optional') }}</label>
