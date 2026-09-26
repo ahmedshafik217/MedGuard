@@ -198,6 +198,42 @@
             {% endif %}
         </div>
     </div>
+
+    <div class="col-md-3">
+        <div class="section-card tint-blue">
+            <div class="section-card-head">
+                <span class="icon-badge theme-navy sm">🏥</span>
+                <h5>{{ t('recent_hospitalizations') }}</h5>
+            </div>
+            <p class="small text-muted">{{ t('recent_hospitalizations_hint') }}</p>
+            <ul class="list-group mb-3">
+                {% for h in patient.hospitalizations %}
+                <li class="list-group-item">
+                    <strong>{{ h.admission_date }} → {{ h.discharge_date or t('ongoing') }}</strong>
+                    <span class="pill-badge sev-unknown">
+                        {{ h.length_of_stay_days }} {{ t('days') }}{% if h.ongoing %} ({{ t('ongoing') }}){% endif %}
+                    </span>
+                    {% if h.reason %}<div class="small text-muted">{{ h.reason }}</div>{% endif %}
+                </li>
+                {% else %}
+                <li class="list-group-item"><div class="empty-state mb-0 py-1">{{ t('no_records_yet') }}</div></li>
+                {% endfor %}
+            </ul>
+            {% if owner_role == 'owner' %}
+            <form method="post" action="{{ url_for('owner.add_patient_hospitalization', public_id=patient.public_id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="form-label small mb-1">{{ t('admission_date') }}</label>
+                <input type="date" name="admission_date" class="form-control mb-2" required>
+                <label class="form-label small mb-1">{{ t('discharge_date_optional') }}</label>
+                <input type="date" name="discharge_date" class="form-control mb-2">
+                <input type="text" name="reason" class="form-control mb-2" placeholder="{{ t('hospitalization_reason_optional') }}">
+                <button class="btn-pill btn-pill-solid sm w-100 justify-content-center">➕ {{ t('add_hospitalization') }}</button>
+            </form>
+            {% else %}
+            <p class="small text-muted mb-0">{{ t('staff_view_only_note') }}</p>
+            {% endif %}
+        </div>
+    </div>
 </div>
 
 <div class="section-card mt-3">
@@ -208,7 +244,7 @@
     {% if patient.antibiotic_records %}
     <div class="table-responsive">
     <table class="table table-sm table-clean align-middle mb-0">
-        <thead><tr><th>{{ t('antibiotic_name') }}</th><th>{{ t('dose') }}</th><th>{{ t('duration') }}</th><th>{{ t('prescribed_date') }}</th><th>{{ t('action') }}</th></tr></thead>
+        <thead><tr><th>{{ t('antibiotic_name') }}</th><th>{{ t('dose') }}</th><th>{{ t('duration') }}</th><th>{{ t('prescribed_date') }}</th><th>{{ t('infection_origin') }}</th><th>{{ t('action') }}</th></tr></thead>
         <tbody>
         {% for r in patient.antibiotic_records %}
             <tr>
@@ -216,6 +252,15 @@
                 <td>{{ format_dose(r) or '—' }}</td>
                 <td>{{ format_duration(r) or '—' }}</td>
                 <td>{{ r.prescribed_date }}</td>
+                <td>
+                    {% if r.infection_origin == 'hospital_acquired' %}
+                    <span class="pill-badge origin-hai">🏥 {{ t('hospital_acquired') }}</span>
+                    {% elif r.infection_origin == 'community_acquired' %}
+                    <span class="pill-badge origin-cai">🏠 {{ t('community_acquired') }}</span>
+                    {% else %}
+                    —
+                    {% endif %}
+                </td>
                 <td>
                     {{ r.added_by }}
                     {% if r.source == 'photo_ai' %}<br><span class="pill-badge sev-unknown">📷 {{ t('scanned_from_photo') }}</span>{% endif %}
@@ -271,6 +316,13 @@
             </div>
             <div class="col-md-4"><input type="date" name="prescribed_date" class="form-control"></div>
             <div class="col-md-4"><input type="text" name="prescribed_by" class="form-control" placeholder="{{ t('prescribed_by_optional') }}"></div>
+        </div>
+        <div class="row g-2 mt-1">
+            <div class="col-md-4">
+                <label class="form-label small mb-1">{{ t('symptom_onset_date') }}</label>
+                <input type="date" name="symptom_onset_date" class="form-control">
+                <div class="form-text">{{ t('symptom_onset_date_hint') }}</div>
+            </div>
         </div>
         {{ macros.dose_duration_fields() }}
         <button class="btn-pill btn-pill-solid">✔️ {{ t('submit_check') }}</button>
