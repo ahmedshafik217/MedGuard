@@ -19,7 +19,11 @@
     <div class="mb-3">
         <label class="form-label">{{ t('interacting_drug') }}</label>
         <input type="text" name="interacting_drug" class="form-control" placeholder="e.g. Tizanidine"
-               value="{{ item.interacting_drug if item else '' }}" required>
+               list="known-medications" value="{{ item.interacting_drug if item else '' }}" required>
+        <datalist id="known-medications">
+            {% for name in known_medications %}<option value="{{ name }}">{% endfor %}
+        </datalist>
+        <div class="form-text">{{ t('interacting_drug_datalist_hint') }}</div>
     </div>
     <div class="mb-3">
         <label class="form-label">{{ t('severity') }}</label>
