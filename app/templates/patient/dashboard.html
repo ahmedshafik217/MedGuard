@@ -179,7 +179,10 @@
         <tbody>
         {% for r in patient.antibiotic_records %}
             <tr>
-                <td>{{ r.display_name }}</td>
+                <td>
+                    {{ r.display_name }}
+                    {% if r.source == 'photo_ai' %}<br><span class="pill-badge sev-unknown">📷 {{ t('scanned_from_photo') }}</span>{% endif %}
+                </td>
                 <td>{{ format_dose(r) or '—' }}</td>
                 <td>{{ format_duration(r) or '—' }}</td>
                 <td>{{ r.prescribed_date }}</td>
