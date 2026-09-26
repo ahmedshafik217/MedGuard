@@ -36,6 +36,102 @@ def add_medication_from_form(patient, form):
     )
 
 
+def add_hospitalization_from_form(patient, form, recorded_by="patient"):
+    admission_raw = form.get("admission_date", "").strip()
+    if admission_raw:
+        try:
+            admission_date = date.fromisoformat(admission_raw).isoformat()
+        except ValueError:
+            admission_date = date.today().isoformat()
+    else:
+        admission_date = date.today().isoformat()
+
+    discharge_raw = form.get("discharge_date", "").strip()
+    discharge_date = None
+    if discharge_raw:
+        try:
+            discharge_date = date.fromisoformat(discharge_raw).isoformat()
+        except ValueError:
+            discharge_date = None
+    if discharge_date and discharge_date < admission_date:
+        # Not a valid stay (discharge before admission) -- drop the
+        # discharge date rather than save something nonsensical; the stay
+        # is then just shown as ongoing/open-ended.
+        discharge_date = None
+
+    models.add_hospitalization(
+        patient_id=patient["id"],
+        admission_date=admission_date,
+        discharge_date=discharge_date,
+        reason=form.get("reason", "").strip() or None,
+        notes=form.get("notes", "").strip() or None,
+        recorded_by=recorded_by,
+    )
+
+
+def classify_infection_origin(symptom_onset_date, hospitalizations):
+    """Purely informational Hospital-Acquired (HAI) vs Community-Acquired
+    (CAI) label for one antibiotic record -- never touches the safety-check
+    engine or its alerts. Returns 'hospital_acquired', 'community_acquired',
+    or None when there isn't enough information to say anything (no
+    symptom-onset date recorded for this entry).
+
+    Standard clinical rule (dates only -- no time of day is collected, so
+    "48 hours" is treated as 2 full calendar days, and "48-72 hours after
+    discharge" as 2-3 days after discharge):
+      - Hospital-Acquired: onset is >=48h after admission AND still within
+        that same hospital stay (before/at discharge, or the stay is still
+        ongoing); OR onset falls 48-72h after discharge (a very recently
+        discharged patient still counts as hospital-acquired).
+      - Otherwise: Community-Acquired.
+    """
+    if not symptom_onset_date:
+        return None
+    try:
+        onset = date.fromisoformat(symptom_onset_date)
+    except ValueError:
+        return None
+
+    for stay in hospitalizations or []:
+        admission_raw = stay.get("admission_date")
+        if not admission_raw:
+            continue
+        try:
+            admission = date.fromisoformat(admission_raw)
+        except ValueError:
+            continue
+
+        discharge = None
+        discharge_raw = stay.get("discharge_date")
+        if discharge_raw:
+            try:
+                discharge = date.fromisoformat(discharge_raw)
+            except ValueError:
+                discharge = None
+
+        if onset >= admission and (discharge is None or onset <= discharge):
+            if (onset - admission).days >= 2:
+                return "hospital_acquired"
+        elif discharge is not None and onset > discharge:
+            days_after_discharge = (onset - discharge).days
+            if 2 <= days_after_discharge <= 3:
+                return "hospital_acquired"
+
+    return "community_acquired"
+
+
+def attach_infection_origin(records, hospitalizations):
+    """Mutates each antibiotic-record dict in place, adding an
+    'infection_origin' key (see classify_infection_origin above) -- shared
+    by the patient dashboard and the owner patient-detail page so both
+    display the exact same label from the exact same rule."""
+    for record in records:
+        record["infection_origin"] = classify_infection_origin(
+            record.get("symptom_onset_date"), hospitalizations,
+        )
+    return records
+
+
 class _ScanFormAdapter:
     """Makes a plain dict (as produced by an AI photo-scan extraction, see
     app/prescription_scan.py) look enough like a Flask form (.get/.getlist)
@@ -141,6 +237,20 @@ def add_antibiotic_from_form(patient, form, added_by, source="manual", source_ph
     else:
         prescribed_date = date.today().isoformat()
 
+    # Optional -- when the patient's symptoms actually started, as opposed
+    # to prescribed_date (when the antibiotic was started). Used only for
+    # the informational Hospital-Acquired/Community-Acquired label (see
+    # classify_infection_origin above); left blank if not entered or not
+    # a valid date, never defaulted to today (unlike prescribed_date --
+    # guessing an onset date would make the HAI/CAI label misleading).
+    onset_raw = form.get("symptom_onset_date", "").strip()
+    symptom_onset_date = None
+    if onset_raw:
+        try:
+            symptom_onset_date = date.fromisoformat(onset_raw).isoformat()
+        except ValueError:
+            symptom_onset_date = None
+
     recent_days = current_app.config.get("RECENT_EXPOSURE_DAYS", 30)
     recent_record = None
     recent_class_record = None
@@ -188,6 +298,7 @@ def add_antibiotic_from_form(patient, form, added_by, source="manual", source_ph
         duration_unit_other=form.get("duration_unit_other", "").strip() or None,
         prescribed_by=form.get("prescribed_by", "").strip() or None,
         prescribed_date=prescribed_date,
+        symptom_onset_date=symptom_onset_date,
         notes=form.get("notes", "").strip() or None,
         alerts=alerts,
         added_by=added_by,

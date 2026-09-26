@@ -530,6 +530,11 @@ STRINGS = {
     # --- AI help/support chat (see app/help_chat.py, the floating icon in
     # base.html). Only rendered at all once GEMINI_API_KEY is configured.
     "help_chat_button_label": {"en": "Help & support", "ar": "المساعدة والدعم"},
+    # Short visible label on the floating button itself (not just the
+    # screen-reader aria-label above) -- a single plain word so a patient
+    # unfamiliar with apps immediately knows what the icon is, rather than
+    # having to guess from a chat-bubble symbol alone.
+    "help_chat_fab_text": {"en": "Support", "ar": "المساعدة"},
     "help_chat_title": {"en": "AmanBio Help", "ar": "مساعد أمان بايو"},
     "help_chat_subtitle": {
         "en": "Ask me how the app works or what it can do for you",
