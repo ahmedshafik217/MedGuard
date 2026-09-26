@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<a href="{{ url_for('owner.medications_reference') }}">&laquo; {{ t('back') }}</a>
+<h3 class="my-3">{{ t('add_medication_reference') }}</h3>
+<div class="card p-4">
+<form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <p class="text-muted small">{{ t('medications_reference_hint') }}</p>
+    <div class="mb-3">
+        <label class="form-label">{{ t('generic_name') }}</label>
+        <input type="text" name="generic_name" class="form-control" placeholder="e.g. Warfarin"
+               value="{{ item.generic_name if item else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ t('brand_names_optional') }}</label>
+        <input type="text" name="brand_names" class="form-control" placeholder="e.g. Coumadin, Jantoven"
+               value="{{ item.brand_names if item else '' }}">
+        <div class="form-text">{{ t('brand_names_hint') }}</div>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ t('notes_optional') }}</label>
+        <textarea name="notes" class="form-control">{{ item.notes if item else '' }}</textarea>
+    </div>
+    <button class="btn btn-brand">{{ t('save') }}</button>
+</form>
+</div>
+{% endblock %}

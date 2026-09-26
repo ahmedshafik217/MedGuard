@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<a href="{{ url_for('owner.dashboard') }}">&laquo; {{ t('back') }}</a>
+<div class="d-flex justify-content-between align-items-center my-3">
+    <h2>{{ t('medications_reference') }}</h2>
+    <a href="{{ url_for('owner.add_medication_reference') }}" class="btn btn-brand">{{ t('add_medication_reference') }}</a>
+</div>
+<p class="text-muted">{{ t('medications_reference_hint') }}</p>
+<div class="card p-3">
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>{{ t('generic_name') }}</th>
+                <th>{{ t('brand_names_optional') }}</th>
+                <th>{{ t('notes_optional') }}</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for item in items %}
+            <tr>
+                <td>{{ item.generic_name }}</td>
+                <td class="small">{{ item.brand_names or '—' }}</td>
+                <td class="small">{{ item.notes or '—' }}</td>
+                <td class="d-flex gap-2">
+                    <a href="{{ url_for('owner.edit_medication_reference', item_id=item.id) }}" class="btn btn-sm btn-outline-dark">{{ t('view') }}</a>
+                    <form method="post" action="{{ url_for('owner.delete_medication_reference', item_id=item.id) }}" onsubmit="return confirm('{{ t('confirm_delete') }}');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-sm btn-outline-danger">{{ t('delete') }}</button>
+                    </form>
+                </td>
+            </tr>
+        {% else %}
+            <tr><td colspan="4">{{ t('no_records_yet') }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
