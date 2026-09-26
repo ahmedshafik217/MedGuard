@@ -123,6 +123,13 @@ CREATE TABLE IF NOT EXISTS antibiotic_records (
     duration_unit_other TEXT,
     prescribed_by TEXT,
     prescribed_date TEXT NOT NULL,
+    -- Optional: when the patient's symptoms actually started (as opposed to
+    -- prescribed_date, when the antibiotic was started) -- compared against
+    -- patient_hospitalizations above to label this entry as likely
+    -- Hospital-Acquired vs Community-Acquired. Purely informational (see
+    -- app/records.py's classify_infection_origin()); never affects the
+    -- safety-check engine.
+    symptom_onset_date TEXT,
     notes TEXT,
     alerts_json TEXT,
     added_by TEXT NOT NULL DEFAULT 'patient',
@@ -222,6 +229,28 @@ CREATE TABLE IF NOT EXISTS patient_login_codes (
 
 CREATE INDEX IF NOT EXISTS idx_patient_login_codes_patient
     ON patient_login_codes(patient_id, created_at);
+
+-- Recent inpatient hospital stays -- lets the app work out whether an
+-- infection is likely Hospital-Acquired (HAI) vs Community-Acquired (CAI)
+-- by comparing a "symptom onset date" (see antibiotic_records.symptom_onset_date
+-- below) against these admission/discharge dates -- see
+-- app/records.py's classify_infection_origin(). discharge_date is nullable:
+-- a still-ongoing admission has no discharge date yet. Brand new table --
+-- no ALTER-based migration needed (see the login_attempts comment above
+-- for why).
+CREATE TABLE IF NOT EXISTS patient_hospitalizations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    admission_date TEXT NOT NULL,
+    discharge_date TEXT,
+    reason TEXT,
+    notes TEXT,
+    recorded_by TEXT NOT NULL DEFAULT 'patient',
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_patient_hospitalizations_patient
+    ON patient_hospitalizations(patient_id, admission_date);
 """
 
 
@@ -272,6 +301,16 @@ def _migrate(db):
     if "source_photo" not in record_cols:
         db.execute("ALTER TABLE antibiotic_records ADD COLUMN source_photo BLOB")
     db.commit()
+
+    record_cols = {row["name"] for row in db.execute("PRAGMA table_info(antibiotic_records)")}
+    if "symptom_onset_date" not in record_cols:
+        # NULL for every record that predates this feature -- the HAI/CAI
+        # label simply doesn't show for those (see
+        # app/records.py's classify_infection_origin(), which treats a
+        # missing onset date as "not enough information" rather than
+        # guessing).
+        db.execute("ALTER TABLE antibiotic_records ADD COLUMN symptom_onset_date TEXT")
+        db.commit()
 
     patient_cols = {row["name"] for row in db.execute("PRAGMA table_info(patients)")}
     if "phone_number" not in patient_cols:

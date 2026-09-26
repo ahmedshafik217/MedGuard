@@ -509,6 +509,57 @@ def list_medications(patient_id):
     return [dict(r) for r in rows]
 
 
+# --------------------------------------------------------- hospitalizations --
+
+def add_hospitalization(patient_id, admission_date, discharge_date=None, reason=None, notes=None,
+                         recorded_by="patient"):
+    db = get_db()
+    db.execute(
+        """INSERT INTO patient_hospitalizations
+           (patient_id, admission_date, discharge_date, reason, notes, recorded_by, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (patient_id, admission_date, discharge_date, reason, notes, recorded_by, _now()),
+    )
+    db.commit()
+
+
+def _with_length_of_stay(row):
+    d = dict(row)
+    try:
+        admission = date.fromisoformat(d["admission_date"])
+    except (ValueError, TypeError):
+        d["length_of_stay_days"] = None
+        d["ongoing"] = not d.get("discharge_date")
+        return d
+    if d.get("discharge_date"):
+        try:
+            discharge = date.fromisoformat(d["discharge_date"])
+            d["length_of_stay_days"] = max((discharge - admission).days, 0)
+        except ValueError:
+            d["length_of_stay_days"] = None
+        d["ongoing"] = False
+    else:
+        # Still admitted (or discharge date unknown) -- show the stay so
+        # far rather than nothing, but flag it as ongoing/incomplete.
+        d["length_of_stay_days"] = max((date.today() - admission).days, 0)
+        d["ongoing"] = True
+    return d
+
+
+def list_hospitalizations(patient_id):
+    """Newest admission first. Each dict also carries a computed
+    length_of_stay_days and an 'ongoing' flag (True when there's no
+    discharge date yet) -- see classify_infection_origin() in
+    app/records.py for how these back the Hospital-Acquired vs
+    Community-Acquired label."""
+    db = get_db()
+    rows = db.execute(
+        "SELECT * FROM patient_hospitalizations WHERE patient_id = ? ORDER BY admission_date DESC, id DESC",
+        (patient_id,),
+    ).fetchall()
+    return [_with_length_of_stay(r) for r in rows]
+
+
 # ------------------------------------------------- drug-drug interaction reference --
 
 def add_drug_interaction(interacting_drug, severity="warning", antibiotic_name=None, antibiotic_class=None,
@@ -668,7 +719,7 @@ def add_antibiotic_record(patient_id, antibiotic_id, custom_name, dose, duration
                            dose_amount=None, dose_unit=None, dose_unit_other=None,
                            frequency=None, frequency_other=None,
                            duration_amount=None, duration_unit=None, duration_unit_other=None,
-                           source="manual", source_photo=None):
+                           source="manual", source_photo=None, symptom_onset_date=None):
     # dose/duration (free text) are kept only for backward compatibility --
     # new callers should leave them None and use the structured fields
     # below instead (see app/dose_format.py for why: a fixed-vocabulary
@@ -684,13 +735,13 @@ def add_antibiotic_record(patient_id, antibiotic_id, custom_name, dose, duration
            (patient_id, antibiotic_id, custom_name, dose, duration,
             dose_amount, dose_unit, dose_unit_other, frequency, frequency_other,
             duration_amount, duration_unit, duration_unit_other,
-            prescribed_by, prescribed_date, notes, alerts_json, added_by,
+            prescribed_by, prescribed_date, symptom_onset_date, notes, alerts_json, added_by,
             source, source_photo, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (patient_id, antibiotic_id, custom_name, dose, duration,
          dose_amount, dose_unit, dose_unit_other, frequency, frequency_other,
          duration_amount, duration_unit, duration_unit_other,
-         prescribed_by, prescribed_date, notes, json.dumps(alerts or []), added_by,
+         prescribed_by, prescribed_date, symptom_onset_date, notes, json.dumps(alerts or []), added_by,
          source, source_photo, _now()),
     )
     db.commit()
