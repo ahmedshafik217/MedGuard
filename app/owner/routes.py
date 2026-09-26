@@ -80,13 +80,6 @@ def create_patient():
         email = request.form.get("email", "").strip() or None
         dob_raw = request.form.get("date_of_birth", "").strip()
 
-        # Phone number is now required for every NEW patient record --
-        # existing patients registered before this change keep working
-        # with no phone on file, this only gates the create path.
-        if not phone_number:
-            flash("Phone number is required to create a new patient record.", "error")
-            return render_template("owner/create_patient.html")
-
         date_of_birth = None
         if dob_raw:
             try:
