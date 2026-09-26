@@ -126,6 +126,22 @@ def _build_prompt(known_antibiotics):
     )
 
 
+def build_scan_note(item):
+    """Builds the antibiotic_record.notes text for a photo-extracted entry,
+    so a pharmacist (or the patient themselves) reviewing the history later
+    can see exactly what the AI read and how confident it was -- not just a
+    bare drug name. Shared by every caller of scan_prescription_image()
+    above (currently the owner/staff dashboard and the patient's own
+    self-service scan -- see app/owner/routes.py's scan_patient_antibiotic_photo
+    and app/patient/routes.py's scan_antibiotic_photo)."""
+    as_written = (item.get("name_as_written") or "").strip()
+    confidence = item.get("confidence") or "unknown"
+    parts = [f'Read from a prescription photo (as written: "{as_written}"; confidence: {confidence}).']
+    if item.get("notes"):
+        parts.append(item["notes"].strip())
+    return " ".join(p for p in parts if p)
+
+
 def scan_prescription_image(image_bytes, api_key, model, known_antibiotics):
     """Returns {"antibiotics": [...], "other_medications_ignored": [...], "read_issues": "..."}.
     Raises an app.ai_gemini.AIScanError (or the AIScanNotConfigured

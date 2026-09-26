@@ -256,6 +256,58 @@ def record_help_chat_message(ip_address):
     db.commit()
 
 
+def check_patient_ai_scan_rate(identifier, ip_address):
+    """Returns None if a patient's own AI prescription-photo-scan or
+    voice-resolve request (see app/patient/routes.py's
+    scan_antibiotic_photo / resolve_antibiotic_voice_audio) may proceed, or
+    an int number of minutes to report otherwise. Same "count every
+    attempt, not just failures" shape as check_registration_rate() above.
+
+    The owner/staff side has NO rate limit on these (see
+    app/owner/routes.py) because staff are a small, trusted, individually
+    accountable population. Patients are the opposite -- thousands of
+    self-service accounts, each able to trigger a real (paid) Gemini call
+    with a camera or microphone tap -- so this caps both per-patient (a
+    normal patient adds a handful of antibiotics a year, not dozens a
+    session) and per-IP (looser, catches a script cycling through many
+    patient accounts from one machine)."""
+    cfg = current_app.config
+    window = cfg.get("PATIENT_AI_SCAN_WINDOW_MINUTES", 15)
+    limit = cfg.get("PATIENT_AI_SCAN_LIMIT", 10)
+    db = get_db()
+    cutoff = _iso(_now() - timedelta(minutes=window))
+
+    patient_count = db.execute(
+        "SELECT COUNT(*) AS c FROM login_attempts "
+        "WHERE scope = 'patient_ai_scan' AND identifier = ? AND attempted_at >= ?",
+        (identifier, cutoff),
+    ).fetchone()["c"]
+    if patient_count >= limit:
+        return window
+
+    ip_count = db.execute(
+        "SELECT COUNT(*) AS c FROM login_attempts "
+        "WHERE scope = 'patient_ai_scan' AND ip_address = ? AND attempted_at >= ?",
+        (ip_address or "unknown", cutoff),
+    ).fetchone()["c"]
+    if ip_count >= limit * 4:
+        return window
+
+    return None
+
+
+def record_patient_ai_scan(identifier, ip_address):
+    """Log one patient-initiated AI scan/voice request for
+    check_patient_ai_scan_rate() above -- same pattern as
+    record_registration()/record_email_code_request()."""
+    db = get_db()
+    db.execute(
+        "INSERT INTO login_attempts (scope, identifier, ip_address, success, attempted_at) VALUES (?, ?, ?, ?, ?)",
+        ("patient_ai_scan", identifier, ip_address or "unknown", 1, _iso(_now())),
+    )
+    db.commit()
+
+
 def check_lockout(scope, identifier, ip_address):
     """Returns None if this login attempt may proceed, or an int number of
     minutes to report to the user if either limit is currently exceeded
