@@ -908,6 +908,13 @@ html[dir="rtl"] .footer-cursive {
 .pill-badge.sev-mild { background: var(--card-teal-bg); color: var(--brand-teal-dark); }
 .pill-badge.sev-unknown { background: #eef1f4; color: #5a6b76; }
 
+/* Hospital-acquired vs community-acquired informational label (see
+   app/records.py's classify_infection_origin()) -- reuses the same tint
+   language as the severity badges above (amber = worth noticing,
+   teal = routine) rather than introducing a third color family. */
+.pill-badge.origin-hai { background: #fff3d6; color: #b8790a; }
+.pill-badge.origin-cai { background: var(--card-teal-bg); color: var(--brand-teal-dark); }
+
 /* --- Empty-state placeholder (replaces a bare "no records yet" line) --- */
 .empty-state {
     text-align: center;
@@ -1089,18 +1096,33 @@ html[dir="rtl"] .help-chat-widget {
 }
 
 .help-chat-fab {
-    width: 58px;
+    /* A labeled pill rather than a bare icon circle -- a patient who
+       isn't used to apps has no reason to know a speech-bubble icon
+       means "help". Spelling it out (t('help_chat_fab_text'): "Support" /
+       "المساعدة") makes it self-explanatory at a glance. Collapses to a
+       plain icon-only circle once opened (see .is-open below), since at
+       that point the label has done its job and a close button reads
+       fine as just an X. */
     height: 58px;
-    border-radius: 50%;
+    min-width: 58px;
+    padding: 0 22px;
+    border-radius: 999px;
     border: none;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 0.55rem;
     color: #fff;
     background: linear-gradient(135deg, var(--brand-teal) 0%, var(--brand-blue) 100%);
     box-shadow: 0 8px 22px rgba(3, 77, 156, 0.35);
     cursor: pointer;
-    transition: transform var(--ease-standard), box-shadow var(--ease-standard);
+    transition: transform var(--ease-standard), box-shadow var(--ease-standard), padding var(--ease-standard);
+}
+
+.help-chat-fab-text {
+    font-weight: 700;
+    font-size: 0.95rem;
+    white-space: nowrap;
 }
 
 .help-chat-fab:hover {
@@ -1111,6 +1133,8 @@ html[dir="rtl"] .help-chat-widget {
 .help-chat-fab .icon-close { display: none; }
 .help-chat-fab.is-open .icon-chat { display: none; }
 .help-chat-fab.is-open .icon-close { display: block; }
+.help-chat-fab.is-open .help-chat-fab-text { display: none; }
+.help-chat-fab.is-open { padding: 0; width: 58px; }
 
 .help-chat-panel {
     position: absolute;
