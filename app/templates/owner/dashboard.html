@@ -12,6 +12,7 @@
             <a href="{{ url_for('owner.create_patient') }}" class="btn-pill btn-pill-solid">➕ {{ t('add_new_patient') }}</a>
             <a href="{{ url_for('owner.antibiotics') }}" class="btn-pill btn-pill-outline">💊 {{ t('antibiotic_reference') }}</a>
             <a href="{{ url_for('owner.drug_interactions') }}" class="btn-pill btn-pill-outline">🔗 {{ t('drug_interactions_reference') }}</a>
+            <a href="{{ url_for('owner.medications_reference') }}" class="btn-pill btn-pill-outline">💊 {{ t('medications_reference') }}</a>
             <a href="{{ url_for('owner.audit_log') }}" class="btn-pill btn-pill-outline">📜 {{ t('audit_log') }}</a>
             {% if perms.culture_analysis %}
             <a href="{{ url_for('owner.culture_analysis') }}" class="btn-pill btn-pill-outline">🧫 {{ t('culture_analysis') }}</a>
