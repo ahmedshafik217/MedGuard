@@ -363,8 +363,17 @@ STRINGS = {
     "forgot_password_link": {"en": "Forgot password?", "ar": "نسيت كلمة المرور؟"},
     "forgot_password_title": {"en": "Reset your password", "ar": "إعادة تعيين كلمة المرور"},
     "forgot_password_subtext": {
-        "en": "Enter your patient ID, phone number and date of birth exactly as on file to set a new password.",
-        "ar": "أدخل رقم المريض ورقم الهاتف وتاريخ الميلاد كما هي مسجلة لتعيين كلمة مرور جديدة.",
+        "en": "Enter your phone number and date of birth exactly as on file to set a new password. Add "
+              "your patient ID too if you remember it, or leave it blank if you don't.",
+        "ar": "أدخل رقم الهاتف وتاريخ الميلاد كما هي مسجلة لتعيين كلمة مرور جديدة. أضف رقم المريض أيضاً "
+              "إذا كنت تتذكره، أو اتركه فارغاً إذا لم تكن تتذكره.",
+    },
+    "patient_id_optional": {"en": "Patient ID (optional)", "ar": "رقم المريض (اختياري)"},
+    "patient_id_forgot_hint": {
+        "en": "Don't remember it? Leave this blank -- if your phone number and date of birth match "
+              "exactly one patient record, we'll show you your ID once your password is reset.",
+        "ar": "لا تتذكره؟ اتركه فارغاً -- إذا كان رقم هاتفك وتاريخ ميلادك مطابقين لسجل مريض واحد فقط، "
+              "سنعرض لك رقم المريض بعد إعادة تعيين كلمة المرور.",
     },
     "new_password": {"en": "New password", "ar": "كلمة المرور الجديدة"},
     "reset_password_button": {"en": "Reset password", "ar": "إعادة تعيين كلمة المرور"},
