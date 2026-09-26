@@ -526,6 +526,37 @@ STRINGS = {
         "en": "Too many requests. Please try again in a few minutes.",
         "ar": "عدد كبير جداً من المحاولات. يرجى المحاولة مرة أخرى بعد بضع دقائق.",
     },
+
+    # --- AI help/support chat (see app/help_chat.py, the floating icon in
+    # base.html). Only rendered at all once GEMINI_API_KEY is configured.
+    "help_chat_button_label": {"en": "Help & support", "ar": "المساعدة والدعم"},
+    "help_chat_title": {"en": "AmanBio Help", "ar": "مساعد أمان بايو"},
+    "help_chat_subtitle": {
+        "en": "Ask me how the app works or what it can do for you",
+        "ar": "اسألني كيف يعمل التطبيق أو ماذا يقدم لك",
+    },
+    "help_chat_greeting": {
+        "en": "Hi! I'm Aman, here to help you use AmanBio. Ask me anything about how the app "
+              "works — for example, \"How do I add an antibiotic?\" or \"What does the QR code do?\"",
+        "ar": "مرحباً! أنا أمان، هنا لمساعدتك في استخدام أمان بايو. اسألني أي شيء عن طريقة عمل "
+              "التطبيق — مثلاً: \"كيف أضيف مضاداً حيوياً؟\" أو \"ما فائدة رمز QR؟\"",
+    },
+    "help_chat_placeholder": {"en": "Type your question…", "ar": "اكتب سؤالك…"},
+    "help_chat_send": {"en": "Send", "ar": "إرسال"},
+    "help_chat_thinking": {"en": "Aman is typing…", "ar": "أمان يكتب…"},
+    "help_chat_error": {
+        "en": "Sorry, I couldn't answer that right now. Please try again in a moment.",
+        "ar": "عذراً، لم أتمكن من الإجابة الآن. يرجى المحاولة مرة أخرى بعد قليل.",
+    },
+    "help_chat_rate_limited": {
+        "en": "You've sent quite a few messages — please wait a few minutes before asking again.",
+        "ar": "لقد أرسلت عدداً كبيراً من الرسائل — يرجى الانتظار بضع دقائق قبل السؤال مرة أخرى.",
+    },
+    "help_chat_disclaimer": {
+        "en": "This assistant helps with using the app only — it cannot give medical advice.",
+        "ar": "هذا المساعد يساعد في استخدام التطبيق فقط — ولا يقدم استشارة طبية.",
+    },
+    "help_chat_close": {"en": "Close", "ar": "إغلاق"},
 }
 
 

@@ -1,11 +1,15 @@
 """Shared plumbing behind every Gemini-powered feature in this app --
 prescription-photo scanning (app/prescription_scan.py), culture-report
-photo scanning (app/culture_scan.py), and AI-powered voice antibiotic-name
-resolution (app/voice_resolve.py). Each of those files owns its own prompt
-and schema; this file only owns the one thing they all need identically:
-sending an image or audio clip plus a text prompt to Gemini's
-generateContent endpoint and getting back JSON that matches a given
-schema.
+photo scanning (app/culture_scan.py), AI-powered voice antibiotic-name
+resolution (app/voice_resolve.py), and the AI help/support chat
+(app/help_chat.py). Each of those files owns its own prompt (and, for the
+first three, a forced-JSON schema); this file owns the two things they
+need against Gemini's API: call_gemini() below for a single image/audio
+part + a schema-forced JSON reply, and call_gemini_chat() for a free-text,
+multi-turn conversation with no image and no forced schema -- kept as a
+separate function rather than folded into call_gemini() since a
+conversational reply doesn't fit that one's image/schema-shaped signature
+at all.
 
 Calls Google's Gemini API directly over HTTPS with the standard library
 (urllib) rather than a Google SDK, to keep this dependency-light app's
@@ -147,6 +151,87 @@ def call_gemini(b64_data, media_type, prompt, response_schema, api_key, model,
         parts = candidates[0].get("content", {}).get("parts", [])
         text = "".join(p.get("text", "") for p in parts)
         return json.loads(text)
+    except AIScanError:
+        raise
+    except Exception:
+        raise AIScanError("The AI service sent back something unreadable. Please try again.")
+
+
+def call_gemini_chat(messages, system_instruction, api_key, model):
+    """Send a short multi-turn text conversation to Gemini's generateContent
+    endpoint -- no image/audio part, no forced JSON schema, just plain
+    conversational text in and out -- and return the assistant's reply as a
+    plain string. Used only by the AI help/support chat (app/help_chat.py).
+
+    messages is a list of (role, text) tuples in order, where role is
+    "user" or "model" (Gemini's own naming for "assistant") -- the last
+    entry should be the visitor's newest message. system_instruction is a
+    plain-text block of standing instructions (who the assistant is, what
+    it may/may not do) sent separately from the conversation itself, the
+    same way Gemini's API is designed to take it.
+
+    Raises AIScanError on any failure, reusing the same exception
+    hierarchy as call_gemini() above so callers can handle both the same
+    way -- this function is deliberately NOT built on top of call_gemini()
+    itself (different payload shape entirely: no inline_data part, no
+    responseSchema/responseMimeType, a systemInstruction block, multiple
+    turns instead of one), to avoid contorting that function's image/
+    schema-specific signature into something it wasn't designed for."""
+    payload = {
+        "contents": [{"role": role, "parts": [{"text": text}]} for role, text in messages],
+        "systemInstruction": {"parts": [{"text": system_instruction}]},
+        "generationConfig": {
+            # Short, focused answers -- this is a help widget, not a
+            # long-form writing assistant, and a hard cap keeps a single
+            # reply cheap regardless of what's asked.
+            "temperature": 0.4,
+            "maxOutputTokens": 400,
+        },
+    }
+
+    url = f"{GEMINI_API_BASE}/{urllib.parse.quote(model)}:generateContent?key={urllib.parse.quote(api_key)}"
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"content-type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT_SECONDS) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        detail = ""
+        try:
+            detail = json.loads(e.read().decode("utf-8")).get("error", {}).get("message", "")
+        except Exception:
+            pass
+        if e.code == 429:
+            raise AIScanRateLimited(
+                "The help assistant has reached its usage limit for right now (a shared allowance for "
+                "the whole app). Please try again in a few minutes."
+            )
+        raise AIScanError(f"The AI service rejected the request ({e.code}). {detail}".strip())
+    except urllib.error.URLError as e:
+        raise AIScanError(f"Couldn't reach the AI service: {e.reason}")
+    except TimeoutError:
+        raise AIScanError("The AI service took too long to respond. Please try again.")
+    except (ValueError, json.JSONDecodeError):
+        raise AIScanError("The AI service sent back something unreadable. Please try again.")
+
+    try:
+        candidates = body.get("candidates") or []
+        if not candidates:
+            block_reason = (body.get("promptFeedback") or {}).get("blockReason")
+            if block_reason:
+                raise AIScanError(f"The assistant couldn't answer that ({block_reason}). Please rephrase.")
+            raise AIScanError("The assistant didn't return a reply. Please try again.")
+
+        parts = candidates[0].get("content", {}).get("parts", [])
+        text = "".join(p.get("text", "") for p in parts).strip()
+        if not text:
+            raise AIScanError("The assistant didn't return a reply. Please try again.")
+        return text
     except AIScanError:
         raise
     except Exception:

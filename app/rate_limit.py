@@ -218,6 +218,44 @@ def record_sms_code_request(phone_number, ip_address):
     db.commit()
 
 
+def check_help_chat_rate(ip_address):
+    """Returns None if a new AI help-chat message from this IP may proceed,
+    or an int number of minutes to report if too many messages have already
+    come from this IP recently. Same "count every attempt, not just
+    failures" reasoning as check_registration_rate() above -- a chat
+    message basically always "succeeds", so this caps the RATE of
+    messages, not a failure count. Unlike the code-request limiters above
+    there's no natural per-user identifier for an anonymous chat widget
+    (it needs no sign-in), so this is IP-only -- but that's enough to stop
+    the widget being scripted into hammering the shared Gemini API key,
+    which is the actual risk here (an unauthenticated, site-wide endpoint
+    calling a paid third-party API)."""
+    cfg = current_app.config
+    window = cfg.get("HELP_CHAT_WINDOW_MINUTES", 15)
+    limit = cfg.get("HELP_CHAT_IP_LIMIT", 20)
+    db = get_db()
+    cutoff = _iso(_now() - timedelta(minutes=window))
+    count = db.execute(
+        "SELECT COUNT(*) AS c FROM login_attempts "
+        "WHERE scope = 'help_chat_message' AND ip_address = ? AND attempted_at >= ?",
+        (ip_address or "unknown", cutoff),
+    ).fetchone()["c"]
+    if count >= limit:
+        return window
+    return None
+
+
+def record_help_chat_message(ip_address):
+    """Log one AI help-chat message for check_help_chat_rate() above --
+    same pattern as record_registration()/record_email_code_request()."""
+    db = get_db()
+    db.execute(
+        "INSERT INTO login_attempts (scope, identifier, ip_address, success, attempted_at) VALUES (?, ?, ?, ?, ?)",
+        ("help_chat_message", ip_address or "unknown", ip_address or "unknown", 1, _iso(_now())),
+    )
+    db.commit()
+
+
 def check_lockout(scope, identifier, ip_address):
     """Returns None if this login attempt may proceed, or an int number of
     minutes to report to the user if either limit is currently exceeded

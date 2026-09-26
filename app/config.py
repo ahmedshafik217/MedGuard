@@ -112,3 +112,11 @@ class Config:
     SMS_CODE_TTL_MINUTES = int(os.environ.get("SMS_CODE_TTL_MINUTES", "10"))
     SMS_CODE_REQUEST_LIMIT = int(os.environ.get("SMS_CODE_REQUEST_LIMIT", "5"))
     SMS_CODE_REQUEST_WINDOW_MINUTES = int(os.environ.get("SMS_CODE_REQUEST_WINDOW_MINUTES", "15"))
+
+    # AI help/support chat (see app/help_chat.py): the floating help icon
+    # shown site-wide. Reuses GEMINI_API_KEY/GEMINI_MODEL above -- no new
+    # setup needed. These two just cap how many chat messages one IP can
+    # send in a window, since this endpoint (unlike the other Gemini
+    # features) is reachable without signing in at all.
+    HELP_CHAT_IP_LIMIT = int(os.environ.get("HELP_CHAT_IP_LIMIT", "20"))
+    HELP_CHAT_WINDOW_MINUTES = int(os.environ.get("HELP_CHAT_WINDOW_MINUTES", "15"))

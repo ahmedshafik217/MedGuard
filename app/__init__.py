@@ -1,5 +1,8 @@
-from flask import Flask, redirect, request, session, url_for
+import json
 
+from flask import Flask, jsonify, redirect, request, session, url_for
+
+from app.ai_gemini import AIScanError, AIScanNotConfigured
 from app.config import Config
 from app.csrf import init_csrf
 from app.db import init_db
@@ -32,8 +35,49 @@ def create_app(config_class=Config):
             session["lang"] = lang
         return redirect(request.referrer or url_for("auth.choose_login"))
 
+    @app.route("/help-chat", methods=["POST"])
+    def help_chat_message():
+        # Site-wide, sign-in-not-required endpoint behind the floating help
+        # icon (see base.html) -- see app/help_chat.py's docstring for what
+        # this assistant may/may not answer. Reached via plain fetch() with
+        # a form-encoded body (same csrf_token convention as every other
+        # POST in this app -- see app/csrf.py), not JSON, so it needs no
+        # change to the CSRF check itself.
+        from app.help_chat import ask_help_assistant, help_chat_configured
+        from app.rate_limit import check_help_chat_rate, record_help_chat_message
+
+        if not help_chat_configured():
+            return jsonify({"reply": "", "error": "The help assistant isn't set up on this site yet."}), 404
+
+        ip_address = request.remote_addr or "unknown"
+        wait_minutes = check_help_chat_rate(ip_address)
+        if wait_minutes is not None:
+            return jsonify({
+                "reply": "",
+                "error": translate("help_chat_rate_limited", session.get("lang", app.config["DEFAULT_LANGUAGE"])),
+            }), 429
+
+        message = request.form.get("message", "")
+        try:
+            history_raw = json.loads(request.form.get("history", "[]"))
+            history = [(h.get("role", ""), h.get("text", "")) for h in history_raw if isinstance(h, dict)]
+        except (ValueError, TypeError, AttributeError):
+            history = []
+        lang = session.get("lang", app.config["DEFAULT_LANGUAGE"])
+
+        record_help_chat_message(ip_address)
+        try:
+            reply = ask_help_assistant(message, history, lang)
+        except AIScanNotConfigured as e:
+            return jsonify({"reply": "", "error": str(e)}), 404
+        except AIScanError as e:
+            return jsonify({"reply": "", "error": str(e)}), 502
+
+        return jsonify({"reply": reply})
+
     @app.context_processor
     def inject_i18n():
+        from app.help_chat import help_chat_configured
         from app.mailer import email_configured
         from app.sms import sms_configured
         lang = session.get("lang", app.config["DEFAULT_LANGUAGE"])
@@ -52,6 +96,9 @@ def create_app(config_class=Config):
             # every route having to pass it through by hand.
             "email_login_available": email_configured(),
             "sms_login_available": sms_configured(),
+            # Whether the floating AI help/support chat icon (see
+            # base.html) should render at all -- see app/help_chat.py.
+            "help_chat_available": help_chat_configured(),
         }
 
     @app.context_processor
