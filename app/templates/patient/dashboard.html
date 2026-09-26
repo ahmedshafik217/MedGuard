@@ -151,18 +151,41 @@
                 {% for m in patient.medications %}
                 <li class="list-group-item">
                     <strong>{{ m.medication_name }}</strong>
+                    {% if m.resolved_generic_name and m.resolved_generic_name.lower() != (m.medication_name or '').strip().lower() %}
+                    <div class="small text-muted">→ {{ m.resolved_generic_name }}</div>
+                    {% endif %}
+                    {% if m.source == 'photo_ai' %}<span class="pill-badge sev-unknown">📷 {{ t('scanned_from_photo') }}</span>{% endif %}
                     {% if m.notes %}<div class="small text-muted">{{ m.notes }}</div>{% endif %}
                 </li>
                 {% else %}
                 <li class="list-group-item"><div class="empty-state mb-0 py-1">{{ t('no_records_yet') }}</div></li>
                 {% endfor %}
             </ul>
+            <form method="post" action="{{ url_for('patient.scan_medication_photo') }}"
+                  enctype="multipart/form-data" id="medication-scan-form" class="mb-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="form-label small mb-1">📷 {{ t('scan_medication_photo') }}</label>
+                <input type="file" name="medication_photo" accept="image/*" capture="environment" class="form-control mb-2" required>
+                <button type="submit" class="btn-pill btn-pill-outline sm w-100 justify-content-center" id="medication-scan-submit">📷 {{ t('scan_and_add') }}</button>
+                <div id="medication-scan-status" class="small text-muted mt-1" style="display:none">⏳ {{ t('scanning_in_progress') }}</div>
+            </form>
+            <div class="small text-muted mb-2">{{ t('or_add_manually') }}</div>
             <form method="post" action="{{ url_for('patient.add_medication') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="text" name="medication_name" class="form-control mb-2" placeholder="{{ t('medication_name') }}" required>
                 <input type="text" name="notes" class="form-control mb-2" placeholder="{{ t('notes_optional') }}">
                 <button class="btn-pill btn-pill-solid sm w-100 justify-content-center">➕ {{ t('add_medication') }}</button>
             </form>
+            <script>
+                (function () {
+                    var form = document.getElementById('medication-scan-form');
+                    if (!form) return;
+                    form.addEventListener('submit', function () {
+                        document.getElementById('medication-scan-submit').setAttribute('disabled', 'disabled');
+                        document.getElementById('medication-scan-status').style.display = '';
+                    });
+                })();
+            </script>
         </div>
     </div>
 
