@@ -10,7 +10,8 @@ from app.pdf_export_ar import WkhtmltopdfNotFound, generate_patient_history_pdf_
 from app.prescription_scan import build_scan_note, scan_prescription_image
 from app.rate_limit import check_patient_ai_scan_rate, record_patient_ai_scan
 from app.records import (
-    add_allergy_from_form, add_antibiotic_from_form, add_condition_from_form, add_medication_from_form,
+    add_allergy_from_form, add_antibiotic_from_form, add_condition_from_form, add_hospitalization_from_form,
+    add_medication_from_form, attach_infection_origin,
 )
 from app.utils import current_patient, patient_required
 from app.voice_resolve import resolve_antibiotic_from_audio
@@ -23,7 +24,10 @@ def dashboard():
     patient["allergies"] = models.list_allergies(patient["id"])
     patient["conditions"] = models.list_conditions(patient["id"])
     patient["medications"] = models.list_medications(patient["id"])
-    patient["antibiotic_records"] = models.list_antibiotic_records(patient["id"])
+    patient["hospitalizations"] = models.list_hospitalizations(patient["id"])
+    patient["antibiotic_records"] = attach_infection_origin(
+        models.list_antibiotic_records(patient["id"]), patient["hospitalizations"],
+    )
     return render_template("patient/dashboard.html", patient=patient)
 
 
@@ -104,6 +108,15 @@ def add_medication():
     patient = current_patient()
     add_medication_from_form(patient, request.form)
     models.log_action("patient", patient["public_id"], "add_medication", target=patient["public_id"])
+    return redirect(url_for("patient.dashboard"))
+
+
+@bp.route("/hospitalizations/add", methods=["POST"])
+@patient_required
+def add_hospitalization():
+    patient = current_patient()
+    add_hospitalization_from_form(patient, request.form, recorded_by="patient")
+    models.log_action("patient", patient["public_id"], "add_hospitalization", target=patient["public_id"])
     return redirect(url_for("patient.dashboard"))
 
 
