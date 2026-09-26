@@ -281,13 +281,20 @@ def patient_login_phone_verify():
 
 @bp.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
-    """Self-service password reset: no email/SMS involved (this deployment
-    doesn't have an SMS provider hooked up) -- identity is instead checked
-    against phone number + date of birth already on file, the same way a
-    front-desk check would ask "what's your ID, phone, and birth date".
-    A patient whose record has no phone number and/or no date of birth on
-    file can't use this and needs an owner/staff-assisted reset instead
-    (see owner.reset_patient_password)."""
+    """Self-service password reset: no email/SMS involved (identity is
+    checked against records already on file, never by sending anything).
+    The patient ID field is OPTIONAL -- a patient who remembers it gets the
+    original, tighter check (ID + phone + DOB, via
+    models.find_patient_for_reset); a patient who's forgotten their
+    ASH-XXXXXX ID too can leave it blank and be identified by phone number
+    + date of birth alone (via models.get_patient_by_phone_and_dob, the
+    same fail-closed-on-ambiguous-match lookup the WhatsApp/SMS sign-in
+    flow above uses) -- either way this only ever reveals the ID to
+    someone who already knows the phone+DOB on that exact record, and the
+    success screen shows it back to them since that's often the whole
+    reason they're here. A patient whose record has no phone number and/or
+    no date of birth on file can't use this either way and needs an
+    owner/staff-assisted reset instead (see owner.reset_patient_password)."""
     prefill_id = request.args.get("prefill", "").strip().upper()
     if request.method == "POST":
         public_id = request.form.get("public_id", "").strip().upper()
@@ -296,7 +303,8 @@ def forgot_password():
         new_password = request.form.get("new_password", "").strip()
         ip_address = _client_ip()
 
-        wait_minutes = check_lockout("patient_reset", public_id or "(blank)", ip_address)
+        lockout_key = public_id or phone_number or "(blank)"
+        wait_minutes = check_lockout("patient_reset", lockout_key, ip_address)
         if wait_minutes:
             flash(_too_many_attempts_message(wait_minutes), "error")
             return render_template("auth/forgot_password.html", prefill_id=public_id)
@@ -310,16 +318,20 @@ def forgot_password():
             flash(_t("Please enter a new password.", "يرجى إدخال كلمة مرور جديدة."), "error")
             return render_template("auth/forgot_password.html", prefill_id=public_id)
 
-        patient = models.find_patient_for_reset(public_id, phone_number, date_of_birth)
-        record_attempt("patient_reset", public_id or "(blank)", ip_address, success=bool(patient))
+        if public_id:
+            patient = models.find_patient_for_reset(public_id, phone_number, date_of_birth)
+        else:
+            patient = models.get_patient_by_phone_and_dob(phone_number, date_of_birth)
+        record_attempt("patient_reset", lockout_key, ip_address, success=bool(patient))
         if not patient:
             models.log_action("patient", public_id or "(blank)", "password_reset_failed", target=public_id or None)
             flash(
                 _t(
-                    "We couldn't verify those details. Check your patient ID, phone number and date of "
-                    "birth, or ask hospital/pharmacy staff to reset your password for you.",
-                    "تعذر التحقق من هذه البيانات. تأكد من رقم المريض ورقم الهاتف وتاريخ الميلاد، أو "
-                    "اطلب من موظفي المستشفى/الصيدلية إعادة تعيين كلمة المرور لك.",
+                    "We couldn't verify those details. Check your phone number and date of birth (and "
+                    "patient ID, if you entered one), or ask hospital/pharmacy staff to reset your "
+                    "password for you.",
+                    "تعذر التحقق من هذه البيانات. تأكد من رقم الهاتف وتاريخ الميلاد (ورقم المريض إذا كنت "
+                    "قد أدخلته)، أو اطلب من موظفي المستشفى/الصيدلية إعادة تعيين كلمة المرور لك.",
                 ),
                 "error",
             )
@@ -328,8 +340,13 @@ def forgot_password():
         models.set_patient_password(patient["id"], new_password)
         models.log_action("patient", patient["public_id"], "password_reset_self", target=patient["public_id"])
         notify.send_patient_password_reset_notice(patient, lang=session.get("lang", "ar"))
-        flash(_t("Password updated — you can log in now.", "تم تحديث كلمة المرور — يمكنك تسجيل الدخول الآن."),
-              "success")
+        flash(
+            _t(
+                f"Password updated. Your patient ID is {patient['public_id']} — you can log in now.",
+                f"تم تحديث كلمة المرور. رقم المريض الخاص بك هو {patient['public_id']} — يمكنك تسجيل الدخول الآن.",
+            ),
+            "success",
+        )
         return redirect(url_for("auth.patient_login", prefill=patient["public_id"]))
 
     return render_template("auth/forgot_password.html", prefill_id=prefill_id)
@@ -396,22 +413,6 @@ def register_patient():
         phone_number = request.form.get("phone_number", "").strip() or None
         email = request.form.get("email", "").strip() or None
         dob_raw = request.form.get("date_of_birth", "").strip()
-
-        # Phone number is now required for every NEW patient record (plain
-        # required-field check, same pattern as owner.settings()'s
-        # username/password check below). Existing patients registered
-        # before this change keep working with no phone on file -- this
-        # only gates the create path, never blocks an existing patient
-        # from signing in.
-        if not phone_number:
-            flash(
-                _t(
-                    "Phone number is required to create a new patient record.",
-                    "رقم الهاتف مطلوب لإنشاء سجل مريض جديد.",
-                ),
-                "error",
-            )
-            return render_template("auth/register_patient.html")
 
         date_of_birth = None
         if dob_raw:
