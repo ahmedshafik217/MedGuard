@@ -13,7 +13,7 @@ from app.owner import bp
 from app.pdf_export import generate_patient_history_pdf
 from app.pdf_export_ar import WkhtmltopdfNotFound, generate_patient_history_pdf_arabic
 from app.pdf_reports import generate_pharmacy_report_pdf, generate_quality_report_pdf
-from app.prescription_scan import scan_prescription_image
+from app.prescription_scan import build_scan_note, scan_prescription_image
 from app.records import (
     add_allergy_from_form, add_antibiotic_from_form, add_condition_from_form, add_culture_from_ai_scan,
     add_culture_from_form, add_medication_from_form,
@@ -467,18 +467,6 @@ def resolve_antibiotic_voice_audio():
     return jsonify(result)
 
 
-def _prescription_scan_note(item):
-    """Builds the antibiotic_record.notes text for a photo-extracted entry,
-    so a pharmacist reviewing patient history later can see exactly what
-    the AI read and how confident it was -- not just a bare drug name."""
-    as_written = (item.get("name_as_written") or "").strip()
-    confidence = item.get("confidence") or "unknown"
-    parts = [f'Read from a prescription photo (as written: "{as_written}"; confidence: {confidence}).']
-    if item.get("notes"):
-        parts.append(item["notes"].strip())
-    return " ".join(p for p in parts if p)
-
-
 @bp.route("/patients/<public_id>/antibiotics/scan-photo", methods=["POST"])
 @antibiotic_add_required
 def scan_patient_antibiotic_photo(public_id):
@@ -542,7 +530,7 @@ def scan_patient_antibiotic_photo(public_id):
             "duration_amount": (item.get("duration_amount") or "").strip(),
             "duration_unit": (item.get("duration_unit") or "").strip(),
             "duration_unit_other": (item.get("duration_unit_other") or "").strip(),
-            "notes": _prescription_scan_note(item),
+            "notes": build_scan_note(item),
         }
         record, _alerts = add_antibiotic_from_form(
             patient, form_data,
