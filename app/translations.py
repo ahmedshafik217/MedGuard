@@ -562,6 +562,33 @@ STRINGS = {
         "ar": "هذا المساعد يساعد في استخدام التطبيق فقط — ولا يقدم استشارة طبية.",
     },
     "help_chat_close": {"en": "Close", "ar": "إغلاق"},
+
+    # -- Recent hospitalization tracking + Hospital-Acquired vs
+    # Community-Acquired informational label (see app/records.py's
+    # classify_infection_origin()).
+    "recent_hospitalizations": {"en": "Recent hospital stays", "ar": "حالات الدخول للمستشفى مؤخراً"},
+    "recent_hospitalizations_hint": {
+        "en": "Add any recent inpatient hospital stay — helps tell whether an infection likely started "
+              "in the hospital or in the community.",
+        "ar": "أضف أي دخول للمستشفى (كمريض داخلي) مؤخراً — يساعد ذلك في معرفة ما إذا كانت العدوى "
+              "بدأت على الأرجح داخل المستشفى أم في المجتمع.",
+    },
+    "admission_date": {"en": "Admission date", "ar": "تاريخ الدخول"},
+    "discharge_date_optional": {"en": "Discharge date (leave blank if still admitted)", "ar": "تاريخ الخروج (اتركه فارغاً إذا كان لا يزال في المستشفى)"},
+    "hospitalization_reason_optional": {"en": "Reason for admission (optional)", "ar": "سبب الدخول (اختياري)"},
+    "add_hospitalization": {"en": "Add hospital stay", "ar": "إضافة دخول للمستشفى"},
+    "ongoing": {"en": "ongoing", "ar": "مستمر"},
+    "days": {"en": "days", "ar": "أيام"},
+    "symptom_onset_date": {"en": "Symptom onset date (optional)", "ar": "تاريخ ظهور الأعراض (اختياري)"},
+    "symptom_onset_date_hint": {
+        "en": "When did symptoms actually start? Used only to label this entry as likely "
+              "hospital- or community-acquired — never affects safety alerts.",
+        "ar": "متى ظهرت الأعراض فعلياً؟ تُستخدم فقط لتصنيف هذا السجل كعدوى مكتسبة على الأرجح من "
+              "المستشفى أو من المجتمع — لا تؤثر أبداً على تنبيهات السلامة.",
+    },
+    "infection_origin": {"en": "Likely origin", "ar": "المصدر المحتمل"},
+    "hospital_acquired": {"en": "Hospital-acquired", "ar": "مكتسبة من المستشفى"},
+    "community_acquired": {"en": "Community-acquired", "ar": "مكتسبة من المجتمع"},
 }
 
 
