@@ -64,8 +64,36 @@ CREATE TABLE IF NOT EXISTS patient_medications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
     medication_name TEXT NOT NULL,
+    -- Resolved against medications_reference below (by generic name OR any
+    -- brand name) when possible -- NULL for a name that doesn't match
+    -- anything on file, same fallback pattern as antibiotic_records.
+    -- antibiotic_id/custom_name. This is what lets a patient-typed BRAND
+    -- name (e.g. "Coumadin") still match a drug-interaction reference row
+    -- written against the GENERIC name ("Warfarin"), and vice versa -- see
+    -- app/engine/safety_check.py.
+    medication_id INTEGER REFERENCES medications_reference(id),
     notes TEXT,
+    -- 'manual' (typed into the form, the default) or 'photo_ai' (extracted
+    -- from a medication package photo -- see app/medication_scan.py), same
+    -- convention as antibiotic_records.source/source_photo.
+    source TEXT NOT NULL DEFAULT 'manual',
+    source_photo BLOB,
     recorded_at TEXT NOT NULL
+);
+
+-- Reference table of known "other" (non-antibiotic) medications, generic
+-- name + any brand names -- lets a patient's self-typed or scanned
+-- medication (which may well be a brand name, e.g. "Coumadin" rather than
+-- "Warfarin") still be recognized for drug-interaction matching against
+-- the drug_interactions table above. Same shape/purpose as the antibiotics
+-- reference table's generic_name/brand_names, owner-managed the same way
+-- (Owner Dashboard -> Manage medications reference).
+CREATE TABLE IF NOT EXISTS medications_reference (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    generic_name TEXT UNIQUE NOT NULL,
+    brand_names TEXT,
+    notes TEXT,
+    created_at TEXT NOT NULL
 );
 
 -- Reference table of known dangerous combinations between an antibiotic
@@ -357,6 +385,21 @@ def _migrate(db):
     if "email" not in owner_cols:
         db.execute("ALTER TABLE owner_users ADD COLUMN email TEXT")
         db.commit()
+
+    # medication_id/source/source_photo -- lets a patient's "other
+    # medication" entry resolve to the medications_reference table (brand
+    # name -> generic name, for drug-interaction matching -- see
+    # app/engine/safety_check.py) and be traceable back to a scanned photo,
+    # same as antibiotic_records already does. NULL/'manual' for every
+    # existing row, same safe-default pattern used throughout this file.
+    med_cols = {row["name"] for row in db.execute("PRAGMA table_info(patient_medications)")}
+    if "medication_id" not in med_cols:
+        db.execute("ALTER TABLE patient_medications ADD COLUMN medication_id INTEGER REFERENCES medications_reference(id)")
+    if "source" not in med_cols:
+        db.execute("ALTER TABLE patient_medications ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'")
+    if "source_photo" not in med_cols:
+        db.execute("ALTER TABLE patient_medications ADD COLUMN source_photo BLOB")
+    db.commit()
 
 
 def init_db(app):

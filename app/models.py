@@ -491,14 +491,39 @@ def list_conditions(patient_id):
 
 # -------------------------------------------------- patient's other medications --
 
-def add_medication(patient_id, medication_name, notes=None):
+def add_medication(patient_id, medication_name, notes=None, medication_id=None, source="manual", source_photo=None):
+    # medication_id: resolved against medications_reference (by generic name
+    # OR any brand name -- see get_medication_reference_by_name below), or
+    # None for a name that isn't on file yet. medication_name is always kept
+    # as typed/scanned regardless, same fallback pattern as
+    # antibiotic_records.custom_name -- it's what actually displays.
     db = get_db()
     db.execute(
-        """INSERT INTO patient_medications (patient_id, medication_name, notes, recorded_at)
-           VALUES (?, ?, ?, ?)""",
-        (patient_id, medication_name, notes, _now()),
+        """INSERT INTO patient_medications
+           (patient_id, medication_name, medication_id, notes, source, source_photo, recorded_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (patient_id, medication_name, medication_id, notes, source, source_photo, _now()),
     )
     db.commit()
+
+
+def _enrich_medication(row):
+    """Attaches the medications_reference row this entry resolved to (if
+    any) as resolved_generic_name/resolved_brand_names -- used by
+    app/engine/safety_check.py to match a drug-interaction reference row
+    regardless of whether the patient typed the brand or the generic name
+    (see medications_reference in app/db.py). resolved_brand_names is
+    always a list (possibly empty), never None, so callers can iterate it
+    unconditionally."""
+    d = dict(row)
+    ref = get_medication_reference_by_id(d["medication_id"]) if d.get("medication_id") else None
+    if ref:
+        d["resolved_generic_name"] = ref["generic_name"]
+        d["resolved_brand_names"] = [b.strip() for b in (ref.get("brand_names") or "").split(",") if b.strip()]
+    else:
+        d["resolved_generic_name"] = None
+        d["resolved_brand_names"] = []
+    return d
 
 
 def list_medications(patient_id):
@@ -506,7 +531,69 @@ def list_medications(patient_id):
     rows = db.execute(
         "SELECT * FROM patient_medications WHERE patient_id = ? ORDER BY recorded_at DESC", (patient_id,)
     ).fetchall()
+    return [_enrich_medication(r) for r in rows]
+
+
+# ------------------------------------------- "other medications" reference --
+
+def add_medication_reference(generic_name, brand_names=None, notes=None):
+    db = get_db()
+    db.execute(
+        """INSERT INTO medications_reference (generic_name, brand_names, notes, created_at)
+           VALUES (?, ?, ?, ?)""",
+        (generic_name, brand_names or None, notes or None, _now()),
+    )
+    db.commit()
+
+
+def update_medication_reference(item_id, generic_name, brand_names=None, notes=None):
+    db = get_db()
+    db.execute(
+        "UPDATE medications_reference SET generic_name = ?, brand_names = ?, notes = ? WHERE id = ?",
+        (generic_name, brand_names or None, notes or None, item_id),
+    )
+    db.commit()
+
+
+def delete_medication_reference(item_id):
+    db = get_db()
+    db.execute("DELETE FROM medications_reference WHERE id = ?", (item_id,))
+    db.commit()
+
+
+def get_medication_reference_by_id(item_id):
+    db = get_db()
+    return _row_to_dict(db.execute("SELECT * FROM medications_reference WHERE id = ?", (item_id,)).fetchone())
+
+
+def get_medication_reference_by_name(name):
+    """Matches a typed/scanned medication name against this hospital's
+    medications reference list, by EITHER its generic name OR any one of
+    its comma-separated brand names (case-insensitive) -- so a patient who
+    types a brand name (e.g. "Coumadin") still resolves to the same
+    reference row as one who typed the generic name ("Warfarin"). Returns
+    None for a name not on file, same fallback as get_antibiotic_by_name."""
+    name = (name or "").strip().lower()
+    if not name:
+        return None
+    for item in list_medications_reference():
+        if item["generic_name"].strip().lower() == name:
+            return item
+        brands = [b.strip().lower() for b in (item.get("brand_names") or "").split(",") if b.strip()]
+        if name in brands:
+            return item
+    return None
+
+
+def list_medications_reference():
+    db = get_db()
+    rows = db.execute("SELECT * FROM medications_reference ORDER BY generic_name").fetchall()
     return [dict(r) for r in rows]
+
+
+def count_medications_reference():
+    db = get_db()
+    return db.execute("SELECT COUNT(*) AS c FROM medications_reference").fetchone()["c"]
 
 
 # --------------------------------------------------------- hospitalizations --
