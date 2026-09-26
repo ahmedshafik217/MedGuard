@@ -4,6 +4,7 @@ from flask import Response, current_app, flash, jsonify, redirect, render_templa
 
 from app import models
 from app.ai_gemini import AIScanError, AIScanNotConfigured
+from app.medication_scan import scan_medication_image
 from app.patient import bp
 from app.pdf_export import generate_patient_history_pdf
 from app.pdf_export_ar import WkhtmltopdfNotFound, generate_patient_history_pdf_arabic
@@ -11,7 +12,7 @@ from app.prescription_scan import build_scan_note, scan_prescription_image
 from app.rate_limit import check_patient_ai_scan_rate, record_patient_ai_scan
 from app.records import (
     add_allergy_from_form, add_antibiotic_from_form, add_condition_from_form, add_hospitalization_from_form,
-    add_medication_from_form, attach_infection_origin,
+    add_medication_from_form, add_medications_from_ai_scan, attach_infection_origin,
 )
 from app.utils import current_patient, patient_required
 from app.voice_resolve import resolve_antibiotic_from_audio
@@ -108,6 +109,72 @@ def add_medication():
     patient = current_patient()
     add_medication_from_form(patient, request.form)
     models.log_action("patient", patient["public_id"], "add_medication", target=patient["public_id"])
+    return redirect(url_for("patient.dashboard"))
+
+
+@bp.route("/medications/scan-photo", methods=["POST"])
+@patient_required
+def scan_medication_photo():
+    """Patient-facing self-service photo scan for the "My Other
+    Medications" list -- mirrors patient.scan_antibiotic_photo, but for
+    non-antibiotic medications (see app/medication_scan.py). Shares the
+    same per-patient/per-IP AI-usage rate limit as the antibiotic photo
+    scan and voice resolve -- it's the same Gemini cost pool either way."""
+    patient = current_patient()
+    ip_address = request.remote_addr or "unknown"
+
+    wait_minutes = check_patient_ai_scan_rate(patient["public_id"], ip_address)
+    if wait_minutes is not None:
+        flash(
+            f"You've used the AI photo scan a lot in a short time -- please wait about {wait_minutes} "
+            "minutes, or add this one manually below.",
+            "error",
+        )
+        return redirect(url_for("patient.dashboard"))
+
+    photo = request.files.get("medication_photo")
+    if not photo or not photo.filename:
+        flash("Choose or take a photo of the medication package first.", "error")
+        return redirect(url_for("patient.dashboard"))
+
+    image_bytes = photo.read()
+    if not image_bytes:
+        flash("That photo looks empty — please try again.", "error")
+        return redirect(url_for("patient.dashboard"))
+    if len(image_bytes) > current_app.config["PRESCRIPTION_PHOTO_MAX_BYTES"]:
+        max_mb = current_app.config["PRESCRIPTION_PHOTO_MAX_BYTES"] // (1024 * 1024)
+        flash(f"That photo is too large (max {max_mb} MB). Please retake it or choose a smaller file.", "error")
+        return redirect(url_for("patient.dashboard"))
+
+    try:
+        result = scan_medication_image(
+            image_bytes,
+            api_key=current_app.config["GEMINI_API_KEY"],
+            model=current_app.config["GEMINI_MODEL"],
+            known_medications=models.list_medications_reference(),
+        )
+    except AIScanNotConfigured as e:
+        flash(str(e), "error")
+        return redirect(url_for("patient.dashboard"))
+    except AIScanError as e:
+        models.log_action("patient", patient["public_id"], "medication_scan_failed", details=str(e))
+        flash(f"Couldn't read that photo: {e}", "error")
+        return redirect(url_for("patient.dashboard"))
+
+    record_patient_ai_scan(patient["public_id"], ip_address)
+    added_names, skipped_antibiotic_names = add_medications_from_ai_scan(patient, result, source_photo=image_bytes)
+    if added_names:
+        models.log_action("patient", patient["public_id"], "add_medication_from_scan",
+                          target=patient["public_id"], details=", ".join(added_names))
+        flash(f"Added: {', '.join(added_names)}.", "success")
+    if skipped_antibiotic_names:
+        flash(
+            f"{', '.join(skipped_antibiotic_names)} looks like an antibiotic, not another medication — "
+            "please add it from the 'Add antibiotic' page instead, so it gets the full safety check.",
+            "error",
+        )
+    if not added_names and not skipped_antibiotic_names:
+        flash("Couldn't find any medication on that photo. Please try again or add it manually.", "error")
     return redirect(url_for("patient.dashboard"))
 
 
