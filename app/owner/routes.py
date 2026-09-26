@@ -9,6 +9,7 @@ from app import models, notify
 from app.ai_gemini import AIScanError, AIScanNotConfigured
 from app.culture_scan import scan_culture_image
 from app.db import get_db
+from app.medication_scan import scan_medication_image
 from app.owner import bp
 from app.pdf_export import generate_patient_history_pdf
 from app.pdf_export_ar import WkhtmltopdfNotFound, generate_patient_history_pdf_arabic
@@ -16,7 +17,8 @@ from app.pdf_reports import generate_pharmacy_report_pdf, generate_quality_repor
 from app.prescription_scan import build_scan_note, scan_prescription_image
 from app.records import (
     add_allergy_from_form, add_antibiotic_from_form, add_condition_from_form, add_culture_from_ai_scan,
-    add_culture_from_form, add_hospitalization_from_form, add_medication_from_form, attach_infection_origin,
+    add_culture_from_form, add_hospitalization_from_form, add_medication_from_form, add_medications_from_ai_scan,
+    attach_infection_origin,
 )
 from app.roles import CREATABLE_ROLES, DEFAULT_SAFE_ROLE
 from app.utils import (
@@ -255,6 +257,64 @@ def add_patient_medication(public_id):
         return ("Patient not found.", 404)
     add_medication_from_form(patient, request.form)
     models.log_action("owner", current_actor_label(), "add_medication", target=public_id)
+    return redirect(url_for("owner.patient_detail", public_id=public_id))
+
+
+@bp.route("/patients/<public_id>/medications/scan-photo", methods=["POST"])
+@full_owner_required
+def scan_patient_medication_photo(public_id):
+    """Same idea as scan_patient_antibiotic_photo, for a NON-antibiotic
+    medication package photo instead -- see app/medication_scan.py. No
+    per-request rate limit here (same as the owner-side antibiotic/culture
+    scans above) -- only the patient self-service version is rate-limited,
+    since owner/staff accounts are a small, trusted population."""
+    patient = models.get_patient_by_public_id(public_id)
+    if not patient:
+        return ("Patient not found.", 404)
+
+    photo = request.files.get("medication_photo")
+    if not photo or not photo.filename:
+        flash("Choose or take a photo of the medication package first.", "error")
+        return redirect(url_for("owner.patient_detail", public_id=public_id))
+
+    image_bytes = photo.read()
+    if not image_bytes:
+        flash("That photo looks empty — please try again.", "error")
+        return redirect(url_for("owner.patient_detail", public_id=public_id))
+    if len(image_bytes) > current_app.config["PRESCRIPTION_PHOTO_MAX_BYTES"]:
+        max_mb = current_app.config["PRESCRIPTION_PHOTO_MAX_BYTES"] // (1024 * 1024)
+        flash(f"That photo is too large (max {max_mb} MB). Please retake it or choose a smaller file.", "error")
+        return redirect(url_for("owner.patient_detail", public_id=public_id))
+
+    try:
+        result = scan_medication_image(
+            image_bytes,
+            api_key=current_app.config["GEMINI_API_KEY"],
+            model=current_app.config["GEMINI_MODEL"],
+            known_medications=models.list_medications_reference(),
+        )
+    except AIScanNotConfigured as e:
+        flash(str(e), "error")
+        return redirect(url_for("owner.patient_detail", public_id=public_id))
+    except AIScanError as e:
+        models.log_action("owner", current_actor_label(), "medication_scan_failed",
+                          target=public_id, details=str(e))
+        flash(f"Couldn't read that photo: {e}", "error")
+        return redirect(url_for("owner.patient_detail", public_id=public_id))
+
+    added_names, skipped_antibiotic_names = add_medications_from_ai_scan(patient, result, source_photo=image_bytes)
+    if added_names:
+        models.log_action("owner", current_actor_label(), "add_medication_from_scan",
+                          target=public_id, details=", ".join(added_names))
+        flash(f"Added: {', '.join(added_names)}.", "success")
+    if skipped_antibiotic_names:
+        flash(
+            f"{', '.join(skipped_antibiotic_names)} looks like an antibiotic, not another medication — "
+            "please add it through the antibiotic scanner/form instead, so it gets the full safety check.",
+            "error",
+        )
+    if not added_names and not skipped_antibiotic_names:
+        flash("Couldn't find any medication on that photo. Please try again or add it manually.", "error")
     return redirect(url_for("owner.patient_detail", public_id=public_id))
 
 
@@ -703,7 +763,8 @@ def add_drug_interaction():
                               details=f"{fields['antibiotic_name'] or fields['antibiotic_class']} + {fields['interacting_drug']}")
             flash("Drug interaction added to reference database.", "success")
             return redirect(url_for("owner.drug_interactions"))
-    return render_template("owner/drug_interaction_form.html", item=None)
+    known_medications = [m["generic_name"] for m in models.list_medications_reference()]
+    return render_template("owner/drug_interaction_form.html", item=None, known_medications=known_medications)
 
 
 @bp.route("/drug-interactions/<int:item_id>/edit", methods=["GET", "POST"])
@@ -722,7 +783,8 @@ def edit_drug_interaction(item_id):
                               details=f"{fields['antibiotic_name'] or fields['antibiotic_class']} + {fields['interacting_drug']}")
             flash("Drug interaction updated.", "success")
             return redirect(url_for("owner.drug_interactions"))
-    return render_template("owner/drug_interaction_form.html", item=item)
+    known_medications = [m["generic_name"] for m in models.list_medications_reference()]
+    return render_template("owner/drug_interaction_form.html", item=item, known_medications=known_medications)
 
 
 @bp.route("/drug-interactions/<int:item_id>/delete", methods=["POST"])
@@ -736,6 +798,77 @@ def delete_drug_interaction(item_id):
                       details=item.get("interacting_drug"))
     flash("Drug interaction removed from reference database.", "success")
     return redirect(url_for("owner.drug_interactions"))
+
+
+# ------------------------------------------- "other medications" reference --
+# Same exact pattern as the antibiotics reference CRUD above (generic name +
+# brand names) -- lets a patient-typed or scanned BRAND name (e.g.
+# "Coumadin") resolve to the same drug the owner wrote a drug-interaction
+# reference row against using the GENERIC name ("Warfarin"). See
+# app/db.py's medications_reference table and
+# app/engine/safety_check.py's interaction matching.
+
+@bp.route("/medications-reference")
+@full_owner_required
+def medications_reference():
+    items = models.list_medications_reference()
+    return render_template("owner/medications_reference.html", items=items)
+
+
+@bp.route("/medications-reference/add", methods=["GET", "POST"])
+@full_owner_required
+def add_medication_reference():
+    if request.method == "POST":
+        name = request.form.get("generic_name", "").strip()
+        if not name:
+            flash("Generic name is required.", "error")
+        elif models.get_medication_reference_by_name(name):
+            flash("A medication with that generic name (or matching brand name) already exists.", "error")
+        else:
+            models.add_medication_reference(
+                generic_name=name,
+                brand_names=request.form.get("brand_names", "").strip() or None,
+                notes=request.form.get("notes", "").strip() or None,
+            )
+            models.log_action("owner", current_actor_label(), "add_medication_reference", details=name)
+            flash("Medication added to reference database.", "success")
+            return redirect(url_for("owner.medications_reference"))
+    return render_template("owner/medication_reference_form.html", item=None)
+
+
+@bp.route("/medications-reference/<int:item_id>/edit", methods=["GET", "POST"])
+@full_owner_required
+def edit_medication_reference(item_id):
+    item = models.get_medication_reference_by_id(item_id)
+    if not item:
+        return ("Not found.", 404)
+    if request.method == "POST":
+        name = request.form.get("generic_name", "").strip()
+        if not name:
+            flash("Generic name is required.", "error")
+        else:
+            models.update_medication_reference(
+                item_id,
+                generic_name=name,
+                brand_names=request.form.get("brand_names", "").strip() or None,
+                notes=request.form.get("notes", "").strip() or None,
+            )
+            models.log_action("owner", current_actor_label(), "edit_medication_reference", details=name)
+            flash("Medication updated.", "success")
+            return redirect(url_for("owner.medications_reference"))
+    return render_template("owner/medication_reference_form.html", item=item)
+
+
+@bp.route("/medications-reference/<int:item_id>/delete", methods=["POST"])
+@full_owner_required
+def delete_medication_reference(item_id):
+    item = models.get_medication_reference_by_id(item_id)
+    if not item:
+        return ("Not found.", 404)
+    models.delete_medication_reference(item_id)
+    models.log_action("owner", current_actor_label(), "delete_medication_reference", details=item["generic_name"])
+    flash("Medication removed from reference database.", "success")
+    return redirect(url_for("owner.medications_reference"))
 
 
 @bp.route("/audit-log")
