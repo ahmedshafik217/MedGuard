@@ -194,12 +194,27 @@ def check_antibiotic(patient, antibiotic, allergies, conditions, recent_record=N
     # severity varies entry to entry.
     if antibiotic and medications and interactions:
         for medication in medications:
-            med_name = (medication.get("medication_name") or "").strip().lower()
-            if not med_name:
+            # Match by every name this medication is known under: what the
+            # patient actually typed/scanned, PLUS -- when it resolved to a
+            # medications_reference row (see app.models.get_medication_
+            # reference_by_name) -- that row's generic name and every one
+            # of its brand names. This is what lets a patient-recorded
+            # brand name (e.g. "Coumadin") still match a reference
+            # interaction row written against the generic name
+            # ("Warfarin"), and vice versa, instead of silently missing the
+            # interaction just because the two sides used different names
+            # for the same drug.
+            candidates = {(medication.get("medication_name") or "").strip().lower()}
+            if medication.get("resolved_generic_name"):
+                candidates.add(medication["resolved_generic_name"].strip().lower())
+            for brand in medication.get("resolved_brand_names") or []:
+                candidates.add(brand.strip().lower())
+            candidates.discard("")
+            if not candidates:
                 continue
             for interaction in interactions:
                 ref_drug = (interaction.get("interacting_drug") or "").strip().lower()
-                if not ref_drug or ref_drug != med_name:
+                if not ref_drug or ref_drug not in candidates:
                     continue
                 message_parts = []
                 if interaction.get("category_label"):
