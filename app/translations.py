@@ -589,6 +589,30 @@ STRINGS = {
     "infection_origin": {"en": "Likely origin", "ar": "المصدر المحتمل"},
     "hospital_acquired": {"en": "Hospital-acquired", "ar": "مكتسبة من المستشفى"},
     "community_acquired": {"en": "Community-acquired", "ar": "مكتسبة من المجتمع"},
+
+    # -- "Other medications" reference database (generic + brand names) and
+    # photo scanning for it (see app/db.py's medications_reference table,
+    # app/medication_scan.py, and app/engine/safety_check.py's
+    # brand/generic-aware interaction matching).
+    "medications_reference": {"en": "Medications Reference Database", "ar": "قاعدة بيانات الأدوية الأخرى"},
+    "add_medication_reference": {"en": "Add medication to reference database", "ar": "إضافة دواء إلى القاعدة"},
+    "medications_reference_hint": {
+        "en": "Add a medication's generic name and any brand names it's sold under. This lets a patient's "
+              "self-recorded or scanned medication (which is often a brand name) still be matched correctly "
+              "against the drug-interaction list below.",
+        "ar": "أضف الاسم العلمي للدواء وأي أسماء تجارية يُباع بها. يتيح هذا مطابقة الدواء الذي يسجله المريض "
+              "بنفسه أو يمسحه ضوئياً (وغالباً ما يكون اسماً تجارياً) بشكل صحيح مع قائمة التداخلات الدوائية أدناه.",
+    },
+    "brand_names_hint": {
+        "en": "Separate multiple brand names with commas.",
+        "ar": "افصل بين الأسماء التجارية المتعددة بفواصل.",
+    },
+    "interacting_drug_datalist_hint": {
+        "en": "You can type either the generic name or a brand name — both are matched thanks to the "
+              "medications reference database above.",
+        "ar": "يمكنك كتابة الاسم العلمي أو الاسم التجاري — سيتم التعرف على كليهما بفضل قاعدة بيانات الأدوية أعلاه.",
+    },
+    "scan_medication_photo": {"en": "Scan medication package photo", "ar": "مسح صورة عبوة الدواء"},
 }
 
 

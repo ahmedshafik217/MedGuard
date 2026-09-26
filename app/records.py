@@ -28,12 +28,49 @@ def add_condition_from_form(patient, form):
     )
 
 
-def add_medication_from_form(patient, form):
+def add_medication_from_form(patient, form, source="manual", source_photo=None):
+    name = form.get("medication_name", "").strip()
+    reference = models.get_medication_reference_by_name(name) if name else None
     models.add_medication(
         patient_id=patient["id"],
-        medication_name=form.get("medication_name", "").strip(),
+        medication_name=name,
+        medication_id=reference["id"] if reference else None,
         notes=form.get("notes", "").strip() or None,
+        source=source,
+        source_photo=source_photo,
     )
+
+
+def add_medications_from_ai_scan(patient, scan_result, source_photo):
+    """Turns app/medication_scan.py's scan_medication_image() output into
+    saved patient_medications rows -- one add_medication_from_form() call
+    per item, exactly like a hand-typed entry (so it gets the same
+    medications_reference resolution). Items the AI flagged as actually
+    being an ANTIBIOTIC are deliberately skipped here -- filing a real
+    antibiotic away as a plain "other medication" would mean it never goes
+    through the allergy/pregnancy/condition/recent-exposure safety check
+    that only runs for antibiotic entries (see add_antibiotic_from_form
+    below). Returns (added_names, skipped_antibiotic_names) so the caller
+    can flash a clear message about each.
+    """
+    from app.medication_scan import build_medication_scan_note
+
+    added_names = []
+    skipped_antibiotic_names = []
+    for item in scan_result.get("medications", []):
+        display_name = (item.get("medication_name") or item.get("name_as_written") or "").strip()
+        if not display_name:
+            continue
+        if item.get("is_likely_antibiotic"):
+            skipped_antibiotic_names.append(display_name)
+            continue
+        form_data = {
+            "medication_name": display_name,
+            "notes": build_medication_scan_note(item),
+        }
+        add_medication_from_form(patient, form_data, source="photo_ai", source_photo=source_photo)
+        added_names.append(display_name)
+    return added_names, skipped_antibiotic_names
 
 
 def add_hospitalization_from_form(patient, form, recorded_by="patient"):
