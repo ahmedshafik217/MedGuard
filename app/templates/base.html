@@ -15,7 +15,22 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block extra_head %}{% endblock %}
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body class="{% block body_class %}{% endblock %}" data-color-scheme="{{ color_scheme }}">
+    {% if is_patient_session %}
+    <div class="color-scheme-bar">
+        <div class="container d-flex align-items-center gap-2">
+            <span class="color-scheme-label">{{ t('color_scheme_label') }}</span>
+            <a href="{{ url_for('set_color_scheme', scheme='blue') }}"
+               class="color-scheme-swatch {{ 'active' if color_scheme == 'blue' }}">
+                <span class="color-scheme-dot dot-blue"></span>{{ t('color_scheme_blue') }}
+            </a>
+            <a href="{{ url_for('set_color_scheme', scheme='pink') }}"
+               class="color-scheme-swatch {{ 'active' if color_scheme == 'pink' }}">
+                <span class="color-scheme-dot dot-pink"></span>{{ t('color_scheme_pink') }}
+            </a>
+        </div>
+    </div>
+    {% endif %}
     <div class="utility-bar">
         <div class="container d-flex justify-content-end align-items-center gap-3">
             <span class="lang-pill-group">
@@ -88,7 +103,7 @@
             <span class="footer-cursive">{{ t('hero_cursive_line1') }}<br>{{ t('hero_cursive_line2') }}</span>
             <span class="footer-disclaimer">{{ t('disclaimer') }}</span>
             <span class="footer-location">{{ t('site_name') }} &nbsp;|&nbsp; {{ t('footer_region') }}</span>
-            <a href="tel:920017733" class="footer-phone" dir="ltr">📞 {{ t('footer_phone_label') }}: 920017733</a>
+            <a href="tel:920017733" class="footer-phone" dir="ltr">{{ icon('phone') }} {{ t('footer_phone_label') }}: 920017733</a>
         </div>
     </footer>
 
