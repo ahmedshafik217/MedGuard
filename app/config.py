@@ -58,10 +58,12 @@ class Config:
     # section "Prescription photo scan"): reads a photo of a written
     # prescription with an AI vision model and pulls out just the
     # antibiotics. Feature is silently unavailable (clear error shown to
-    # staff) until GEMINI_API_KEY is set -- nothing else in the app
-    # depends on it.
-    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-    GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
+    # staff) until OPENAI_API_KEY is set -- nothing else in the app
+    # depends on it. Uses OpenAI's API (see app/ai_gemini.py's module
+    # docstring for why it's named that despite calling OpenAI, not
+    # Google's Gemini, which this app used before switching providers).
+    GEMINI_API_KEY = os.environ.get("OPENAI_API_KEY")
+    GEMINI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-6-luna")
     PRESCRIPTION_PHOTO_MAX_BYTES = int(os.environ.get("PRESCRIPTION_PHOTO_MAX_MB", "10")) * 1024 * 1024
     # A little headroom over the photo limit itself for multipart overhead.
     MAX_CONTENT_LENGTH = PRESCRIPTION_PHOTO_MAX_BYTES + 2 * 1024 * 1024
@@ -114,9 +116,9 @@ class Config:
     SMS_CODE_REQUEST_WINDOW_MINUTES = int(os.environ.get("SMS_CODE_REQUEST_WINDOW_MINUTES", "15"))
 
     # AI help/support chat (see app/help_chat.py): the floating help icon
-    # shown site-wide. Reuses GEMINI_API_KEY/GEMINI_MODEL above -- no new
+    # shown site-wide. Reuses OPENAI_API_KEY/OPENAI_MODEL above -- no new
     # setup needed. These two just cap how many chat messages one IP can
-    # send in a window, since this endpoint (unlike the other Gemini
+    # send in a window, since this endpoint (unlike the other AI-powered
     # features) is reachable without signing in at all.
     HELP_CHAT_IP_LIMIT = int(os.environ.get("HELP_CHAT_IP_LIMIT", "20"))
     HELP_CHAT_WINDOW_MINUTES = int(os.environ.get("HELP_CHAT_WINDOW_MINUTES", "15"))
@@ -126,6 +128,6 @@ class Config:
     # check_patient_ai_scan_rate) -- the owner/staff side of the same
     # features has no limit (see app/owner/routes.py) since staff are a
     # small, trusted population; patients are not, and each tap can
-    # trigger a real Gemini API cost.
+    # trigger a real API cost.
     PATIENT_AI_SCAN_LIMIT = int(os.environ.get("PATIENT_AI_SCAN_LIMIT", "10"))
     PATIENT_AI_SCAN_WINDOW_MINUTES = int(os.environ.get("PATIENT_AI_SCAN_WINDOW_MINUTES", "15"))
