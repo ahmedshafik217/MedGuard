@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% import "macros.html" as macros with context %}
 {% block content %}
-<a class="back-link mb-2" href="{{ url_for('patient.dashboard') }}">&laquo; {{ t('back') }}</a>
+<a class="back-link mb-2" href="{{ url_for('patient.antibiotic_history') }}">&laquo; {{ t('back') }}</a>
 <h3 class="my-3">{{ t('add_antibiotic') }}</h3>
 
 <div class="section-card">
     <div class="section-card-head">
-        <span class="icon-badge theme-teal sm">📷</span>
+        <span class="icon-badge theme-teal sm">{{ icon('camera') }}</span>
         <h6 class="mb-0">{{ t('scan_prescription_photo') }}</h6>
     </div>
     <p class="small text-muted">{{ t('scan_prescription_hint') }}</p>
@@ -14,8 +14,8 @@
           enctype="multipart/form-data" id="prescription-scan-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="file" name="prescription_photo" accept="image/*" capture="environment" class="form-control mb-2" required>
-        <button type="submit" class="btn-pill btn-pill-solid w-100 justify-content-center" id="prescription-scan-submit">📷 {{ t('scan_and_add') }}</button>
-        <div id="prescription-scan-status" class="small text-muted mt-2" style="display:none">⏳ {{ t('scanning_in_progress') }}</div>
+        <button type="submit" class="btn-pill btn-pill-solid w-100 justify-content-center" id="prescription-scan-submit">{{ icon('camera') }} {{ t('scan_and_add') }}</button>
+        <div id="prescription-scan-status" class="small text-muted mt-2" style="display:none">{{ icon('hourglass') }} {{ t('scanning_in_progress') }}</div>
     </form>
     <script>
         (function () {
@@ -31,7 +31,7 @@
     <hr class="my-3">
     <div class="small text-muted mb-2">{{ t('or_add_manually') }}</div>
     <div class="section-card-head">
-        <span class="icon-badge theme-blue sm">➕</span>
+        <span class="icon-badge theme-blue sm">{{ icon('plus') }}</span>
         <h6 class="mb-0">{{ t('add_antibiotic') }}</h6>
     </div>
     <form method="post" action="{{ url_for('patient.add_antibiotic') }}">
@@ -43,7 +43,7 @@
                     <input type="text" name="antibiotic_name" id="antibiotic-name-input" class="form-control"
                            list="ref-names" required>
                     <button type="button" class="btn-pill btn-pill-outline sm" id="voice-name-btn"
-                            title="{{ t('speak_antibiotic_name') }}">🎤</button>
+                            title="{{ t('speak_antibiotic_name') }}">{{ icon('mic') }}</button>
                 </div>
                 <datalist id="ref-names">
                     {% for name in reference_names %}<option value="{{ name }}">{% endfor %}
@@ -71,7 +71,7 @@
             <label class="form-label">{{ t('notes_optional') }}</label>
             <input type="text" name="notes" class="form-control">
         </div>
-        <button class="btn-pill btn-pill-solid">✔️ {{ t('submit_check') }}</button>
+        <button class="btn-pill btn-pill-solid">{{ icon('check') }} {{ t('submit_check') }}</button>
     </form>
     <script>
         (function () {

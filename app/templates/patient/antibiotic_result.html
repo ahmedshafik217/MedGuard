@@ -3,5 +3,5 @@
 {% block content %}
 <h3>{{ record.display_name }}</h3>
 {{ macros.render_alerts(alerts) }}
-<a href="{{ url_for('patient.dashboard') }}" class="btn btn-brand mt-3">{{ t('back') }}</a>
+<a href="{{ url_for('patient.antibiotic_history') }}" class="btn btn-brand mt-3">{{ t('back') }}</a>
 {% endblock %}
