@@ -63,7 +63,7 @@
         <span class="login-card-desc">{{ t('staff_card_desc') }}</span>
         <span class="login-card-btn">
             {{ t('login_button') }}
-            <span class="arrow">{{ '←' if dir == 'rtl' else '→' }}</span>
+            <span class="arrow">{{ icon('chevron') }}</span>
         </span>
     </a>
     <a href="{{ url_for('auth.patient_login') }}" class="login-card theme-teal">
@@ -74,7 +74,7 @@
         <span class="login-card-desc">{{ t('patient_card_desc') }}</span>
         <span class="login-card-btn">
             {{ t('login_button') }}
-            <span class="arrow">{{ '←' if dir == 'rtl' else '→' }}</span>
+            <span class="arrow">{{ icon('chevron') }}</span>
         </span>
     </a>
     <a href="{{ url_for('auth.register_patient') }}" class="login-card theme-red">
@@ -85,7 +85,7 @@
         <span class="login-card-desc">{{ t('new_patient_card_desc') }}</span>
         <span class="login-card-btn">
             {{ t('create_record_button') }}
-            <span class="arrow">{{ '←' if dir == 'rtl' else '→' }}</span>
+            <span class="arrow">{{ icon('chevron') }}</span>
         </span>
     </a>
 </div>
