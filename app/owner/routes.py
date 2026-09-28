@@ -141,6 +141,9 @@ def patient_qr(public_id):
 @bp.route("/patients/<public_id>")
 @owner_required
 def patient_detail(public_id):
+    """Lean menu page: just the counts each nav-row needs for its subtitle.
+    Each service's own list is fetched only on that service's own dedicated
+    page below -- see patient_profile/patient_allergies/etc."""
     patient = models.get_patient_by_public_id(public_id)
     if not patient:
         return ("Patient not found.", 404)
@@ -149,16 +152,86 @@ def patient_detail(public_id):
     patient["medications"] = models.list_medications(patient["id"])
     patient["cultures"] = models.list_cultures(patient["id"])
     patient["hospitalizations"] = models.list_hospitalizations(patient["id"])
-    patient["antibiotic_records"] = attach_infection_origin(
-        models.list_antibiotic_records(patient["id"]), patient["hospitalizations"],
-    )
+    patient["antibiotic_records"] = models.list_antibiotic_records(patient["id"])
     models.log_action("owner", current_actor_label(), "view_patient", target=public_id)
+    return render_template("owner/patient_detail.html", patient=patient)
 
-    # Autocomplete list for the "Add antibiotic" field below -- only shown
-    # to roles that can add antibiotics at all, and only the antibiotics
-    # THIS role is actually allowed to add (excludes Restricted ones for
-    # Resident/Specialist/Pharmacist). This is a convenience only -- the
-    # real enforcement happens server-side in add_patient_antibiotic().
+
+@bp.route("/patients/<public_id>/profile")
+@owner_required
+def patient_profile(public_id):
+    patient = models.get_patient_by_public_id(public_id)
+    if not patient:
+        return ("Patient not found.", 404)
+    return render_template("owner/patient_profile.html", patient=patient)
+
+
+@bp.route("/patients/<public_id>/allergies")
+@owner_required
+def patient_allergies(public_id):
+    patient = models.get_patient_by_public_id(public_id)
+    if not patient:
+        return ("Patient not found.", 404)
+    patient["allergies"] = models.list_allergies(patient["id"])
+    return render_template("owner/patient_allergies.html", patient=patient)
+
+
+@bp.route("/patients/<public_id>/conditions")
+@owner_required
+def patient_conditions(public_id):
+    patient = models.get_patient_by_public_id(public_id)
+    if not patient:
+        return ("Patient not found.", 404)
+    patient["conditions"] = models.list_conditions(patient["id"])
+    return render_template("owner/patient_conditions.html", patient=patient)
+
+
+@bp.route("/patients/<public_id>/medications")
+@owner_required
+def patient_medications(public_id):
+    patient = models.get_patient_by_public_id(public_id)
+    if not patient:
+        return ("Patient not found.", 404)
+    patient["medications"] = models.list_medications(patient["id"])
+    return render_template("owner/patient_medications.html", patient=patient)
+
+
+@bp.route("/patients/<public_id>/hospitalizations")
+@owner_required
+def patient_hospitalizations(public_id):
+    patient = models.get_patient_by_public_id(public_id)
+    if not patient:
+        return ("Patient not found.", 404)
+    patient["hospitalizations"] = models.list_hospitalizations(patient["id"])
+    return render_template("owner/patient_hospitalizations.html", patient=patient)
+
+
+@bp.route("/patients/<public_id>/antibiotics")
+@owner_required
+def patient_antibiotics(public_id):
+    patient = models.get_patient_by_public_id(public_id)
+    if not patient:
+        return ("Patient not found.", 404)
+    hospitalizations = models.list_hospitalizations(patient["id"])
+    patient["antibiotic_records"] = attach_infection_origin(
+        models.list_antibiotic_records(patient["id"]), hospitalizations,
+    )
+    return render_template("owner/patient_antibiotics.html", patient=patient)
+
+
+@bp.route("/patients/<public_id>/cultures")
+@owner_required
+def patient_cultures(public_id):
+    patient = models.get_patient_by_public_id(public_id)
+    if not patient:
+        return ("Patient not found.", 404)
+    patient["cultures"] = models.list_cultures(patient["id"])
+
+    # Autocomplete list for the sensitivity antibiotic fields below -- only
+    # shown to roles that can add antibiotics at all, and only the
+    # antibiotics THIS role is actually allowed to add (excludes Restricted
+    # ones for Resident/Specialist/Pharmacist). This is a convenience only --
+    # the real enforcement happens server-side in add_patient_antibiotic().
     perms = current_owner_permissions()
     available_antibiotics = []
     if perms["add_antibiotic"]:
@@ -168,7 +241,7 @@ def patient_detail(public_id):
         else:
             available_antibiotics = [a["generic_name"] for a in all_abx if not a.get("restricted")]
 
-    return render_template("owner/patient_detail.html", patient=patient, available_antibiotics=available_antibiotics)
+    return render_template("owner/patient_cultures.html", patient=patient, available_antibiotics=available_antibiotics)
 
 
 @bp.route("/patients/<public_id>/export-pdf")
@@ -224,7 +297,7 @@ def reset_patient_password(public_id):
     models.log_action("owner", current_actor_label(), "reset_patient_password", target=public_id)
     notify.send_patient_password_reset_notice(patient, lang=session.get("lang", "ar"))
     flash("Password updated." if new_password else "Password removed — patient can log in with ID only.", "success")
-    return redirect(url_for("owner.patient_detail", public_id=public_id))
+    return redirect(url_for("owner.patient_profile", public_id=public_id))
 
 
 @bp.route("/patients/<public_id>/allergies/add", methods=["POST"])
@@ -235,7 +308,7 @@ def add_patient_allergy(public_id):
         return ("Patient not found.", 404)
     add_allergy_from_form(patient, request.form)
     models.log_action("owner", current_actor_label(), "add_allergy", target=public_id)
-    return redirect(url_for("owner.patient_detail", public_id=public_id))
+    return redirect(url_for("owner.patient_allergies", public_id=public_id))
 
 
 @bp.route("/patients/<public_id>/conditions/add", methods=["POST"])
@@ -246,7 +319,7 @@ def add_patient_condition(public_id):
         return ("Patient not found.", 404)
     add_condition_from_form(patient, request.form)
     models.log_action("owner", current_actor_label(), "add_condition", target=public_id)
-    return redirect(url_for("owner.patient_detail", public_id=public_id))
+    return redirect(url_for("owner.patient_conditions", public_id=public_id))
 
 
 @bp.route("/patients/<public_id>/medications/add", methods=["POST"])
@@ -257,7 +330,7 @@ def add_patient_medication(public_id):
         return ("Patient not found.", 404)
     add_medication_from_form(patient, request.form)
     models.log_action("owner", current_actor_label(), "add_medication", target=public_id)
-    return redirect(url_for("owner.patient_detail", public_id=public_id))
+    return redirect(url_for("owner.patient_medications", public_id=public_id))
 
 
 @bp.route("/patients/<public_id>/medications/scan-photo", methods=["POST"])
@@ -275,16 +348,16 @@ def scan_patient_medication_photo(public_id):
     photo = request.files.get("medication_photo")
     if not photo or not photo.filename:
         flash("Choose or take a photo of the medication package first.", "error")
-        return redirect(url_for("owner.patient_detail", public_id=public_id))
+        return redirect(url_for("owner.patient_medications", public_id=public_id))
 
     image_bytes = photo.read()
     if not image_bytes:
         flash("That photo looks empty — please try again.", "error")
-        return redirect(url_for("owner.patient_detail", public_id=public_id))
+        return redirect(url_for("owner.patient_medications", public_id=public_id))
     if len(image_bytes) > current_app.config["PRESCRIPTION_PHOTO_MAX_BYTES"]:
         max_mb = current_app.config["PRESCRIPTION_PHOTO_MAX_BYTES"] // (1024 * 1024)
         flash(f"That photo is too large (max {max_mb} MB). Please retake it or choose a smaller file.", "error")
-        return redirect(url_for("owner.patient_detail", public_id=public_id))
+        return redirect(url_for("owner.patient_medications", public_id=public_id))
 
     try:
         result = scan_medication_image(
@@ -295,12 +368,12 @@ def scan_patient_medication_photo(public_id):
         )
     except AIScanNotConfigured as e:
         flash(str(e), "error")
-        return redirect(url_for("owner.patient_detail", public_id=public_id))
+        return redirect(url_for("owner.patient_medications", public_id=public_id))
     except AIScanError as e:
         models.log_action("owner", current_actor_label(), "medication_scan_failed",
                           target=public_id, details=str(e))
         flash(f"Couldn't read that photo: {e}", "error")
-        return redirect(url_for("owner.patient_detail", public_id=public_id))
+        return redirect(url_for("owner.patient_medications", public_id=public_id))
 
     added_names, skipped_antibiotic_names = add_medications_from_ai_scan(patient, result, source_photo=image_bytes)
     if added_names:
@@ -315,7 +388,7 @@ def scan_patient_medication_photo(public_id):
         )
     if not added_names and not skipped_antibiotic_names:
         flash("Couldn't find any medication on that photo. Please try again or add it manually.", "error")
-    return redirect(url_for("owner.patient_detail", public_id=public_id))
+    return redirect(url_for("owner.patient_medications", public_id=public_id))
 
 
 @bp.route("/patients/<public_id>/hospitalizations/add", methods=["POST"])
@@ -326,7 +399,7 @@ def add_patient_hospitalization(public_id):
         return ("Patient not found.", 404)
     add_hospitalization_from_form(patient, request.form, recorded_by=current_actor_label())
     models.log_action("owner", current_actor_label(), "add_hospitalization", target=public_id)
-    return redirect(url_for("owner.patient_detail", public_id=public_id))
+    return redirect(url_for("owner.patient_hospitalizations", public_id=public_id))
 
 
 @bp.route("/patients/<public_id>/cultures/add", methods=["POST"])
@@ -338,7 +411,7 @@ def add_patient_culture(public_id):
     add_culture_from_form(patient, request.form, recorded_by=current_owner_role() or "owner")
     models.log_action("owner", current_actor_label(), "add_culture", target=public_id)
     flash("Culture result added.", "success")
-    return redirect(url_for("owner.patient_detail", public_id=public_id))
+    return redirect(url_for("owner.patient_cultures", public_id=public_id))
 
 
 @bp.route("/patients/<public_id>/cultures/scan-photo", methods=["POST"])
@@ -357,16 +430,16 @@ def scan_patient_culture_photo(public_id):
     photo = request.files.get("culture_photo")
     if not photo or not photo.filename:
         flash("Choose or take a photo of the culture/sensitivity report first.", "error")
-        return redirect(url_for("owner.patient_detail", public_id=public_id))
+        return redirect(url_for("owner.patient_cultures", public_id=public_id))
 
     image_bytes = photo.read()
     if not image_bytes:
         flash("That photo looks empty — please try again.", "error")
-        return redirect(url_for("owner.patient_detail", public_id=public_id))
+        return redirect(url_for("owner.patient_cultures", public_id=public_id))
     if len(image_bytes) > current_app.config["PRESCRIPTION_PHOTO_MAX_BYTES"]:
         max_mb = current_app.config["PRESCRIPTION_PHOTO_MAX_BYTES"] // (1024 * 1024)
         flash(f"That photo is too large (max {max_mb} MB). Please retake it or choose a smaller file.", "error")
-        return redirect(url_for("owner.patient_detail", public_id=public_id))
+        return redirect(url_for("owner.patient_cultures", public_id=public_id))
 
     try:
         result = scan_culture_image(
@@ -377,12 +450,12 @@ def scan_patient_culture_photo(public_id):
         )
     except AIScanNotConfigured as e:
         flash(str(e), "error")
-        return redirect(url_for("owner.patient_detail", public_id=public_id))
+        return redirect(url_for("owner.patient_cultures", public_id=public_id))
     except AIScanError as e:
         models.log_action("owner", current_actor_label(), "culture_scan_failed",
                           target=public_id, details=str(e))
         flash(f"Couldn't read that photo: {e}", "error")
-        return redirect(url_for("owner.patient_detail", public_id=public_id))
+        return redirect(url_for("owner.patient_cultures", public_id=public_id))
 
     add_culture_from_ai_scan(patient, result, recorded_by=current_owner_role() or "owner")
     models.log_action("owner", current_actor_label(), "culture_scan_added", target=public_id,
@@ -396,7 +469,7 @@ def scan_patient_culture_photo(public_id):
     if result.get("read_issues"):
         msg += f" Note: {result['read_issues']}"
     flash(msg, "success")
-    return redirect(url_for("owner.patient_detail", public_id=public_id))
+    return redirect(url_for("owner.patient_cultures", public_id=public_id))
 
 
 @bp.route("/patients/<public_id>/pregnancy-status", methods=["POST"])
@@ -420,7 +493,7 @@ def update_patient_pregnancy_status(public_id):
         pregnancy_start_date=start_date, expected_delivery_date=due_date,
     )
     models.log_action("owner", current_actor_label(), "update_pregnancy_status", target=public_id)
-    return redirect(url_for("owner.patient_detail", public_id=public_id))
+    return redirect(url_for("owner.patient_profile", public_id=public_id))
 
 
 @bp.route("/patients/<public_id>/phone-number", methods=["POST"])
@@ -432,7 +505,7 @@ def update_patient_phone(public_id):
     models.update_phone_number(patient["id"], request.form.get("phone_number", "").strip() or None)
     models.log_action("owner", current_actor_label(), "update_phone_number", target=public_id)
     flash("Phone number updated.", "success")
-    return redirect(url_for("owner.patient_detail", public_id=public_id))
+    return redirect(url_for("owner.patient_profile", public_id=public_id))
 
 
 @bp.route("/patients/<public_id>/email", methods=["POST"])
@@ -449,10 +522,10 @@ def update_patient_email(public_id):
         models.update_email(patient["id"], email)
     except models.EmailAlreadyUsed:
         flash("That email is already on another patient's record.", "error")
-        return redirect(url_for("owner.patient_detail", public_id=public_id))
+        return redirect(url_for("owner.patient_profile", public_id=public_id))
     models.log_action("owner", current_actor_label(), "update_patient_email", target=public_id)
     flash("Email updated.", "success")
-    return redirect(url_for("owner.patient_detail", public_id=public_id))
+    return redirect(url_for("owner.patient_profile", public_id=public_id))
 
 
 @bp.route("/patients/<public_id>/antibiotics/add", methods=["POST"])
@@ -478,7 +551,7 @@ def add_patient_antibiotic(public_id):
             "Consultant, or the Admin/Controller can add it. Please ask one of them to add this entry.",
             "error",
         )
-        return redirect(url_for("owner.patient_detail", public_id=public_id))
+        return redirect(url_for("owner.patient_antibiotics", public_id=public_id))
 
     record, alerts = add_antibiotic_from_form(patient, request.form, added_by=current_owner_role() or "owner")
     models.log_action("owner", current_actor_label(), "add_antibiotic_record", target=public_id,
@@ -551,16 +624,16 @@ def scan_patient_antibiotic_photo(public_id):
     photo = request.files.get("prescription_photo")
     if not photo or not photo.filename:
         flash("Choose or take a photo of the prescription or medication package first.", "error")
-        return redirect(url_for("owner.patient_detail", public_id=public_id))
+        return redirect(url_for("owner.patient_antibiotics", public_id=public_id))
 
     image_bytes = photo.read()
     if not image_bytes:
         flash("That photo looks empty — please try again.", "error")
-        return redirect(url_for("owner.patient_detail", public_id=public_id))
+        return redirect(url_for("owner.patient_antibiotics", public_id=public_id))
     if len(image_bytes) > current_app.config["PRESCRIPTION_PHOTO_MAX_BYTES"]:
         max_mb = current_app.config["PRESCRIPTION_PHOTO_MAX_BYTES"] // (1024 * 1024)
         flash(f"That photo is too large (max {max_mb} MB). Please retake it or choose a smaller file.", "error")
-        return redirect(url_for("owner.patient_detail", public_id=public_id))
+        return redirect(url_for("owner.patient_antibiotics", public_id=public_id))
 
     known_antibiotics = models.list_antibiotics()
     try:
@@ -572,12 +645,12 @@ def scan_patient_antibiotic_photo(public_id):
         )
     except AIScanNotConfigured as e:
         flash(str(e), "error")
-        return redirect(url_for("owner.patient_detail", public_id=public_id))
+        return redirect(url_for("owner.patient_antibiotics", public_id=public_id))
     except AIScanError as e:
         models.log_action("owner", current_actor_label(), "prescription_scan_failed",
                           target=public_id, details=str(e))
         flash(f"Couldn't read that photo: {e}", "error")
-        return redirect(url_for("owner.patient_detail", public_id=public_id))
+        return redirect(url_for("owner.patient_antibiotics", public_id=public_id))
 
     perms = current_owner_permissions()
     added_names = []
@@ -643,7 +716,7 @@ def scan_patient_antibiotic_photo(public_id):
             "error",
         )
 
-    return redirect(url_for("owner.patient_detail", public_id=public_id))
+    return redirect(url_for("owner.patient_antibiotics", public_id=public_id))
 
 
 @bp.route("/patients/<public_id>/antibiotics/<int:record_id>/result")
