@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% import "macros.html" as macros with context %}
+{% block body_class %}page-immersive{% endblock %}
+{% block content %}
+<a href="{{ url_for('owner.patient_detail', public_id=patient.public_id) }}" class="back-link mb-2">&laquo; {{ t('back') }}</a>
+
+<div class="section-card mt-2">
+    <div class="section-card-head">
+        <span class="icon-badge theme-navy sm">{{ icon('clipboard-list') }}</span>
+        <h5>{{ t('antibiotic_history') }}</h5>
+    </div>
+    {% if patient.antibiotic_records %}
+    <div class="table-responsive">
+    <table class="table table-sm table-clean align-middle mb-0">
+        <thead><tr><th>{{ t('antibiotic_name') }}</th><th>{{ t('dose') }}</th><th>{{ t('duration') }}</th><th>{{ t('prescribed_date') }}</th><th>{{ t('infection_origin') }}</th><th>{{ t('action') }}</th></tr></thead>
+        <tbody>
+        {% for r in patient.antibiotic_records %}
+            <tr>
+                <td>{{ r.display_name }}</td>
+                <td>{{ format_dose(r) or '—' }}</td>
+                <td>{{ format_duration(r) or '—' }}</td>
+                <td>{{ r.prescribed_date }}</td>
+                <td>
+                    {% if r.infection_origin == 'hospital_acquired' %}
+                    <span class="pill-badge origin-hai">{{ icon('building') }} {{ t('hospital_acquired') }}</span>
+                    {% elif r.infection_origin == 'community_acquired' %}
+                    <span class="pill-badge origin-cai">{{ icon('house') }} {{ t('community_acquired') }}</span>
+                    {% else %}
+                    —
+                    {% endif %}
+                </td>
+                <td>
+                    {{ r.added_by }}
+                    {% if r.source == 'photo_ai' %}<br><span class="pill-badge sev-unknown">{{ icon('camera') }} {{ t('scanned_from_photo') }}</span>{% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><span class="empty-icon">{{ icon('file-text') }}</span>{{ t('no_records_yet') }}</div>
+    {% endif %}
+
+    <hr class="my-3">
+    <div class="section-card-head">
+        <span class="icon-badge theme-teal sm">{{ icon('camera') }}</span>
+        <h6 class="mb-0">{{ t('scan_prescription_photo') }}</h6>
+    </div>
+    <p class="small text-muted">{{ t('scan_prescription_hint') }}</p>
+    <form method="post" action="{{ url_for('owner.scan_patient_antibiotic_photo', public_id=patient.public_id) }}"
+          enctype="multipart/form-data" id="prescription-scan-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="file" name="prescription_photo" accept="image/*" capture="environment" class="form-control mb-2" required>
+        <button type="submit" class="btn-pill btn-pill-solid w-100 justify-content-center" id="prescription-scan-submit">{{ icon('camera') }} {{ t('scan_and_add') }}</button>
+        <div id="prescription-scan-status" class="small text-muted mt-2" style="display:none">{{ icon('hourglass') }} {{ t('scanning_in_progress') }}</div>
+    </form>
+    <script>
+        (function () {
+            var form = document.getElementById('prescription-scan-form');
+            if (!form) return;
+            form.addEventListener('submit', function () {
+                document.getElementById('prescription-scan-submit').setAttribute('disabled', 'disabled');
+                document.getElementById('prescription-scan-status').style.display = '';
+            });
+        })();
+    </script>
+
+    <hr class="my-3">
+    <div class="small text-muted mb-2">{{ t('or_add_manually') }}</div>
+    <div class="section-card-head">
+        <span class="icon-badge theme-blue sm">{{ icon('plus') }}</span>
+        <h6 class="mb-0">{{ t('add_antibiotic') }}</h6>
+    </div>
+    <form method="post" action="{{ url_for('owner.add_patient_antibiotic', public_id=patient.public_id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <div class="d-flex gap-1">
+                    <input type="text" name="antibiotic_name" id="antibiotic-name-input" class="form-control" placeholder="{{ t('antibiotic_name') }}" required>
+                    <button type="button" class="btn-pill btn-pill-outline sm" id="voice-name-btn" title="{{ t('speak_antibiotic_name') }}">{{ icon('mic') }}</button>
+                </div>
+                <div id="voice-name-status" class="small text-muted mt-1" style="display:none"></div>
+            </div>
+            <div class="col-md-4"><input type="date" name="prescribed_date" class="form-control"></div>
+            <div class="col-md-4"><input type="text" name="prescribed_by" class="form-control" placeholder="{{ t('prescribed_by_optional') }}"></div>
+        </div>
+        <div class="row g-2 mt-1">
+            <div class="col-md-4">
+                <label class="form-label small mb-1">{{ t('symptom_onset_date') }}</label>
+                <input type="date" name="symptom_onset_date" class="form-control">
+                <div class="form-text">{{ t('symptom_onset_date_hint') }}</div>
+            </div>
+        </div>
+        {{ macros.dose_duration_fields() }}
+        <button class="btn-pill btn-pill-solid">{{ icon('check') }} {{ t('submit_check') }}</button>
+    </form>
+    <script>
+        (function () {
+            // AI-powered voice input: records the actual audio clip and sends
+            // it to the server (which forwards it to Gemini with this
+            // hospital's antibiotic list as context -- see
+            // app/prescription_scan.py's resolve_antibiotic_from_audio and
+            // the /antibiotics/resolve-voice-audio route) rather than relying
+            // on the browser's own free, generic speech-to-text, which
+            // frequently mishears drug names as unrelated real English words
+            // (e.g. "Cefuroxime" heard as "Seafood"). A short recording still
+            // costs a small amount of Gemini usage each time, same order of
+            // magnitude as one prescription-photo scan.
+            var btn = document.getElementById('voice-name-btn');
+            var input = document.getElementById('antibiotic-name-input');
+            var status = document.getElementById('voice-name-status');
+            if (!btn || !input || !status) return;
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+                setStatus('{{ t("voice_not_supported") }}');
+                btn.style.display = 'none';
+                return;
+            }
+
+            var recording = false;
+            var mediaRecorder = null;
+            var chunks = [];
+            var autoStopTimer = null;
+            // Safety cap so a forgotten recording doesn't run indefinitely --
+            // an antibiotic name is a couple of seconds of speech at most.
+            var MAX_RECORDING_MS = 8000;
+
+            function setStatus(text) {
+                status.textContent = text;
+                status.style.display = text ? '' : 'none';
+            }
+
+            function sendRecording(blob) {
+                setStatus('{{ t("resolving_antibiotic_name") }}');
+                var body = new FormData();
+                var csrfInput = document.querySelector('input[name="csrf_token"]');
+                body.set('csrf_token', csrfInput ? csrfInput.value : '');
+                body.set('audio', blob, 'antibiotic-name.webm');
+                fetch('{{ url_for("owner.resolve_antibiotic_voice_audio") }}', { method: 'POST', body: body })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (data.error) {
+                            setStatus('{{ t("voice_error") }}');
+                            return;
+                        }
+                        var heard = data.heard || '';
+                        input.value = data.resolved_name || heard;
+                        setStatus(data.matched
+                            ? '{{ t("voice_matched") }}: "' + heard + '" → ' + data.resolved_name
+                            : '{{ t("voice_not_matched") }}: "' + heard + '"');
+                    })
+                    .catch(function () {
+                        setStatus('{{ t("voice_error") }}');
+                    });
+            }
+
+            function stopRecording() {
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                }
+            }
+
+            function startRecording() {
+                navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+                    chunks = [];
+                    try {
+                        mediaRecorder = new MediaRecorder(stream);
+                    } catch (e) {
+                        setStatus('{{ t("voice_not_supported") }}');
+                        stream.getTracks().forEach(function (t) { t.stop(); });
+                        return;
+                    }
+                    mediaRecorder.ondataavailable = function (e) {
+                        if (e.data && e.data.size > 0) chunks.push(e.data);
+                    };
+                    mediaRecorder.onstop = function () {
+                        clearTimeout(autoStopTimer);
+                        stream.getTracks().forEach(function (t) { t.stop(); });
+                        recording = false;
+                        btn.classList.remove('listening');
+                        var blob = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                        if (blob.size > 0) {
+                            sendRecording(blob);
+                        } else {
+                            setStatus('');
+                        }
+                    };
+                    mediaRecorder.start();
+                    recording = true;
+                    btn.classList.add('listening');
+                    setStatus('{{ t("voice_listening") }}');
+                    autoStopTimer = setTimeout(stopRecording, MAX_RECORDING_MS);
+                }).catch(function () {
+                    setStatus('{{ t("voice_error") }}');
+                });
+            }
+
+            btn.addEventListener('click', function () {
+                if (recording) {
+                    stopRecording();
+                } else {
+                    startRecording();
+                }
+            });
+        })();
+    </script>
+</div>
+{% endblock %}
