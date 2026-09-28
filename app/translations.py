@@ -116,6 +116,11 @@ STRINGS = {
     "my_allergies": {"en": "My Allergies", "ar": "الحساسية"},
     "my_conditions": {"en": "My Medical Conditions", "ar": "الحالات المرضية"},
     "antibiotic_history": {"en": "Antibiotic History", "ar": "سجل المضادات الحيوية"},
+    # Nav-row menu list (patient dashboard + owner patient-detail page): a
+    # short "items on file" count under each row's title, and a subtitle for
+    # the one row (Profile) that has no count of its own.
+    "on_file_label": {"en": "on file", "ar": "مسجّلة"},
+    "view_edit_profile_hint": {"en": "View & edit your info", "ar": "عرض وتعديل بياناتك"},
     "add_antibiotic": {"en": "Add a new antibiotic", "ar": "إضافة مضاد حيوي جديد"},
     "scan_prescription_photo": {"en": "Scan a prescription or medication photo", "ar": "مسح صورة روشتة أو دواء"},
     "scan_prescription_hint": {
@@ -190,6 +195,9 @@ STRINGS = {
     "reset_password": {"en": "Reset password", "ar": "إعادة تعيين كلمة المرور"},
     "new_password_optional": {"en": "New password (leave blank to remove password)", "ar": "كلمة مرور جديدة (اتركها فارغة لإزالة كلمة المرور)"},
     "change_password": {"en": "Change password", "ar": "تغيير كلمة المرور"},
+    "color_scheme_label": {"en": "Your favorite colors", "ar": "ألوانك المفضلة"},
+    "color_scheme_blue": {"en": "Blue", "ar": "أزرق"},
+    "color_scheme_pink": {"en": "Pink", "ar": "وردي"},
     "current_password": {"en": "Current password", "ar": "كلمة المرور الحالية"},
     "confirm_new_password": {"en": "Confirm new password", "ar": "تأكيد كلمة المرور الجديدة"},
     "site_settings": {"en": "Site settings", "ar": "إعدادات الموقع"},

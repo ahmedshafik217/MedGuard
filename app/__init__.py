@@ -7,6 +7,7 @@ from app.config import Config
 from app.csrf import init_csrf
 from app.db import init_db
 from app.dose_format import format_dose, format_duration
+from app.icons import render_icon
 from app.translations import t as translate
 
 
@@ -16,6 +17,9 @@ def create_app(config_class=Config):
 
     init_db(app)
     init_csrf(app)
+
+    # {{ icon('pill') }} etc. in any template -- see app/icons.py.
+    app.jinja_env.globals["icon"] = render_icon
 
     from app.auth import bp as auth_bp
     from app.owner import bp as owner_bp
@@ -33,6 +37,17 @@ def create_app(config_class=Config):
     def set_language(lang):
         if lang in app.config["LANGUAGES"]:
             session["lang"] = lang
+        return redirect(request.referrer or url_for("auth.choose_login"))
+
+    @app.route("/set-color-scheme/<scheme>")
+    def set_color_scheme(scheme):
+        # Patient-facing personal color preference (light blue / pink) --
+        # see base.html's toggle bar and inject_auth_state()'s color_scheme
+        # default below. An explicit choice here always overrides the
+        # gender-based default and is remembered for the rest of the
+        # session (same mechanism as set_language above).
+        if scheme in ("blue", "pink"):
+            session["color_scheme"] = scheme
         return redirect(request.referrer or url_for("auth.choose_login"))
 
     @app.route("/help-chat", methods=["POST"])
@@ -111,10 +126,27 @@ def create_app(config_class=Config):
         # show/hide the right buttons and forms without every single route
         # having to compute and pass these individually.
         perms = current_owner_permissions()
+
+        # Patient-facing color scheme (light blue / pink) -- see
+        # /set-color-scheme/<scheme> above and the toggle bar in base.html.
+        # An explicit choice made this session always wins; otherwise it
+        # defaults from the patient's own registered gender (female ->
+        # pink, everyone/everything else -> blue) so most patients see a
+        # sensible color without ever touching the toggle. This only ever
+        # renders/applies on patient-facing pages -- an owner/staff session
+        # always resolves to the default 'blue' look.
+        if session.get("color_scheme") in ("blue", "pink"):
+            color_scheme = session["color_scheme"]
+        elif patient and patient.get("gender") == "female":
+            color_scheme = "pink"
+        else:
+            color_scheme = "blue"
+
         return {
             "is_authenticated": bool(owner or patient),
             "is_owner_session": bool(owner),
             "is_patient_session": bool(patient),
+            "color_scheme": color_scheme,
             "owner_role": (owner.get("role", "owner") if owner else None),
             "owner_can_browse_all_patients": perms["browse_all_patients"],
             "owner_can_add_antibiotic": perms["add_antibiotic"],
