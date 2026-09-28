@@ -13,14 +13,14 @@
             {% if patient.full_name %}<p class="mb-1">{{ patient.full_name }}</p>{% endif %}
             <p class="small text-muted">{{ t('scan_to_open_record') }}</p>
             {% if has_password %}
-                <p class="small text-success">🔒 {{ t('password_protected_note') }}</p>
+                <p class="small text-success">{{ icon('lock') }} {{ t('password_protected_note') }}</p>
             {% else %}
-                <p class="small text-warning">⚠️ {{ t('no_password_note') }}</p>
+                <p class="small text-warning">{{ icon('alert-triangle') }} {{ t('no_password_note') }}</p>
             {% endif %}
         </div>
 
         <div class="d-flex gap-2 justify-content-center mt-3 no-print">
-            <button class="btn btn-brand" onclick="window.print()">🖨️ {{ t('print_id_card') }}</button>
+            <button class="btn btn-brand" onclick="window.print()">{{ icon('printer') }} {{ t('print_id_card') }}</button>
             <a href="{{ back_url }}" class="btn btn-outline-dark">{{ t(back_label) }}</a>
         </div>
     </div>

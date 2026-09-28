@@ -62,9 +62,9 @@
     {% for alert in alerts %}
     <div class="alert-card level-{{ alert.level }} code-{{ alert.code }}">
         <strong>
-            {% if alert.level == 'danger' %}🚫 {{ t('danger') }}
-            {% elif alert.level == 'warning' %}⚠️ {{ t('warning') }}
-            {% else %}ℹ️ {{ t('info') }}{% endif %}
+            {% if alert.level == 'danger' %}{{ icon('ban') }} {{ t('danger') }}
+            {% elif alert.level == 'warning' %}{{ icon('alert-triangle') }} {{ t('warning') }}
+            {% else %}{{ icon('info') }} {{ t('info') }}{% endif %}
             — {{ alert.title }}
         </strong>
         <div>{{ alert.message }}</div>
