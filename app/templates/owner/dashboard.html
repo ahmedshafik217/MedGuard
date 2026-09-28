@@ -5,19 +5,19 @@
 <div class="page-hero-band mb-4">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div class="d-flex align-items-center gap-2">
-            <span class="icon-badge lg theme-hero">🩺</span>
+            <span class="icon-badge lg theme-hero">{{ icon('stethoscope') }}</span>
             <h2 class="mb-0">{{ t('controller_dashboard_title') }}</h2>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-            <a href="{{ url_for('owner.create_patient') }}" class="btn-pill btn-pill-solid">➕ {{ t('add_new_patient') }}</a>
-            <a href="{{ url_for('owner.antibiotics') }}" class="btn-pill btn-pill-outline">💊 {{ t('antibiotic_reference') }}</a>
-            <a href="{{ url_for('owner.drug_interactions') }}" class="btn-pill btn-pill-outline">🔗 {{ t('drug_interactions_reference') }}</a>
-            <a href="{{ url_for('owner.medications_reference') }}" class="btn-pill btn-pill-outline">💊 {{ t('medications_reference') }}</a>
-            <a href="{{ url_for('owner.audit_log') }}" class="btn-pill btn-pill-outline">📜 {{ t('audit_log') }}</a>
+            <a href="{{ url_for('owner.create_patient') }}" class="btn-pill btn-pill-solid">{{ icon('plus') }} {{ t('add_new_patient') }}</a>
+            <a href="{{ url_for('owner.antibiotics') }}" class="btn-pill btn-pill-outline">{{ icon('pill') }} {{ t('antibiotic_reference') }}</a>
+            <a href="{{ url_for('owner.drug_interactions') }}" class="btn-pill btn-pill-outline">{{ icon('link') }} {{ t('drug_interactions_reference') }}</a>
+            <a href="{{ url_for('owner.medications_reference') }}" class="btn-pill btn-pill-outline">{{ icon('pill') }} {{ t('medications_reference') }}</a>
+            <a href="{{ url_for('owner.audit_log') }}" class="btn-pill btn-pill-outline">{{ icon('history') }} {{ t('audit_log') }}</a>
             {% if perms.culture_analysis %}
-            <a href="{{ url_for('owner.culture_analysis') }}" class="btn-pill btn-pill-outline">🧫 {{ t('culture_analysis') }}</a>
+            <a href="{{ url_for('owner.culture_analysis') }}" class="btn-pill btn-pill-outline">{{ icon('flask') }} {{ t('culture_analysis') }}</a>
             {% endif %}
-            <a href="{{ url_for('owner.settings') }}" class="btn-pill btn-pill-outline">⚙️ {{ t('site_settings') }}</a>
+            <a href="{{ url_for('owner.settings') }}" class="btn-pill btn-pill-outline">{{ icon('settings') }} {{ t('site_settings') }}</a>
         </div>
     </div>
 </div>
@@ -25,7 +25,7 @@
 <div class="row mb-4 g-3">
     <div class="col-md-4">
         <div class="stat-tile">
-            <span class="icon-badge lg theme-blue">🧑‍🤝‍🧑</span>
+            <span class="icon-badge lg theme-blue">{{ icon('users') }}</span>
             <div>
                 <div class="stat-tile-num">{{ stats.patient_count }}</div>
                 <div class="stat-tile-label">{{ t('all_patients') }}</div>
@@ -34,7 +34,7 @@
     </div>
     <div class="col-md-4">
         <div class="stat-tile">
-            <span class="icon-badge lg theme-teal">💊</span>
+            <span class="icon-badge lg theme-teal">{{ icon('pill') }}</span>
             <div>
                 <div class="stat-tile-num">{{ stats.antibiotic_count }}</div>
                 <div class="stat-tile-label">{{ t('antibiotic_reference') }}</div>
@@ -43,7 +43,7 @@
     </div>
     <div class="col-md-4">
         <div class="stat-tile">
-            <span class="icon-badge lg theme-navy">📋</span>
+            <span class="icon-badge lg theme-navy">{{ icon('clipboard-list') }}</span>
             <div>
                 <div class="stat-tile-num">{{ stats.record_count }}</div>
                 <div class="stat-tile-label">{{ t('antibiotic_history') }}</div>
@@ -54,7 +54,7 @@
 
 <div class="section-card mb-4">
     <div class="section-card-head">
-        <span class="icon-badge theme-red">🚨</span>
+        <span class="icon-badge theme-red">{{ icon('alert-triangle') }}</span>
         <h5>{{ t('flagged_alerts_title') }}</h5>
     </div>
         {% if flagged_records %}
@@ -89,13 +89,13 @@
         </table>
         </div>
         {% else %}
-        <div class="empty-state"><span class="empty-icon">✅</span>{{ t('no_flagged_alerts') }}</div>
+        <div class="empty-state"><span class="empty-icon">{{ icon('check-circle') }}</span>{{ t('no_flagged_alerts') }}</div>
         {% endif %}
 </div>
 
 <div class="section-card mb-4">
     <div class="section-card-head">
-        <span class="icon-badge theme-navy">🕓</span>
+        <span class="icon-badge theme-navy">{{ icon('clock') }}</span>
         <h5>{{ t('recent_activity_title') }}</h5>
     </div>
         {% if recent_records %}
@@ -124,19 +124,19 @@
         </table>
         </div>
         {% else %}
-        <div class="empty-state"><span class="empty-icon">🗒️</span>{{ t('no_records_yet') }}</div>
+        <div class="empty-state"><span class="empty-icon">{{ icon('file-text') }}</span>{{ t('no_records_yet') }}</div>
         {% endif %}
 </div>
 {% else %}
 <div class="page-hero-band mb-4">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div class="d-flex align-items-center gap-2">
-            <span class="icon-badge lg theme-hero">🧑‍⚕️</span>
+            <span class="icon-badge lg theme-hero">{{ icon('stethoscope') }}</span>
             <h2 class="mb-0">{{ t('staff_dashboard_title') }}</h2>
         </div>
         {% if perms.culture_analysis %}
         <div class="d-flex gap-2 flex-wrap">
-            <a href="{{ url_for('owner.culture_analysis') }}" class="btn-pill btn-pill-outline">🧫 {{ t('culture_analysis') }}</a>
+            <a href="{{ url_for('owner.culture_analysis') }}" class="btn-pill btn-pill-outline">{{ icon('flask') }} {{ t('culture_analysis') }}</a>
         </div>
         {% endif %}
     </div>
@@ -145,7 +145,7 @@
 
 <div class="section-card">
     <div class="section-card-head">
-        <span class="icon-badge theme-blue sm">🔍</span>
+        <span class="icon-badge theme-blue sm">{{ icon('search') }}</span>
         <h5>{{ t('all_patients') }}</h5>
     </div>
         <form method="get" class="mb-3">
@@ -153,7 +153,7 @@
                    placeholder="{{ t('search_patients') if owner_role == 'owner' else t('staff_search_placeholder') }}">
         </form>
         {% if owner_role != 'owner' and not q %}
-        <div class="empty-state"><span class="empty-icon">🔎</span>{{ t('staff_search_hint') }}</div>
+        <div class="empty-state"><span class="empty-icon">{{ icon('search') }}</span>{{ t('staff_search_hint') }}</div>
         {% else %}
         <div class="table-responsive">
         <table class="table table-hover table-clean align-middle mb-0">
@@ -173,7 +173,7 @@
                     <td>{{ t(p.gender) if p.gender in ['male','female'] else p.gender }}</td>
                     <td class="d-flex gap-1">
                         <a href="{{ url_for('owner.patient_detail', public_id=p.public_id) }}" class="btn-pill btn-pill-solid sm">{{ t('view') }}</a>
-                        <a href="{{ url_for('owner.patient_qr', public_id=p.public_id) }}" class="btn-pill btn-pill-outline sm">🔳</a>
+                        <a href="{{ url_for('owner.patient_qr', public_id=p.public_id) }}" class="btn-pill btn-pill-outline sm">{{ icon('qr-code') }}</a>
                     </td>
                 </tr>
             {% else %}

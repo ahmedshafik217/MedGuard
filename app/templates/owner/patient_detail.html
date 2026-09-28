@@ -1,623 +1,83 @@
 {% extends "base.html" %}
-{% import "macros.html" as macros with context %}
 {% block body_class %}page-immersive{% endblock %}
 {% block content %}
 <a href="{{ url_for('owner.dashboard') }}" class="back-link">&laquo; {{ t('back') }}</a>
 <div class="page-hero-band my-3">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div class="d-flex align-items-center gap-2">
-            <span class="icon-badge lg theme-hero">🪪</span>
+            <span class="icon-badge lg theme-hero">{{ icon('id-badge') }}</span>
             <h2 class="patient-id-badge mb-0">{{ patient.public_id }}</h2>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-            <a href="{{ url_for('owner.patient_qr', public_id=patient.public_id) }}" class="btn-pill btn-pill-outline">🔳 {{ t('view_qr') }}</a>
-            <a href="{{ url_for('owner.export_patient_pdf', public_id=patient.public_id) }}" class="btn-pill btn-pill-solid">📄 {{ t('export_pdf_en') }}</a>
-            <a href="{{ url_for('owner.export_patient_pdf_ar', public_id=patient.public_id) }}" class="btn-pill btn-pill-solid">📄 {{ t('export_pdf_ar') }}</a>
+            <a href="{{ url_for('owner.patient_qr', public_id=patient.public_id) }}" class="btn-pill btn-pill-outline">{{ icon('qr-code') }} {{ t('view_qr') }}</a>
+            <a href="{{ url_for('owner.export_patient_pdf', public_id=patient.public_id) }}" class="btn-pill btn-pill-solid">{{ icon('file-text') }} {{ t('export_pdf_en') }}</a>
+            <a href="{{ url_for('owner.export_patient_pdf_ar', public_id=patient.public_id) }}" class="btn-pill btn-pill-solid">{{ icon('file-text') }} {{ t('export_pdf_ar') }}</a>
         </div>
     </div>
 </div>
 
-<div class="row g-3">
-    <div class="col-md-3">
-        <div class="section-card tint-blue">
-            <div class="section-card-head">
-                <span class="icon-badge theme-blue sm">👤</span>
-                <h5>{{ t('my_profile') }}</h5>
-            </div>
-            <p class="mb-1">{{ t('full_name_optional') }}: {{ patient.full_name or '—' }}</p>
-            <p class="mb-1">{{ t('gender') }}: {{ t(patient.gender) if patient.gender in ['male','female'] else patient.gender }}</p>
-            <p class="mb-1">
-                {{ t('date_of_birth') }}: {{ patient.date_of_birth or '—' }}
-                {% if patient.age_years is not none %} ({{ patient.age_years }} {{ t('years_old') }}){% endif %}
-            </p>
-            <p class="mb-1">{{ t('phone_number') }}: {{ patient.phone_number or '—' }}</p>
-            <p class="mb-1">{{ t('email_address') }}: {{ patient.email or '—' }}</p>
-            {% if owner_role == 'owner' %}
-            <hr>
-            <form method="post" action="{{ url_for('owner.update_patient_phone', public_id=patient.public_id) }}" class="mb-3">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <label class="form-label">{{ t('phone_number') }}</label>
-                <input type="tel" name="phone_number" class="form-control mb-2" placeholder="05XXXXXXXX" value="{{ patient.phone_number or '' }}">
-                <div class="form-text mb-2">{{ t('phone_number_hint') }}</div>
-                <button class="btn-pill btn-pill-solid sm">{{ t('save') }}</button>
-            </form>
-            <hr>
-            <form method="post" action="{{ url_for('owner.update_patient_email', public_id=patient.public_id) }}" class="mb-3">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <label class="form-label">{{ t('email_address') }}</label>
-                <input type="email" name="email" class="form-control mb-2" placeholder="you@example.com" value="{{ patient.email or '' }}">
-                <div class="form-text mb-2">{{ t('email_hint') }}</div>
-                <button class="btn-pill btn-pill-solid sm">{{ t('save') }}</button>
-            </form>
-            <hr>
-            <form method="post" action="{{ url_for('owner.update_patient_pregnancy_status', public_id=patient.public_id) }}" class="mb-3">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <label class="form-label">{{ t('pregnancy_status') }}</label>
-                <select name="pregnancy_status" id="owner-pregnancy-select" class="form-select mb-2">
-                    <option value="pregnant" {{ 'selected' if patient.pregnancy_status=='pregnant' }}>{{ t('pregnant') }}</option>
-                    <option value="not_pregnant" {{ 'selected' if patient.pregnancy_status=='not_pregnant' }}>{{ t('not_pregnant') }}</option>
-                    <option value="not_applicable" {{ 'selected' if patient.pregnancy_status=='not_applicable' }}>{{ t('not_applicable') }}</option>
-                    <option value="unknown" {{ 'selected' if patient.pregnancy_status=='unknown' }}>{{ t('unknown') }}</option>
-                </select>
-                <div id="owner-pregnancy-dates">
-                    <label class="form-label">{{ t('pregnancy_start_date') }}</label>
-                    <input type="date" name="pregnancy_start_date" class="form-control mb-1" value="{{ patient.pregnancy_start_date or '' }}">
-                    <div class="form-text mb-2">{{ t('pregnancy_start_date_hint') }}</div>
-                    <label class="form-label">{{ t('expected_delivery_date') }}</label>
-                    <input type="date" name="expected_delivery_date" class="form-control mb-1" value="{{ patient.expected_delivery_date or '' }}">
-                    <div class="form-text mb-2">{{ t('expected_delivery_date_hint') }}</div>
-                    {% if patient.pregnancy_weeks is not none %}
-                    <div class="small text-muted mb-2">{{ patient.pregnancy_weeks }} {{ t('weeks_pregnant') }}</div>
-                    {% endif %}
-                </div>
-                <button class="btn-pill btn-pill-solid sm">{{ t('save') }}</button>
-            </form>
-            <script>
-                (function () {
-                    var sel = document.getElementById('owner-pregnancy-select');
-                    var dates = document.getElementById('owner-pregnancy-dates');
-                    function toggle() { dates.style.display = sel.value === 'pregnant' ? '' : 'none'; }
-                    sel.addEventListener('change', toggle);
-                    toggle();
-                })();
-            </script>
-            <hr>
-            <form method="post" action="{{ url_for('owner.reset_patient_password', public_id=patient.public_id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <label class="form-label">{{ t('new_password_optional') }}</label>
-                <input type="password" name="new_password" class="form-control mb-2">
-                <button class="btn-pill btn-pill-outline sm">{{ t('reset_password') }}</button>
-            </form>
-            {% else %}
-            <hr>
-            <p class="mb-0">{{ t('pregnancy_status') }}: {{ t(patient.pregnancy_status) if patient.pregnancy_status in ['pregnant','not_pregnant','not_applicable','unknown'] else patient.pregnancy_status }}</p>
-            {% if patient.pregnancy_status == 'pregnant' %}
-            <p class="small text-muted mb-0">
-                {% if patient.pregnancy_start_date %}{{ t('pregnancy_start_date') }}: {{ patient.pregnancy_start_date }}<br>{% endif %}
-                {% if patient.expected_delivery_date %}{{ t('expected_delivery_date') }}: {{ patient.expected_delivery_date }}<br>{% endif %}
-                {% if patient.pregnancy_weeks is not none %}{{ patient.pregnancy_weeks }} {{ t('weeks_pregnant') }}{% endif %}
-            </p>
-            {% endif %}
-            <p class="small text-muted mb-0">{{ t('staff_view_only_note') }}</p>
-            {% endif %}
-        </div>
-    </div>
+<div class="nav-list">
+    <a href="{{ url_for('owner.patient_profile', public_id=patient.public_id) }}" class="nav-row">
+        <span class="icon-badge theme-blue sm">{{ icon('user') }}</span>
+        <span class="nav-row-text">
+            <span class="nav-row-title">{{ t('my_profile') }}</span>
+            <span class="nav-row-sub">{{ t('view_edit_profile_hint') }}</span>
+        </span>
+        <span class="nav-row-arrow">{{ icon('chevron') }}</span>
+    </a>
 
-    <div class="col-md-3">
-        <div class="section-card tint-red">
-            <div class="section-card-head">
-                <span class="icon-badge theme-red sm">🤧</span>
-                <h5>{{ t('my_allergies') }}</h5>
-            </div>
-            <ul class="list-group mb-3">
-                {% for a in patient.allergies %}
-                <li class="list-group-item">
-                    <strong>{{ a.allergen }}</strong> {% if a.drug_class %}({{ a.drug_class }}){% endif %}
-                    <span class="pill-badge {{ 'sev-' ~ a.severity if a.severity in ['mild','moderate','severe'] else 'sev-unknown' }}">{{ t(a.severity) if a.severity in ['mild','moderate','severe','unknown'] else a.severity }}</span>
-                    {% if a.reaction %}<div class="small text-muted">{{ a.reaction }}</div>{% endif %}
-                </li>
-                {% else %}
-                <li class="list-group-item"><div class="empty-state mb-0 py-1">{{ t('no_records_yet') }}</div></li>
-                {% endfor %}
-            </ul>
-            {% if owner_role == 'owner' %}
-            <form method="post" action="{{ url_for('owner.add_patient_allergy', public_id=patient.public_id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="text" name="allergen" class="form-control mb-2" placeholder="{{ t('allergen') }}" required>
-                <input type="text" name="drug_class" class="form-control mb-2" placeholder="{{ t('drug_class') }}">
-                <input type="text" name="reaction" class="form-control mb-2" placeholder="{{ t('reaction_optional') }}">
-                <select name="severity" class="form-select mb-2">
-                    <option value="mild">{{ t('mild') }}</option>
-                    <option value="moderate">{{ t('moderate') }}</option>
-                    <option value="severe">{{ t('severe') }}</option>
-                    <option value="unknown" selected>{{ t('unknown') }}</option>
-                </select>
-                <button class="btn-pill btn-pill-solid sm w-100 justify-content-center">➕ {{ t('add_allergy') }}</button>
-            </form>
-            {% else %}
-            <p class="small text-muted mb-0">{{ t('staff_view_only_note') }}</p>
-            {% endif %}
-        </div>
-    </div>
+    <a href="{{ url_for('owner.patient_allergies', public_id=patient.public_id) }}" class="nav-row">
+        <span class="icon-badge theme-red sm">{{ icon('shield-alert') }}</span>
+        <span class="nav-row-text">
+            <span class="nav-row-title">{{ t('my_allergies') }}</span>
+            <span class="nav-row-sub">{% if patient.allergies %}{{ patient.allergies|length }} {{ t('on_file_label') }}{% else %}{{ t('no_records_yet') }}{% endif %}</span>
+        </span>
+        <span class="nav-row-arrow">{{ icon('chevron') }}</span>
+    </a>
 
-    <div class="col-md-3">
-        <div class="section-card tint-warn">
-            <div class="section-card-head">
-                <span class="icon-badge theme-warn sm">🩹</span>
-                <h5>{{ t('my_conditions') }}</h5>
-            </div>
-            <ul class="list-group mb-3">
-                {% for c in patient.conditions %}
-                <li class="list-group-item">
-                    <strong>{{ c.condition_name }}</strong>
-                    {% if c.notes %}<div class="small text-muted">{{ c.notes }}</div>{% endif %}
-                </li>
-                {% else %}
-                <li class="list-group-item"><div class="empty-state mb-0 py-1">{{ t('no_records_yet') }}</div></li>
-                {% endfor %}
-            </ul>
-            {% if owner_role == 'owner' %}
-            <form method="post" action="{{ url_for('owner.add_patient_condition', public_id=patient.public_id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="text" name="condition_name" class="form-control mb-2" placeholder="{{ t('condition_name') }}" required>
-                <input type="text" name="notes" class="form-control mb-2" placeholder="{{ t('notes_optional') }}">
-                <button class="btn-pill btn-pill-solid sm w-100 justify-content-center">➕ {{ t('add_condition') }}</button>
-            </form>
-            {% else %}
-            <p class="small text-muted mb-0">{{ t('staff_view_only_note') }}</p>
-            {% endif %}
-        </div>
-    </div>
+    <a href="{{ url_for('owner.patient_conditions', public_id=patient.public_id) }}" class="nav-row">
+        <span class="icon-badge theme-warn sm">{{ icon('bandage') }}</span>
+        <span class="nav-row-text">
+            <span class="nav-row-title">{{ t('my_conditions') }}</span>
+            <span class="nav-row-sub">{% if patient.conditions %}{{ patient.conditions|length }} {{ t('on_file_label') }}{% else %}{{ t('no_records_yet') }}{% endif %}</span>
+        </span>
+        <span class="nav-row-arrow">{{ icon('chevron') }}</span>
+    </a>
 
-    <div class="col-md-3">
-        <div class="section-card tint-teal">
-            <div class="section-card-head">
-                <span class="icon-badge theme-teal sm">💊</span>
-                <h5>{{ t('my_medications') }}</h5>
-            </div>
-            <p class="small text-muted">{{ t('my_medications_hint') }}</p>
-            <ul class="list-group mb-3">
-                {% for m in patient.medications %}
-                <li class="list-group-item">
-                    <strong>{{ m.medication_name }}</strong>
-                    {% if m.resolved_generic_name and m.resolved_generic_name.lower() != (m.medication_name or '').strip().lower() %}
-                    <div class="small text-muted">→ {{ m.resolved_generic_name }}</div>
-                    {% endif %}
-                    {% if m.source == 'photo_ai' %}<span class="pill-badge sev-unknown">📷 {{ t('scanned_from_photo') }}</span>{% endif %}
-                    {% if m.notes %}<div class="small text-muted">{{ m.notes }}</div>{% endif %}
-                </li>
-                {% else %}
-                <li class="list-group-item"><div class="empty-state mb-0 py-1">{{ t('no_records_yet') }}</div></li>
-                {% endfor %}
-            </ul>
-            {% if owner_role == 'owner' %}
-            <form method="post" action="{{ url_for('owner.scan_patient_medication_photo', public_id=patient.public_id) }}"
-                  enctype="multipart/form-data" id="medication-scan-form" class="mb-2">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <label class="form-label small mb-1">📷 {{ t('scan_medication_photo') }}</label>
-                <input type="file" name="medication_photo" accept="image/*" capture="environment" class="form-control mb-2" required>
-                <button type="submit" class="btn-pill btn-pill-outline sm w-100 justify-content-center" id="medication-scan-submit">📷 {{ t('scan_and_add') }}</button>
-                <div id="medication-scan-status" class="small text-muted mt-1" style="display:none">⏳ {{ t('scanning_in_progress') }}</div>
-            </form>
-            <div class="small text-muted mb-2">{{ t('or_add_manually') }}</div>
-            <form method="post" action="{{ url_for('owner.add_patient_medication', public_id=patient.public_id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="text" name="medication_name" class="form-control mb-2" placeholder="{{ t('medication_name') }}" required>
-                <input type="text" name="notes" class="form-control mb-2" placeholder="{{ t('notes_optional') }}">
-                <button class="btn-pill btn-pill-solid sm w-100 justify-content-center">➕ {{ t('add_medication') }}</button>
-            </form>
-            <script>
-                (function () {
-                    var form = document.getElementById('medication-scan-form');
-                    if (!form) return;
-                    form.addEventListener('submit', function () {
-                        document.getElementById('medication-scan-submit').setAttribute('disabled', 'disabled');
-                        document.getElementById('medication-scan-status').style.display = '';
-                    });
-                })();
-            </script>
-            {% else %}
-            <p class="small text-muted mb-0">{{ t('staff_view_only_note') }}</p>
-            {% endif %}
-        </div>
-    </div>
+    <a href="{{ url_for('owner.patient_medications', public_id=patient.public_id) }}" class="nav-row">
+        <span class="icon-badge theme-teal sm">{{ icon('pill') }}</span>
+        <span class="nav-row-text">
+            <span class="nav-row-title">{{ t('my_medications') }}</span>
+            <span class="nav-row-sub">{% if patient.medications %}{{ patient.medications|length }} {{ t('on_file_label') }}{% else %}{{ t('no_records_yet') }}{% endif %}</span>
+        </span>
+        <span class="nav-row-arrow">{{ icon('chevron') }}</span>
+    </a>
 
-    <div class="col-md-3">
-        <div class="section-card tint-blue">
-            <div class="section-card-head">
-                <span class="icon-badge theme-navy sm">🏥</span>
-                <h5>{{ t('recent_hospitalizations') }}</h5>
-            </div>
-            <p class="small text-muted">{{ t('recent_hospitalizations_hint') }}</p>
-            <ul class="list-group mb-3">
-                {% for h in patient.hospitalizations %}
-                <li class="list-group-item">
-                    <strong>{{ h.admission_date }} → {{ h.discharge_date or t('ongoing') }}</strong>
-                    <span class="pill-badge sev-unknown">
-                        {{ h.length_of_stay_days }} {{ t('days') }}{% if h.ongoing %} ({{ t('ongoing') }}){% endif %}
-                    </span>
-                    {% if h.reason %}<div class="small text-muted">{{ h.reason }}</div>{% endif %}
-                </li>
-                {% else %}
-                <li class="list-group-item"><div class="empty-state mb-0 py-1">{{ t('no_records_yet') }}</div></li>
-                {% endfor %}
-            </ul>
-            {% if owner_role == 'owner' %}
-            <form method="post" action="{{ url_for('owner.add_patient_hospitalization', public_id=patient.public_id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <label class="form-label small mb-1">{{ t('admission_date') }}</label>
-                <input type="date" name="admission_date" class="form-control mb-2" required>
-                <label class="form-label small mb-1">{{ t('discharge_date_optional') }}</label>
-                <input type="date" name="discharge_date" class="form-control mb-2">
-                <input type="text" name="reason" class="form-control mb-2" placeholder="{{ t('hospitalization_reason_optional') }}">
-                <button class="btn-pill btn-pill-solid sm w-100 justify-content-center">➕ {{ t('add_hospitalization') }}</button>
-            </form>
-            {% else %}
-            <p class="small text-muted mb-0">{{ t('staff_view_only_note') }}</p>
-            {% endif %}
-        </div>
-    </div>
-</div>
+    <a href="{{ url_for('owner.patient_hospitalizations', public_id=patient.public_id) }}" class="nav-row">
+        <span class="icon-badge theme-navy sm">{{ icon('building') }}</span>
+        <span class="nav-row-text">
+            <span class="nav-row-title">{{ t('recent_hospitalizations') }}</span>
+            <span class="nav-row-sub">{% if patient.hospitalizations %}{{ patient.hospitalizations|length }} {{ t('on_file_label') }}{% else %}{{ t('no_records_yet') }}{% endif %}</span>
+        </span>
+        <span class="nav-row-arrow">{{ icon('chevron') }}</span>
+    </a>
 
-<div class="section-card mt-3">
-    <div class="section-card-head">
-        <span class="icon-badge theme-navy sm">📋</span>
-        <h5>{{ t('antibiotic_history') }}</h5>
-    </div>
-    {% if patient.antibiotic_records %}
-    <div class="table-responsive">
-    <table class="table table-sm table-clean align-middle mb-0">
-        <thead><tr><th>{{ t('antibiotic_name') }}</th><th>{{ t('dose') }}</th><th>{{ t('duration') }}</th><th>{{ t('prescribed_date') }}</th><th>{{ t('infection_origin') }}</th><th>{{ t('action') }}</th></tr></thead>
-        <tbody>
-        {% for r in patient.antibiotic_records %}
-            <tr>
-                <td>{{ r.display_name }}</td>
-                <td>{{ format_dose(r) or '—' }}</td>
-                <td>{{ format_duration(r) or '—' }}</td>
-                <td>{{ r.prescribed_date }}</td>
-                <td>
-                    {% if r.infection_origin == 'hospital_acquired' %}
-                    <span class="pill-badge origin-hai">🏥 {{ t('hospital_acquired') }}</span>
-                    {% elif r.infection_origin == 'community_acquired' %}
-                    <span class="pill-badge origin-cai">🏠 {{ t('community_acquired') }}</span>
-                    {% else %}
-                    —
-                    {% endif %}
-                </td>
-                <td>
-                    {{ r.added_by }}
-                    {% if r.source == 'photo_ai' %}<br><span class="pill-badge sev-unknown">📷 {{ t('scanned_from_photo') }}</span>{% endif %}
-                </td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-    </div>
-    {% else %}
-    <div class="empty-state"><span class="empty-icon">🗒️</span>{{ t('no_records_yet') }}</div>
-    {% endif %}
+    <a href="{{ url_for('owner.patient_antibiotics', public_id=patient.public_id) }}" class="nav-row">
+        <span class="icon-badge theme-navy sm">{{ icon('clipboard-list') }}</span>
+        <span class="nav-row-text">
+            <span class="nav-row-title">{{ t('antibiotic_history') }}</span>
+            <span class="nav-row-sub">{% if patient.antibiotic_records %}{{ patient.antibiotic_records|length }} {{ t('on_file_label') }}{% else %}{{ t('no_records_yet') }}{% endif %}</span>
+        </span>
+        <span class="nav-row-arrow">{{ icon('chevron') }}</span>
+    </a>
 
-    <hr class="my-3">
-    <div class="section-card-head">
-        <span class="icon-badge theme-teal sm">📷</span>
-        <h6 class="mb-0">{{ t('scan_prescription_photo') }}</h6>
-    </div>
-    <p class="small text-muted">{{ t('scan_prescription_hint') }}</p>
-    <form method="post" action="{{ url_for('owner.scan_patient_antibiotic_photo', public_id=patient.public_id) }}"
-          enctype="multipart/form-data" id="prescription-scan-form">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="file" name="prescription_photo" accept="image/*" capture="environment" class="form-control mb-2" required>
-        <button type="submit" class="btn-pill btn-pill-solid w-100 justify-content-center" id="prescription-scan-submit">📷 {{ t('scan_and_add') }}</button>
-        <div id="prescription-scan-status" class="small text-muted mt-2" style="display:none">⏳ {{ t('scanning_in_progress') }}</div>
-    </form>
-    <script>
-        (function () {
-            var form = document.getElementById('prescription-scan-form');
-            if (!form) return;
-            form.addEventListener('submit', function () {
-                document.getElementById('prescription-scan-submit').setAttribute('disabled', 'disabled');
-                document.getElementById('prescription-scan-status').style.display = '';
-            });
-        })();
-    </script>
-
-    <hr class="my-3">
-    <div class="small text-muted mb-2">{{ t('or_add_manually') }}</div>
-    <div class="section-card-head">
-        <span class="icon-badge theme-blue sm">➕</span>
-        <h6 class="mb-0">{{ t('add_antibiotic') }}</h6>
-    </div>
-    <form method="post" action="{{ url_for('owner.add_patient_antibiotic', public_id=patient.public_id) }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="row g-2">
-            <div class="col-md-4">
-                <div class="d-flex gap-1">
-                    <input type="text" name="antibiotic_name" id="antibiotic-name-input" class="form-control" placeholder="{{ t('antibiotic_name') }}" required>
-                    <button type="button" class="btn-pill btn-pill-outline sm" id="voice-name-btn" title="{{ t('speak_antibiotic_name') }}">🎤</button>
-                </div>
-                <div id="voice-name-status" class="small text-muted mt-1" style="display:none"></div>
-            </div>
-            <div class="col-md-4"><input type="date" name="prescribed_date" class="form-control"></div>
-            <div class="col-md-4"><input type="text" name="prescribed_by" class="form-control" placeholder="{{ t('prescribed_by_optional') }}"></div>
-        </div>
-        <div class="row g-2 mt-1">
-            <div class="col-md-4">
-                <label class="form-label small mb-1">{{ t('symptom_onset_date') }}</label>
-                <input type="date" name="symptom_onset_date" class="form-control">
-                <div class="form-text">{{ t('symptom_onset_date_hint') }}</div>
-            </div>
-        </div>
-        {{ macros.dose_duration_fields() }}
-        <button class="btn-pill btn-pill-solid">✔️ {{ t('submit_check') }}</button>
-    </form>
-    <script>
-        (function () {
-            // AI-powered voice input: records the actual audio clip and sends
-            // it to the server (which forwards it to Gemini with this
-            // hospital's antibiotic list as context -- see
-            // app/prescription_scan.py's resolve_antibiotic_from_audio and
-            // the /antibiotics/resolve-voice-audio route) rather than relying
-            // on the browser's own free, generic speech-to-text, which
-            // frequently mishears drug names as unrelated real English words
-            // (e.g. "Cefuroxime" heard as "Seafood"). A short recording still
-            // costs a small amount of Gemini usage each time, same order of
-            // magnitude as one prescription-photo scan.
-            var btn = document.getElementById('voice-name-btn');
-            var input = document.getElementById('antibiotic-name-input');
-            var status = document.getElementById('voice-name-status');
-            if (!btn || !input || !status) return;
-
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
-                setStatus('{{ t("voice_not_supported") }}');
-                btn.style.display = 'none';
-                return;
-            }
-
-            var recording = false;
-            var mediaRecorder = null;
-            var chunks = [];
-            var autoStopTimer = null;
-            // Safety cap so a forgotten recording doesn't run indefinitely --
-            // an antibiotic name is a couple of seconds of speech at most.
-            var MAX_RECORDING_MS = 8000;
-
-            function setStatus(text) {
-                status.textContent = text;
-                status.style.display = text ? '' : 'none';
-            }
-
-            function sendRecording(blob) {
-                setStatus('{{ t("resolving_antibiotic_name") }}');
-                var body = new FormData();
-                var csrfInput = document.querySelector('input[name="csrf_token"]');
-                body.set('csrf_token', csrfInput ? csrfInput.value : '');
-                body.set('audio', blob, 'antibiotic-name.webm');
-                fetch('{{ url_for("owner.resolve_antibiotic_voice_audio") }}', { method: 'POST', body: body })
-                    .then(function (r) { return r.json(); })
-                    .then(function (data) {
-                        if (data.error) {
-                            setStatus('{{ t("voice_error") }}');
-                            return;
-                        }
-                        var heard = data.heard || '';
-                        input.value = data.resolved_name || heard;
-                        setStatus(data.matched
-                            ? '{{ t("voice_matched") }}: "' + heard + '" → ' + data.resolved_name
-                            : '{{ t("voice_not_matched") }}: "' + heard + '"');
-                    })
-                    .catch(function () {
-                        setStatus('{{ t("voice_error") }}');
-                    });
-            }
-
-            function stopRecording() {
-                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                    mediaRecorder.stop();
-                }
-            }
-
-            function startRecording() {
-                navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
-                    chunks = [];
-                    try {
-                        mediaRecorder = new MediaRecorder(stream);
-                    } catch (e) {
-                        setStatus('{{ t("voice_not_supported") }}');
-                        stream.getTracks().forEach(function (t) { t.stop(); });
-                        return;
-                    }
-                    mediaRecorder.ondataavailable = function (e) {
-                        if (e.data && e.data.size > 0) chunks.push(e.data);
-                    };
-                    mediaRecorder.onstop = function () {
-                        clearTimeout(autoStopTimer);
-                        stream.getTracks().forEach(function (t) { t.stop(); });
-                        recording = false;
-                        btn.classList.remove('listening');
-                        var blob = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-                        if (blob.size > 0) {
-                            sendRecording(blob);
-                        } else {
-                            setStatus('');
-                        }
-                    };
-                    mediaRecorder.start();
-                    recording = true;
-                    btn.classList.add('listening');
-                    setStatus('{{ t("voice_listening") }}');
-                    autoStopTimer = setTimeout(stopRecording, MAX_RECORDING_MS);
-                }).catch(function () {
-                    setStatus('{{ t("voice_error") }}');
-                });
-            }
-
-            btn.addEventListener('click', function () {
-                if (recording) {
-                    stopRecording();
-                } else {
-                    startRecording();
-                }
-            });
-        })();
-    </script>
-</div>
-
-<div class="section-card mt-3">
-    <div class="section-card-head">
-        <span class="icon-badge theme-navy sm">🧫</span>
-        <h5>{{ t('cultures_title') }}</h5>
-    </div>
-    <p class="small text-muted">{{ t('cultures_hint') }}</p>
-    {% if patient.cultures %}
-    <div class="table-responsive">
-    <table class="table table-sm table-clean align-middle mb-0">
-        <thead><tr><th>{{ t('collection_date') }}</th><th>{{ t('specimen_type') }}</th><th>{{ t('organism') }}</th><th>{{ t('sensitivities') }}</th></tr></thead>
-        <tbody>
-        {% for c in patient.cultures %}
-            <tr>
-                <td>{{ c.collection_date }}</td>
-                <td>
-                    {{ t('specimen_' ~ c.specimen_type) if c.specimen_type in ['blood','urine','wound','sputum','csf','stool','other'] else c.specimen_type }}
-                    {% if c.specimen_type == 'other' and c.specimen_type_other %}({{ c.specimen_type_other }}){% endif %}
-                </td>
-                <td>
-                    {{ c.organism }}
-                    {% if c.lab_name %}<div class="small text-muted">{{ c.lab_name }}</div>{% endif %}
-                    {% if c.notes %}<div class="small text-muted">{{ c.notes }}</div>{% endif %}
-                </td>
-                <td>
-                    {% for s in c.sensitivities %}
-                    <span class="pill-badge {{ 'sev-severe' if s.result == 'resistant' else ('sev-moderate' if s.result == 'intermediate' else 'sev-mild') }}">{{ s.antibiotic_name }}: {{ t(s.result) if s.result in ['sensitive','intermediate','resistant'] else s.result }}</span>
-                    {% else %}
-                    —
-                    {% endfor %}
-                </td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-    </div>
-    {% else %}
-    <div class="empty-state"><span class="empty-icon">🧫</span>{{ t('no_cultures_yet') }}</div>
-    {% endif %}
-
-    {% if owner_role == 'owner' %}
-    <hr class="my-3">
-    <div class="section-card-head">
-        <span class="icon-badge theme-teal sm">📷</span>
-        <h6 class="mb-0">{{ t('scan_culture_photo') }}</h6>
-    </div>
-    <p class="small text-muted">{{ t('scan_culture_hint') }}</p>
-    <form method="post" action="{{ url_for('owner.scan_patient_culture_photo', public_id=patient.public_id) }}"
-          enctype="multipart/form-data" id="culture-scan-form">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="file" name="culture_photo" accept="image/*" capture="environment" class="form-control mb-2" required>
-        <button type="submit" class="btn-pill btn-pill-solid w-100 justify-content-center" id="culture-scan-submit">📷 {{ t('scan_and_add') }}</button>
-        <div id="culture-scan-status" class="small text-muted mt-2" style="display:none">⏳ {{ t('scanning_in_progress') }}</div>
-    </form>
-    <script>
-        (function () {
-            var form = document.getElementById('culture-scan-form');
-            if (!form) return;
-            form.addEventListener('submit', function () {
-                document.getElementById('culture-scan-submit').setAttribute('disabled', 'disabled');
-                document.getElementById('culture-scan-status').style.display = '';
-            });
-        })();
-    </script>
-
-    <hr class="my-3">
-    <div class="small text-muted mb-2">{{ t('or_add_manually') }}</div>
-    <div class="section-card-head">
-        <span class="icon-badge theme-blue sm">➕</span>
-        <h6 class="mb-0">{{ t('add_culture') }}</h6>
-    </div>
-    <form method="post" action="{{ url_for('owner.add_patient_culture', public_id=patient.public_id) }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="row g-2">
-            <div class="col-md-4">
-                <label class="form-label">{{ t('specimen_type') }}</label>
-                <select name="specimen_type" class="form-select">
-                    {% for s in ['blood', 'urine', 'wound', 'sputum', 'csf', 'stool', 'other'] %}
-                    <option value="{{ s }}">{{ t('specimen_' ~ s) }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">&nbsp;</label>
-                <input type="text" name="specimen_type_other" class="form-control" placeholder="{{ t('specimen_type_other_placeholder') }}">
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">{{ t('collection_date') }}</label>
-                <input type="date" name="collection_date" class="form-control" required>
-            </div>
-        </div>
-        <div class="row g-2 mt-1">
-            <div class="col-md-6">
-                <label class="form-label">{{ t('organism') }}</label>
-                <input type="text" name="organism" class="form-control" placeholder="{{ t('organism_placeholder') }}" required>
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">{{ t('lab_name_optional') }}</label>
-                <input type="text" name="lab_name" class="form-control">
-            </div>
-        </div>
-
-        <div class="mt-3 mb-1"><label class="form-label mb-0">{{ t('sensitivities') }}</label></div>
-        <datalist id="culture-antibiotic-list">
-            {% for abx_name in available_antibiotics %}
-            <option value="{{ abx_name }}">
-            {% endfor %}
-        </datalist>
-        <div id="culture-sensitivity-rows">
-            <div class="row g-2 mb-2 culture-sensitivity-row">
-                <div class="col-md-6">
-                    <input type="text" name="sensitivity_antibiotic_name" class="form-control" list="culture-antibiotic-list" placeholder="{{ t('sensitivity_antibiotic_placeholder') }}">
-                </div>
-                <div class="col-md-4">
-                    <select name="sensitivity_result" class="form-select">
-                        <option value="">{{ t('choose_option') }}</option>
-                        <option value="sensitive">{{ t('sensitive') }}</option>
-                        <option value="intermediate">{{ t('intermediate') }}</option>
-                        <option value="resistant">{{ t('resistant') }}</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button type="button" class="btn-pill btn-pill-outline sm w-100 justify-content-center culture-remove-row">✕ {{ t('remove') }}</button>
-                </div>
-            </div>
-        </div>
-        <button type="button" class="btn-pill btn-pill-outline sm mb-3" id="culture-add-row-btn">{{ t('add_another_antibiotic') }}</button>
-
-        <input type="text" name="notes" class="form-control mb-2" placeholder="{{ t('notes_optional') }}">
-        <button class="btn-pill btn-pill-solid sm">➕ {{ t('add_culture') }}</button>
-    </form>
-    <script>
-        (function () {
-            var rowsContainer = document.getElementById('culture-sensitivity-rows');
-            var addBtn = document.getElementById('culture-add-row-btn');
-            if (!rowsContainer || !addBtn) return;
-
-            addBtn.addEventListener('click', function () {
-                var firstRow = rowsContainer.querySelector('.culture-sensitivity-row');
-                var clone = firstRow.cloneNode(true);
-                clone.querySelectorAll('input').forEach(function (el) { el.value = ''; });
-                clone.querySelectorAll('select').forEach(function (el) { el.selectedIndex = 0; });
-                rowsContainer.appendChild(clone);
-            });
-
-            rowsContainer.addEventListener('click', function (e) {
-                var removeBtn = e.target.closest('.culture-remove-row');
-                if (!removeBtn) return;
-                var rows = rowsContainer.querySelectorAll('.culture-sensitivity-row');
-                if (rows.length > 1) {
-                    removeBtn.closest('.culture-sensitivity-row').remove();
-                }
-            });
-        })();
-    </script>
-    {% else %}
-    <p class="small text-muted mb-0">{{ t('staff_view_only_note') }}</p>
-    {% endif %}
+    <a href="{{ url_for('owner.patient_cultures', public_id=patient.public_id) }}" class="nav-row">
+        <span class="icon-badge theme-navy sm">{{ icon('flask') }}</span>
+        <span class="nav-row-text">
+            <span class="nav-row-title">{{ t('cultures_title') }}</span>
+            <span class="nav-row-sub">{% if patient.cultures %}{{ patient.cultures|length }} {{ t('on_file_label') }}{% else %}{{ t('no_cultures_yet') }}{% endif %}</span>
+        </span>
+        <span class="nav-row-arrow">{{ icon('chevron') }}</span>
+    </a>
 </div>
 {% endblock %}

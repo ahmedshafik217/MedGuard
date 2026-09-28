@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <a href="{{ url_for('owner.dashboard') }}">&laquo; {{ t('back') }}</a>
-<h2 class="my-3">🧫 {{ t('culture_analysis') }}</h2>
+<h2 class="my-3">{{ icon('flask') }} {{ t('culture_analysis') }}</h2>
 <p class="small text-muted">{{ t('culture_analysis_hint') }}</p>
 
 <div class="section-card mb-3">
@@ -19,7 +19,7 @@
             <input type="date" name="date_to" value="{{ date_to }}" class="form-control">
         </div>
         <div class="col-sm-12 col-md-3 d-flex gap-2">
-            <button class="btn-pill btn-pill-solid">🔍 {{ t('apply_filters') }}</button>
+            <button class="btn-pill btn-pill-solid">{{ icon('search') }} {{ t('apply_filters') }}</button>
             {% if organism or date_from or date_to %}
             <a href="{{ url_for('owner.culture_analysis') }}" class="btn-pill btn-pill-outline">{{ t('clear_filters') }}</a>
             {% endif %}
@@ -69,7 +69,7 @@
     </table>
     </div>
     {% else %}
-    <div class="empty-state"><span class="empty-icon">🧫</span>{{ t('no_cultures_found') if (organism or date_from or date_to) else t('no_cultures_yet') }}</div>
+    <div class="empty-state"><span class="empty-icon">{{ icon('flask') }}</span>{{ t('no_cultures_found') if (organism or date_from or date_to) else t('no_cultures_yet') }}</div>
     {% endif %}
 </div>
 {% endblock %}

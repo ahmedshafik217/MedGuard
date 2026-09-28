@@ -21,7 +21,7 @@
             <tr>
                 <td>{{ item.generic_name }}{% if item.brand_names %}<div class="small text-muted">{{ item.brand_names }}</div>{% endif %}</td>
                 <td>{{ item.drug_class }}</td>
-                <td>{{ '⚠️' if item.pregnancy_contraindicated else '—' }}</td>
+                <td>{{ icon('alert-triangle') if item.pregnancy_contraindicated else '—' }}</td>
                 <td class="small">{{ item.contraindicated_conditions|join(', ') or '—' }}</td>
                 <td class="d-flex gap-2">
                     <a href="{{ url_for('owner.edit_antibiotic', item_id=item.id) }}" class="btn btn-sm btn-outline-dark">{{ t('view') }}</a>

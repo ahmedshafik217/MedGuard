@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block body_class %}page-immersive{% endblock %}
+{% block content %}
+<a href="{{ url_for('owner.patient_detail', public_id=patient.public_id) }}" class="back-link mb-2">&laquo; {{ t('back') }}</a>
+
+<div class="section-card tint-red mt-2">
+    <div class="section-card-head">
+        <span class="icon-badge theme-red sm">{{ icon('shield-alert') }}</span>
+        <h5>{{ t('my_allergies') }}</h5>
+    </div>
+    <ul class="list-group mb-3">
+        {% for a in patient.allergies %}
+        <li class="list-group-item">
+            <strong>{{ a.allergen }}</strong> {% if a.drug_class %}({{ a.drug_class }}){% endif %}
+            <span class="pill-badge {{ 'sev-' ~ a.severity if a.severity in ['mild','moderate','severe'] else 'sev-unknown' }}">{{ t(a.severity) if a.severity in ['mild','moderate','severe','unknown'] else a.severity }}</span>
+            {% if a.reaction %}<div class="small text-muted">{{ a.reaction }}</div>{% endif %}
+        </li>
+        {% else %}
+        <li class="list-group-item"><div class="empty-state mb-0 py-1">{{ t('no_records_yet') }}</div></li>
+        {% endfor %}
+    </ul>
+    {% if owner_role == 'owner' %}
+    <form method="post" action="{{ url_for('owner.add_patient_allergy', public_id=patient.public_id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="text" name="allergen" class="form-control mb-2" placeholder="{{ t('allergen') }}" required>
+        <input type="text" name="drug_class" class="form-control mb-2" placeholder="{{ t('drug_class') }}">
+        <input type="text" name="reaction" class="form-control mb-2" placeholder="{{ t('reaction_optional') }}">
+        <select name="severity" class="form-select mb-2">
+            <option value="mild">{{ t('mild') }}</option>
+            <option value="moderate">{{ t('moderate') }}</option>
+            <option value="severe">{{ t('severe') }}</option>
+            <option value="unknown" selected>{{ t('unknown') }}</option>
+        </select>
+        <button class="btn-pill btn-pill-solid sm w-100 justify-content-center">{{ icon('plus') }} {{ t('add_allergy') }}</button>
+    </form>
+    {% else %}
+    <p class="small text-muted mb-0">{{ t('staff_view_only_note') }}</p>
+    {% endif %}
+</div>
+{% endblock %}
