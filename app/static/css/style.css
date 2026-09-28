@@ -27,6 +27,21 @@
     --shadow-soft: 0 3px 12px rgba(15, 34, 51, 0.07);
     --shadow-elevated: 0 10px 26px rgba(15, 34, 51, 0.14);
     --ease-standard: 0.18s ease;
+
+    /* --- Patient color-scheme tokens (light blue / pink, see
+       [data-color-scheme="pink"] further down and base.html's toggle bar).
+       These are the "blue" defaults; --page-wash above is also part of the
+       scheme and gets overridden the same way. Purely additive. */
+    --glow-1: rgba(30, 179, 207, 0.10);
+    --glow-2: rgba(3, 77, 156, 0.08);
+    --glow-1-strong: rgba(30, 179, 207, 0.16);
+    --glow-2-strong: rgba(3, 77, 156, 0.12);
+    --scheme-accent: var(--brand-teal);
+    --scheme-accent-dark: var(--brand-teal-dark);
+    --scheme-focus-shadow: rgba(4, 142, 141, 0.15);
+    --scheme-glow-shadow: rgba(4, 142, 141, 0.28);
+    --scheme-chat-bg: var(--card-teal-bg);
+    --scheme-soft-bg: var(--card-teal-bg);
 }
 
 body {
@@ -1349,4 +1364,340 @@ html[dir="rtl"] .help-chat-send-btn svg { transform: scaleX(-1); }
 @media (prefers-reduced-motion: reduce) {
     .help-chat-panel:not([hidden]) { animation: none; }
     .help-chat-dot { animation: none; }
+}
+
+/* ==========================================================================
+   AmanBio design-refresh -- adapted from the hospital's newly commissioned
+   AmanBio design mockup (a soft, ever-present two-layer background glow
+   instead of a flat page color, and rounded "squircle" icon-chip tiles
+   instead of plain circles). This section is purely additive on top of
+   everything above: every existing color token, alert level, severity
+   pill, and functional class is untouched -- these rules only refine how a
+   few already shared classes render, so every page (including the admin
+   reference-database screens, which still use raw Bootstrap .card/.btn/
+   .form-control) picks up the new look automatically with no template
+   changes required.
+   ========================================================================== */
+
+/* A persistent, clearly-tinted page background (not just a fade-to-white
+   band near the top) plus a soft two-layer radial glow on top of it, so the
+   whole scrollable page -- not only the first screenful -- reads as
+   colored the way the mockup's own screens do. Mirrored to the opposite
+   corner in Arabic/RTL, since that's the reading "start" side (matches the
+   mockup's own RTL-aware layout). Uses --page-wash, which the color-scheme
+   block further down retints for the pink scheme, so this one rule serves
+   both schemes. */
+body {
+    background:
+        radial-gradient(650px circle at 8% 0%, var(--glow-1), transparent 60%),
+        radial-gradient(700px circle at 100% 18%, var(--glow-2), transparent 55%),
+        var(--page-wash);
+    background-attachment: fixed;
+}
+
+html[dir="rtl"] body {
+    background:
+        radial-gradient(650px circle at 92% 0%, var(--glow-1), transparent 60%),
+        radial-gradient(700px circle at 0% 18%, var(--glow-2), transparent 55%),
+        var(--page-wash);
+    background-attachment: fixed;
+}
+
+/* Overrides the original .page-immersive rule above, which hardcoded a
+   couple of blue-ish hex stops (#eef8fb, #f6fbfd) that wouldn't follow the
+   pink color scheme -- this version uses --page-wash/--glow-* throughout
+   instead, same as the plain body rule above it. */
+body.page-immersive {
+    background:
+        radial-gradient(650px circle at 8% 0%, var(--glow-1-strong), transparent 60%),
+        radial-gradient(700px circle at 100% 18%, var(--glow-2-strong), transparent 55%),
+        var(--page-wash);
+    background-attachment: fixed;
+}
+
+html[dir="rtl"] body.page-immersive {
+    background:
+        radial-gradient(650px circle at 92% 0%, var(--glow-1-strong), transparent 60%),
+        radial-gradient(700px circle at 0% 18%, var(--glow-2-strong), transparent 55%),
+        var(--page-wash);
+    background-attachment: fixed;
+}
+
+/* Squircle icon-chip tiles -- the mockup's signature rounded-square icon
+   badges (instead of plain circles) for every card-header icon, feature
+   icon, and login/auth icon chip. A percentage radius scales automatically
+   with each size variant (.sm/.lg/etc.) since those only change width/
+   height, not border-radius, so this one rule covers all of them. */
+.icon-badge,
+.help-chat-header-icon,
+.feature-icon,
+.login-card-icon,
+.auth-form-icon {
+    border-radius: 30%;
+}
+
+/* Raw Bootstrap cards/buttons/inputs -- still used as-is on the admin
+   reference-database screens (Antibiotics, Medications Reference, Drug
+   Interactions, Settings, Audit Log, etc.) -- get the same rounded corners,
+   soft elevation, and teal focus ring as the rest of the redesigned app, so
+   those screens read as part of one product instead of plain Bootstrap. */
+.card {
+    border-radius: 1rem;
+    border-color: #eef2f5;
+    box-shadow: var(--shadow-soft);
+}
+
+.btn {
+    border-radius: 0.6rem;
+}
+
+.form-control,
+.form-select {
+    border-radius: 0.6rem;
+    border-color: #d7e6ef;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--scheme-accent);
+    box-shadow: 0 0 0 0.2rem var(--scheme-focus-shadow);
+}
+
+/* Bug fix (found while visually verifying this redesign, unrelated to it):
+   .help-chat-panel above sets `display: flex` unconditionally, which -- at
+   equal CSS specificity -- always wins over the browser's own built-in
+   `[hidden] { display: none; }` rule (author styles beat user-agent
+   styles on a specificity tie, regardless of source order). That means the
+   AI help chat panel has been rendering OPEN by default on every page load
+   for every user, instead of staying closed until the chat button is
+   clicked -- the base.html JS was toggling the `hidden` attribute exactly
+   as intended, but this rule silently defeated it. Raising the selector's
+   specificity here (still 100% CSS, no JS/template change) restores the
+   correct closed-by-default behavior. */
+.help-chat-panel[hidden] {
+    display: none;
+}
+
+/* ==========================================================================
+   Patient color scheme -- light blue / pink, matching the two example
+   screens the hospital sent (a light-blue-leaning look and a pink-leaning
+   look), with a toggle in a bar under the header so a patient can pick
+   either one for themselves (see base.html and app/__init__.py's
+   /set-color-scheme/<scheme> route + color_scheme default). Defaults to
+   'blue' for every owner/staff session and for a patient who hasn't
+   registered as female, so [data-color-scheme="pink"] below only ever
+   activates on a patient's own pages.
+
+   Only the small set of rules in this section actually follow the scheme
+   (page background, primary buttons, the hero band's leading color, form
+   focus rings, the help chat widget) -- via the dedicated --scheme-accent/
+   --scheme-accent-dark/--scheme-focus-shadow/--page-wash/--glow-* tokens
+   rather than reassigning --brand-teal itself. --brand-teal is also used as
+   a fixed CLINICAL category color (e.g. .icon-badge.theme-teal on the
+   "Other Medications" card) and as part of the unrelated three-color
+   role system on the login cards (.theme-blue/.theme-teal/.theme-red) --
+   neither of those should ever shift just because a patient likes pink, so
+   they're deliberately left untouched here.
+   ========================================================================== */
+
+[data-color-scheme="pink"] {
+    --page-wash: #fdf1f6;
+    --glow-1: rgba(216, 68, 147, 0.10);
+    --glow-2: rgba(165, 69, 123, 0.08);
+    --glow-1-strong: rgba(216, 68, 147, 0.16);
+    --glow-2-strong: rgba(165, 69, 123, 0.12);
+    --scheme-accent: #c23c85;
+    --scheme-accent-dark: #a02d6c;
+    --scheme-focus-shadow: rgba(194, 60, 133, 0.18);
+    --scheme-glow-shadow: rgba(194, 60, 133, 0.28);
+    --scheme-chat-bg: #fbeaf3;
+    --scheme-soft-bg: #fbeaf3;
+}
+
+.btn-pill-solid {
+    background: linear-gradient(135deg, var(--scheme-accent) 0%, var(--scheme-accent-dark) 100%);
+}
+
+.page-hero-band {
+    background: linear-gradient(135deg, var(--scheme-accent) 0%, var(--brand-blue) 55%, var(--brand-navy) 100%);
+}
+
+.page-immersive .btn-pill-solid {
+    box-shadow: 0 6px 16px var(--scheme-glow-shadow);
+}
+
+.help-chat-fab,
+.help-chat-header {
+    background: linear-gradient(135deg, var(--scheme-accent) 0%, var(--brand-blue) 100%);
+}
+
+.help-chat-send-btn {
+    background: linear-gradient(135deg, var(--scheme-accent) 0%, var(--scheme-accent-dark) 100%);
+}
+
+.help-chat-msg-bot {
+    background: var(--scheme-chat-bg);
+}
+
+/* --- The toggle bar itself (patient sessions only, see base.html) ------- */
+.color-scheme-bar {
+    background: #ffffff;
+    border-bottom: 1px solid #eef2f5;
+    padding: 0.5rem 1rem;
+}
+
+.color-scheme-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--brand-blue-dark);
+    margin-inline-end: 0.3rem;
+}
+
+.color-scheme-swatch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid #d7e6ef;
+    background: #fff;
+    color: #4a5c68;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.color-scheme-swatch .color-scheme-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.color-scheme-dot.dot-blue { background: #468acb; }
+.color-scheme-dot.dot-pink { background: #d276a5; }
+
+.color-scheme-swatch.active {
+    border-color: var(--scheme-accent);
+    color: var(--scheme-accent-dark);
+    background: var(--scheme-soft-bg);
+    font-weight: 700;
+}
+
+/* ==========================================================================
+   Inline SVG icon system (see app/icons.py, {{ icon('name') }}) -- replaces
+   the emoji that used to sit inside icon-badges, buttons, and pill-badges
+   across the app. Sized at 1em so each icon scales with whatever font-size
+   its container already sets (an .icon-badge and its .sm/.lg variants, a
+   button, a small pill-badge) with no extra sizing arguments, and colored
+   via currentColor so it automatically follows the container's own
+   .theme-blue/.theme-teal/.theme-red/etc. accent color -- something a
+   fixed-color emoji glyph could never do.
+   ========================================================================== */
+.icon-badge svg,
+.feature-icon svg,
+.login-card-icon svg,
+.auth-form-icon svg,
+.empty-icon svg,
+.btn-pill svg,
+.btn svg,
+.pill-badge svg,
+label svg,
+.arrow svg {
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.14em;
+    flex-shrink: 0;
+}
+
+.btn-pill svg,
+.btn svg {
+    margin-inline-end: 0.05em;
+}
+
+/* The choose-login CTA arrow: was a plain unicode character mirrored by
+   Jinja ('←'/'→'), now a single chevron SVG mirrored in CSS instead, same
+   RTL-mirroring technique already used elsewhere in this file (e.g. the
+   help-chat send button icon above). */
+html[dir="rtl"] .arrow svg {
+    transform: scaleX(-1);
+}
+
+/* ==========================================================================
+   Nav-row menu list -- replaces a page-full of stacked, always-expanded
+   sections (profile/allergies/conditions/medications/hospitalizations/
+   antibiotic history all at once) with a short list of tappable rows, each
+   opening its own focused page. Used on the patient dashboard and the
+   owner/staff patient-detail page so both go from "scroll through
+   everything" to "jump straight to the one thing you need."
+   ========================================================================== */
+.nav-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.nav-row {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    background: #fff;
+    border: 1px solid #eef2f5;
+    border-radius: 1rem;
+    box-shadow: 0 3px 12px rgba(15, 34, 51, 0.06);
+    padding: 0.9rem 1.1rem;
+    text-decoration: none;
+    color: inherit;
+}
+
+.nav-row:hover { color: inherit; text-decoration: none; }
+
+@media (hover: hover) and (pointer: fine) {
+    .nav-row:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-elevated);
+    }
+}
+
+.nav-row:active { transform: translateY(1px); }
+
+.nav-row-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.nav-row-title {
+    font-weight: 800;
+    color: var(--brand-blue-dark);
+}
+
+.nav-row-sub {
+    font-size: 0.82rem;
+    color: #5a6b76;
+    margin-top: 0.1rem;
+}
+
+.nav-row-count {
+    flex-shrink: 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--brand-blue-dark);
+    background: var(--card-blue-bg);
+    border-radius: 999px;
+    padding: 0.2rem 0.65rem;
+}
+
+.nav-row-arrow {
+    flex-shrink: 0;
+    color: #b7c2ca;
+    font-size: 1.1rem;
+}
+
+html[dir="rtl"] .nav-row-arrow svg {
+    transform: scaleX(-1);
+}
+
+@media (max-width: 767px) {
+    .nav-row { padding: 0.8rem 1rem; }
 }
