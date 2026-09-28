@@ -21,15 +21,68 @@ from app.voice_resolve import resolve_antibiotic_from_audio
 @bp.route("/")
 @patient_required
 def dashboard():
+    # Lean menu of nav-row links (see templates/patient/dashboard.html) --
+    # only counts are needed here, not the full lists, so this stays quick
+    # even for a patient with a long history. Each row's own page (below)
+    # loads its own full list on demand.
+    patient = current_patient()
+    counts = {
+        "allergies": len(models.list_allergies(patient["id"])),
+        "conditions": len(models.list_conditions(patient["id"])),
+        "medications": len(models.list_medications(patient["id"])),
+        "hospitalizations": len(models.list_hospitalizations(patient["id"])),
+        "antibiotic_records": len(models.list_antibiotic_records(patient["id"])),
+    }
+    return render_template("patient/dashboard.html", patient=patient, counts=counts)
+
+
+@bp.route("/profile")
+@patient_required
+def profile():
+    return render_template("patient/profile.html", patient=current_patient())
+
+
+@bp.route("/allergies")
+@patient_required
+def allergies():
     patient = current_patient()
     patient["allergies"] = models.list_allergies(patient["id"])
+    return render_template("patient/allergies.html", patient=patient)
+
+
+@bp.route("/conditions")
+@patient_required
+def conditions():
+    patient = current_patient()
     patient["conditions"] = models.list_conditions(patient["id"])
+    return render_template("patient/conditions.html", patient=patient)
+
+
+@bp.route("/medications")
+@patient_required
+def medications():
+    patient = current_patient()
     patient["medications"] = models.list_medications(patient["id"])
+    return render_template("patient/medications.html", patient=patient)
+
+
+@bp.route("/hospitalizations")
+@patient_required
+def hospitalizations():
+    patient = current_patient()
+    patient["hospitalizations"] = models.list_hospitalizations(patient["id"])
+    return render_template("patient/hospitalizations.html", patient=patient)
+
+
+@bp.route("/antibiotics")
+@patient_required
+def antibiotic_history():
+    patient = current_patient()
     patient["hospitalizations"] = models.list_hospitalizations(patient["id"])
     patient["antibiotic_records"] = attach_infection_origin(
         models.list_antibiotic_records(patient["id"]), patient["hospitalizations"],
     )
-    return render_template("patient/dashboard.html", patient=patient)
+    return render_template("patient/antibiotic_history.html", patient=patient)
 
 
 @bp.route("/qr")
@@ -91,7 +144,7 @@ def add_allergy():
     patient = current_patient()
     add_allergy_from_form(patient, request.form)
     models.log_action("patient", patient["public_id"], "add_allergy", target=patient["public_id"])
-    return redirect(url_for("patient.dashboard"))
+    return redirect(url_for("patient.allergies"))
 
 
 @bp.route("/conditions/add", methods=["POST"])
@@ -100,7 +153,7 @@ def add_condition():
     patient = current_patient()
     add_condition_from_form(patient, request.form)
     models.log_action("patient", patient["public_id"], "add_condition", target=patient["public_id"])
-    return redirect(url_for("patient.dashboard"))
+    return redirect(url_for("patient.conditions"))
 
 
 @bp.route("/medications/add", methods=["POST"])
@@ -109,7 +162,7 @@ def add_medication():
     patient = current_patient()
     add_medication_from_form(patient, request.form)
     models.log_action("patient", patient["public_id"], "add_medication", target=patient["public_id"])
-    return redirect(url_for("patient.dashboard"))
+    return redirect(url_for("patient.medications"))
 
 
 @bp.route("/medications/scan-photo", methods=["POST"])
@@ -130,21 +183,21 @@ def scan_medication_photo():
             "minutes, or add this one manually below.",
             "error",
         )
-        return redirect(url_for("patient.dashboard"))
+        return redirect(url_for("patient.medications"))
 
     photo = request.files.get("medication_photo")
     if not photo or not photo.filename:
         flash("Choose or take a photo of the medication package first.", "error")
-        return redirect(url_for("patient.dashboard"))
+        return redirect(url_for("patient.medications"))
 
     image_bytes = photo.read()
     if not image_bytes:
         flash("That photo looks empty — please try again.", "error")
-        return redirect(url_for("patient.dashboard"))
+        return redirect(url_for("patient.medications"))
     if len(image_bytes) > current_app.config["PRESCRIPTION_PHOTO_MAX_BYTES"]:
         max_mb = current_app.config["PRESCRIPTION_PHOTO_MAX_BYTES"] // (1024 * 1024)
         flash(f"That photo is too large (max {max_mb} MB). Please retake it or choose a smaller file.", "error")
-        return redirect(url_for("patient.dashboard"))
+        return redirect(url_for("patient.medications"))
 
     try:
         result = scan_medication_image(
@@ -155,11 +208,11 @@ def scan_medication_photo():
         )
     except AIScanNotConfigured as e:
         flash(str(e), "error")
-        return redirect(url_for("patient.dashboard"))
+        return redirect(url_for("patient.medications"))
     except AIScanError as e:
         models.log_action("patient", patient["public_id"], "medication_scan_failed", details=str(e))
         flash(f"Couldn't read that photo: {e}", "error")
-        return redirect(url_for("patient.dashboard"))
+        return redirect(url_for("patient.medications"))
 
     record_patient_ai_scan(patient["public_id"], ip_address)
     added_names, skipped_antibiotic_names = add_medications_from_ai_scan(patient, result, source_photo=image_bytes)
@@ -175,7 +228,7 @@ def scan_medication_photo():
         )
     if not added_names and not skipped_antibiotic_names:
         flash("Couldn't find any medication on that photo. Please try again or add it manually.", "error")
-    return redirect(url_for("patient.dashboard"))
+    return redirect(url_for("patient.medications"))
 
 
 @bp.route("/hospitalizations/add", methods=["POST"])
@@ -184,7 +237,7 @@ def add_hospitalization():
     patient = current_patient()
     add_hospitalization_from_form(patient, request.form, recorded_by="patient")
     models.log_action("patient", patient["public_id"], "add_hospitalization", target=patient["public_id"])
-    return redirect(url_for("patient.dashboard"))
+    return redirect(url_for("patient.hospitalizations"))
 
 
 @bp.route("/pregnancy-status", methods=["POST"])
@@ -206,7 +259,7 @@ def update_pregnancy_status():
         pregnancy_start_date=start_date, expected_delivery_date=due_date,
     )
     models.log_action("patient", patient["public_id"], "update_pregnancy_status", target=patient["public_id"])
-    return redirect(url_for("patient.dashboard"))
+    return redirect(url_for("patient.profile"))
 
 
 @bp.route("/phone-number", methods=["POST"])
@@ -215,7 +268,7 @@ def update_phone():
     patient = current_patient()
     models.update_phone_number(patient["id"], request.form.get("phone_number", "").strip() or None)
     models.log_action("patient", patient["public_id"], "update_phone_number", target=patient["public_id"])
-    return redirect(url_for("patient.dashboard"))
+    return redirect(url_for("patient.profile"))
 
 
 @bp.route("/email", methods=["POST"])
@@ -232,10 +285,10 @@ def update_email():
         models.update_email(patient["id"], email)
     except models.EmailAlreadyUsed:
         flash("That email is already in use on another record.", "error")
-        return redirect(url_for("patient.dashboard"))
+        return redirect(url_for("patient.profile"))
     models.log_action("patient", patient["public_id"], "update_email", target=patient["public_id"])
     flash("Email updated.", "success")
-    return redirect(url_for("patient.dashboard"))
+    return redirect(url_for("patient.profile"))
 
 
 @bp.route("/antibiotics/add", methods=["GET", "POST"])
@@ -360,7 +413,7 @@ def scan_antibiotic_photo():
     # A photo can add more than one antibiotic at once, so (like the owner
     # side) this redirects to the record list rather than a single
     # antibiotic's result page.
-    return redirect(url_for("patient.dashboard"))
+    return redirect(url_for("patient.antibiotic_history"))
 
 
 @bp.route("/antibiotics/resolve-voice-audio", methods=["POST"])
